@@ -39,6 +39,10 @@ int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data);
 int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
               int alen);
 int addraw_l(struct nlmsghdr *n, int maxlen, const void *data, int len);
+struct rtattr *addattr_nest(struct nlmsghdr *n, int maxlen, int type);
+int addattr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
+struct rtattr *addattr_nest_compat(struct nlmsghdr *n, int maxlen, int type, const void *data, int len);
+int addattr_nest_compat_end(struct nlmsghdr *n, struct rtattr *nest);
 int rta_addattr8(struct rtattr *rta, int maxlen, int type, __u8 data);
 int rta_addattr16(struct rtattr *rta, int maxlen, int type, __u16 data);
 int rta_addattr32(struct rtattr *rta, int maxlen, int type, __u32 data);
