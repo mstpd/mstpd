@@ -136,12 +136,12 @@ static per_tree_port_t * create_ptp(tree_t *tree, port_t *prt)
     ptp->MSTID = tree->MSTID;
 
     ptp->state = BR_STATE_DISABLED;
-    assign(ptp->rcvdTc, boolFalse);
-    assign(ptp->tcProp, boolFalse);
-    assign(ptp->updtInfo, boolFalse);
+    ptp->rcvdTc = false;
+    ptp->tcProp = false;
+    ptp->updtInfo = false;
     /* 0x80 = default port priority (17.14 of 802.1D) */
     ptp->portId = __constant_cpu_to_be16(0x8000) | prt->port_number;
-    assign(ptp->master, boolFalse); /* 13.24.5 */
+    ptp->master = false; /* 13.24.5 */
     assign(ptp->AdminInternalPortPathCost, 0u);
     assign(ptp->InternalPortPathCost, compute_pcost(GET_PORT_SPEED(prt)));
     /* 802.1Q leaves portPriority and portTimes uninitialized */
@@ -178,7 +178,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     /* Initialize all fields except sysdeps and anchor */
     INIT_LIST_HEAD(&br->ports);
     INIT_LIST_HEAD(&br->trees);
-    assign(br->bridgeEnabled, boolFalse);
+    br->bridgeEnabled = false;
     memset(br->vid2fid, 0, sizeof(br->vid2fid));
     memset(br->fid2mstid, 0, sizeof(br->fid2mstid));
     assign(br->MstConfigId.s.selector, (__u8)0);
@@ -189,7 +189,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     assign(br->MstConfigId.s.revision_level, __constant_cpu_to_be16(0));
     RecalcConfigDigest(br); /* set br->MstConfigId.s.configuration_digest */
     assign(br->MaxHops, (__u8)20); /* 13.37.3 */
-    assign(br->ForceProtocolVersion, protoMSTP);
+    br->ForceProtocolVersion = protoMSTP;
     assign(br->Forward_Delay, __constant_cpu_to_be16(15)); /* 17.14 of 802.1D */
     assign(br->Max_Age, __constant_cpu_to_be16(20)); /* 17.14 of 802.1D */
     assign(br->Transmit_Hold_Count, 6u); /* 17.14 of 802.1D */
@@ -223,17 +223,17 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
      * and initially port is in down state and in this down state
      * duplex is set to false (half) */
     prt->AdminP2P = p2pAuto;
-    assign(prt->operPointToPointMAC, boolFalse);
-    assign(prt->portEnabled, boolFalse);
-    assign(prt->infoInternal, boolFalse);
-    assign(prt->rcvdInternal, boolFalse);
-    assign(prt->rcvdTcAck, boolFalse);
-    assign(prt->rcvdTcn, boolFalse);
-    assign(prt->restrictedRole, boolFalse); /* 13.25.14 */
-    assign(prt->restrictedTcn, boolFalse); /* 13.25.15 */
+    prt->operPointToPointMAC = false;
+    prt->portEnabled = false;
+    prt->infoInternal = false;
+    prt->rcvdInternal = false;
+    prt->rcvdTcAck = false;
+    prt->rcvdTcn = false;
+    prt->restrictedRole = false; /* 13.25.14 */
+    prt->restrictedTcn = false; /* 13.25.15 */
     assign(prt->ExternalPortPathCost, MAX_PATH_COST); /* 13.37.1 */
-    assign(prt->AdminEdgePort, boolFalse); /* 13.25 */
-    assign(prt->AutoEdge, boolTrue);       /* 13.25 */
+    prt->AdminEdgePort = false; /* 13.25 */
+    prt->AutoEdge = true;       /* 13.25 */
 
     /* The following are initialized in BEGIN state:
      * - mdelayWhile. mcheck, sendRSTP: in Port Protocol Migration SM
@@ -279,7 +279,7 @@ void MSTP_IN_delete_port(port_t *prt)
 
     if(prt->portEnabled)
     {
-        assign(prt->portEnabled, boolFalse);
+        prt->portEnabled = false;
         br_state_machines_run(br);
     }
 
@@ -298,7 +298,7 @@ void MSTP_IN_delete_bridge(bridge_t *br)
     tree_t *tree, *nxt_tree;
     port_t *prt, *nxt_prt;
 
-    assign(br->bridgeEnabled, boolFalse);
+    br->bridgeEnabled = false;
 
     /* We SHOULD first delete all ports and only THEN delete all tree_t
      * structures as the tree_t structure contains the head for the per-port
@@ -344,7 +344,7 @@ void MSTP_IN_set_bridge_enable(bridge_t *br, bool up)
 {
     if(br->bridgeEnabled == up)
         return;
-    assign(br->bridgeEnabled, up);
+    br->bridgeEnabled = up;
     br_state_machines_begin(br);
 }
 
@@ -393,13 +393,13 @@ void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex)
         }
         if(prt->operPointToPointMAC != new_p2p)
         {
-            assign(prt->operPointToPointMAC, new_p2p);
+            prt->operPointToPointMAC = new_p2p;
             changed = true;
         }
 
         if(!prt->portEnabled)
         {
-            assign(prt->portEnabled, boolTrue);
+            prt->portEnabled = true;
             changed = true;
         }
     }
@@ -407,7 +407,7 @@ void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex)
     {
         if(prt->portEnabled)
         {
-            assign(prt->portEnabled, boolFalse);
+            prt->portEnabled = false;
             changed = true;
         }
     }
@@ -447,7 +447,7 @@ void MSTP_IN_all_fids_flushed(per_tree_port_t *ptp)
     bridge_t *br = ptp->port->bridge;
     if(!br->bridgeEnabled)
         return;
-    assign(ptp->fdbFlush, boolFalse);
+    ptp->fdbFlush = false;
     TCSM_run(ptp);
     br_state_machines_run(br);
 }
@@ -541,7 +541,7 @@ bpdu_validation_failed:
     }
 
     assign(prt->rcvdBpduData, *bpdu);
-    assign(prt->rcvdBpdu, boolTrue);
+    prt->rcvdBpdu = true;
 
     br_state_machines_run(br);
 }
@@ -554,7 +554,7 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     assign(status->time_since_topology_change,
            cist->time_since_topology_change);
     assign(status->topology_change_count, cist->topology_change_count);
-    assign(status->topology_change, cist->topology_change);
+    status->topology_change = cist->topology_change;
     assign(status->designated_root, cist->rootPriority.RootID);
     assign(status->root_path_cost,
            __be32_to_cpu(cist->rootPriority.ExtRootPathCost));
@@ -568,8 +568,8 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     status->bridge_forward_delay = __be16_to_cpu(br->Forward_Delay);
     status->max_hops = br->MaxHops;
     assign(status->tx_hold_count, br->Transmit_Hold_Count);
-    assign(status->protocol_version, br->ForceProtocolVersion);
-    assign(status->enabled, br->bridgeEnabled);
+    status->protocol_version = br->ForceProtocolVersion;
+    status->enabled = br->bridgeEnabled;
 }
 
 /* 12.8.1.2 Read MSTI Bridge Protocol Parameters */
@@ -579,7 +579,7 @@ void MSTP_IN_get_msti_bridge_status(tree_t *tree, MSTI_BridgeStatus *status)
     assign(status->time_since_topology_change,
            tree->time_since_topology_change);
     assign(status->topology_change_count, tree->topology_change_count);
-    assign(status->topology_change, tree->topology_change);
+    status->topology_change = tree->topology_change;
     assign(status->regional_root, tree->rootPriority.RRootID);
     assign(status->internal_path_cost,
            __be32_to_cpu(tree->rootPriority.IntRootPathCost));
@@ -729,8 +729,8 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
          */
             FOREACH_PTP_IN_TREE(ptp, tree)
             {
-                assign(ptp->selected, boolFalse);
-                assign(ptp->reselect, boolTrue);
+                ptp->selected = false;
+                ptp->reselect = true;
             }
         }
     }
@@ -770,8 +770,8 @@ int MSTP_IN_set_msti_bridge_config(tree_t *tree, __u8 bridge_priority)
      *  because 12.8.1.3.4.c) requires it */
     FOREACH_PTP_IN_TREE(ptp, tree)
     {
-        assign(ptp->selected, boolFalse);
-        assign(ptp->reselect, boolTrue);
+        ptp->selected = false;
+        ptp->reselect = true;
     }
     return 0;
 }
@@ -796,18 +796,18 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     assign(status->designated_regional_root, cist->portPriority.RRootID);
     assign(status->designated_internal_cost,
            __be32_to_cpu(cist->portPriority.IntRootPathCost));
-    assign(status->tc_ack, prt->tcAck);
+    status->tc_ack = prt->tcAck;
     status->port_hello_time = __be16_to_cpu(cist->portTimes.Hello_Time);
-    assign(status->admin_edge_port, prt->AdminEdgePort);
-    assign(status->auto_edge_port, prt->AutoEdge);
-    assign(status->oper_edge_port, prt->operEdge);
-    assign(status->enabled, prt->portEnabled);
-    assign(status->admin_p2p, prt->AdminP2P);
-    assign(status->oper_p2p, prt->operPointToPointMAC);
-    assign(status->restricted_role, prt->restrictedRole);
-    assign(status->restricted_tcn, prt->restrictedTcn);
-    assign(status->role, cist->role);
-    assign(status->disputed, cist->disputed);
+    status->admin_edge_port = prt->AdminEdgePort;
+    status->auto_edge_port = prt->AutoEdge;
+    status->oper_edge_port = prt->operEdge;
+    status->enabled = prt->portEnabled;
+    status->admin_p2p = prt->AdminP2P;
+    status->oper_p2p = prt->operPointToPointMAC;
+    status->restricted_role = prt->restrictedRole;
+    status->restricted_tcn = prt->restrictedTcn;
+    status->role = cist->role;
+    status->disputed = cist->disputed;
     assign(status->admin_internal_port_path_cost,
            cist->AdminInternalPortPathCost);
     assign(status->internal_port_path_cost, cist->InternalPortPathCost);
@@ -829,8 +829,8 @@ void MSTP_IN_get_msti_port_status(per_tree_port_t *ptp,
            __be32_to_cpu(ptp->portPriority.IntRootPathCost));
     assign(status->designated_bridge, ptp->portPriority.DesignatedBridgeID);
     assign(status->designated_port, ptp->portPriority.DesignatedPortID);
-    assign(status->role, ptp->role);
-    assign(status->disputed, ptp->disputed);
+    status->role = ptp->role;
+    status->disputed = ptp->disputed;
 }
 
 /* 12.8.2.3 Set CIST port parameters */
@@ -870,8 +870,8 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
             changed = true;
             /* 12.8.2.3.4 */
             cist = GET_CIST_PTP_FROM_PORT(prt);
-            assign(cist->selected, boolFalse);
-            assign(cist->reselect, boolTrue);
+            cist->selected = false;
+            cist->reselect = true;
         }
     }
 
@@ -893,7 +893,7 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
         }
         if(prt->operPointToPointMAC != new_p2p)
         {
-            assign(prt->operPointToPointMAC, new_p2p);
+            prt->operPointToPointMAC = new_p2p;
             changed = true;
         }
     }
@@ -982,8 +982,8 @@ int MSTP_IN_set_msti_port_config(per_tree_port_t *ptp, MSTI_PortConfig *cfg)
     if(changed && prt->portEnabled)
     {
         /* 12.8.2.4.4 */
-        assign(ptp->selected, boolFalse);
-        assign(ptp->reselect, boolTrue);
+        ptp->selected = false;
+        ptp->reselect = true;
 
         br_state_machines_run(br);
     }
@@ -998,7 +998,7 @@ int MSTP_IN_port_mcheck(port_t *prt)
 
     if(rstpVersion(br) && prt->portEnabled && br->bridgeEnabled)
     {
-        assign(prt->mcheck, boolTrue);
+        prt->mcheck = true;
         br_state_machines_run(br);
     }
 
@@ -1480,7 +1480,7 @@ static void clearAllRcvdMsgs(port_t *prt)
     per_tree_port_t *ptp;
 
     FOREACH_PTP_IN_PORT(ptp, prt)
-        assign(ptp->rcvdMsg, boolFalse);
+        ptp->rcvdMsg = false;
 }
 
 /* 13.26.3 clearReselectTree */
@@ -1489,7 +1489,7 @@ static void clearReselectTree(tree_t *tree)
     per_tree_port_t *ptp;
 
     FOREACH_PTP_IN_TREE(ptp, tree)
-        assign(ptp->reselect, boolFalse);
+        ptp->reselect = false;
 }
 
 /* 13.26.4 fromSameRegion */
@@ -1520,9 +1520,9 @@ static void newTcWhile(per_tree_port_t *ptp)
         set_TopologyChange(tree, true);
 
         if(0 == ptp->MSTID)
-            assign(prt->newInfo, boolTrue);
+            prt->newInfo = true;
         else
-            assign(prt->newInfoMsti, boolTrue);
+            prt->newInfoMsti = true;
         return;
     }
 
@@ -1547,9 +1547,9 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
 
     if(bpduTypeTCN == b->bpduType)
     {
-        assign(prt->rcvdTcn, boolTrue);
+        prt->rcvdTcn = true;
         FOREACH_PTP_IN_PORT(ptp_1, prt)
-            assign(ptp_1->rcvdTc, boolTrue);
+            ptp_1->rcvdTc = true;
         return OtherInfo;
     }
 
@@ -1692,18 +1692,18 @@ static void recordAgreement(per_tree_port_t *ptp)
            && (b->flags & (1 << offsetAgreement))
           )
         {
-            assign(ptp->agreed, boolTrue);
-            assign(ptp->proposing, boolFalse);
+            ptp->agreed = true;
+            ptp->proposing = false;
         }
         else
-            assign(ptp->agreed, boolFalse);
+            ptp->agreed = false;
         cist_agreed = ptp->agreed;
         cist_proposing = ptp->proposing;
         if(!prt->rcvdInternal)
             list_for_each_entry_continue(ptp, &prt->trees, port_list)
             {
-                assign(ptp->agreed, cist_agreed);
-                assign(ptp->proposing, cist_proposing);
+                ptp->agreed = cist_agreed;
+                ptp->proposing = cist_proposing;
             }
         return;
     }
@@ -1716,11 +1716,11 @@ static void recordAgreement(per_tree_port_t *ptp)
        && (ptp->rcvdMstiConfig->flags & (1 << offsetAgreement))
       )
     {
-        assign(ptp->agreed, boolTrue);
-        assign(ptp->proposing, boolFalse);
+        ptp->agreed = true;
+        ptp->proposing = false;
     }
     else
-        assign(ptp->agreed, boolFalse);
+        ptp->agreed = false;
 }
 
 /* 13.26.8 recordDispute */
@@ -1743,13 +1743,13 @@ static void recordDispute(per_tree_port_t *ptp)
          */
         if(prt->rcvdBpduData.flags & (1 << offsetLearnig))
         {
-            assign(ptp->disputed, boolTrue);
-            assign(ptp->agreed, boolFalse);
+            ptp->disputed = true;
+            ptp->agreed = false;
             if(!prt->rcvdInternal)
                 list_for_each_entry_continue(ptp, &prt->trees, port_list)
                 {
-                    assign(ptp->disputed, boolTrue);
-                    assign(ptp->agreed, boolFalse);
+                    ptp->disputed = true;
+                    ptp->agreed = false;
                 }
         }
         return;
@@ -1757,8 +1757,8 @@ static void recordDispute(per_tree_port_t *ptp)
     /* MSTI */
     if(ptp->rcvdMstiConfig->flags & (1 << offsetLearnig))
     {
-        assign(ptp->disputed, boolTrue);
-        assign(ptp->agreed, boolFalse);
+        ptp->disputed = true;
+        ptp->agreed = false;
     }
 }
 
@@ -1771,7 +1771,7 @@ static void recordMastered(per_tree_port_t *ptp)
     { /* CIST */
         if(!prt->rcvdInternal)
             list_for_each_entry_continue(ptp, &prt->trees, port_list)
-                assign(ptp->mastered, boolFalse);
+                ptp->mastered = false;
         return;
     }
     /* MSTI */
@@ -1804,16 +1804,16 @@ static void recordProposal(per_tree_port_t *ptp)
     { /* CIST */
         prt = ptp->port;
         if(prt->rcvdBpduData.flags & (1 << offsetProposal))
-            assign(ptp->proposed, boolTrue);
+            ptp->proposed = true;
         cist_proposed = ptp->proposed;
         if(!prt->rcvdInternal)
             list_for_each_entry_continue(ptp, &prt->trees, port_list)
-                assign(ptp->proposed, cist_proposed);
+                ptp->proposed = cist_proposed;
         return;
     }
     /* MSTI */
     if(ptp->rcvdMstiConfig->flags & (1 << offsetProposal))
-        assign(ptp->proposed, boolTrue);
+        ptp->proposed = true;
 }
 
 /* 13.26.11 recordTimes */
@@ -1832,7 +1832,7 @@ static void set_fdbFlush(per_tree_port_t *ptp)
 
     if(prt->operEdge)
     {
-        assign(ptp->fdbFlush, boolFalse);
+        ptp->fdbFlush = false;
         return;
     }
 
@@ -1840,7 +1840,7 @@ static void set_fdbFlush(per_tree_port_t *ptp)
 
     if(rstpVersion(br))
     {
-        assign(ptp->fdbFlush, boolTrue);
+        ptp->fdbFlush = true;
         MSTP_OUT_flush_all_fids(ptp);
     }
     else
@@ -1851,7 +1851,7 @@ static void set_fdbFlush(per_tree_port_t *ptp)
         /* Initiate rapid ageing */
         MSTP_OUT_set_ageing_time(br, FwdDelay);
         assign(br->rapidAgeingWhile, FwdDelay);
-        assign(ptp->fdbFlush, boolFalse);
+        ptp->fdbFlush = false;
     }
 }
 
@@ -1914,7 +1914,7 @@ static void setReRootTree(tree_t *tree)
     per_tree_port_t *ptp;
 
     FOREACH_PTP_IN_TREE(ptp, tree)
-        assign(ptp->reRoot, boolTrue);
+        ptp->reRoot = true;
 }
 
 /* 13.26.14 setSelectedTree */
@@ -1935,7 +1935,7 @@ static void setSelectedTree(tree_t *tree)
      * and updtRolesTree() does not change value of "reselect".
      */
     FOREACH_PTP_IN_TREE(ptp, tree)
-        assign(ptp->selected, boolTrue);
+        ptp->selected = true;
 }
 
 /* 13.26.15 setSyncTree */
@@ -1944,7 +1944,7 @@ static void setSyncTree(tree_t *tree)
     per_tree_port_t *ptp;
 
     FOREACH_PTP_IN_TREE(ptp, tree)
-        assign(ptp->sync, boolTrue);
+        ptp->sync = true;
 }
 
 /* 13.26.16 setTcFlags */
@@ -1958,19 +1958,19 @@ static void setTcFlags(per_tree_port_t *ptp)
         prt = ptp->port;
         cistFlags = prt->rcvdBpduData.flags;
         if(cistFlags & (1 << offsetTcAck))
-            assign(prt->rcvdTcAck, boolTrue);
+            prt->rcvdTcAck = true;
         if(cistFlags & (1 << offsetTc))
         {
-            assign(ptp->rcvdTc, boolTrue);
+            ptp->rcvdTc = true;
             if(!prt->rcvdInternal)
                 list_for_each_entry_continue(ptp, &prt->trees, port_list)
-                    assign(ptp->proposed, boolTrue);
+                    ptp->proposed = true;
         }
         return;
     }
     /* MSTI */
     if(ptp->rcvdMstiConfig->flags & (1 << offsetTc))
-        assign(ptp->rcvdTc, boolTrue);
+        ptp->rcvdTc = true;
 }
 
 /* 13.26.17 setTcPropTree */
@@ -1984,7 +1984,7 @@ static void setTcPropTree(per_tree_port_t *ptp)
     FOREACH_PTP_IN_TREE(ptp_1, ptp->tree)
     {
         if(ptp != ptp_1)
-            assign(ptp_1->tcProp, boolTrue);
+            ptp_1->tcProp = true;
     }
 }
 
@@ -2002,10 +2002,10 @@ static void syncMaster(bridge_t *br)
             /* for each Port that has infoInternal set */
             if(ptp->port->infoInternal)
             {
-                assign(ptp->agree, boolFalse);
-                assign(ptp->agreed, boolFalse);
-                assign(ptp->synced, boolFalse);
-                assign(ptp->sync, boolTrue);
+                ptp->agree = false;
+                ptp->agreed = false;
+                ptp->synced = false;
+                ptp->sync = true;
             }
         }
     }
@@ -2172,9 +2172,9 @@ static void txTcn(port_t *prt)
 static void updtBPDUVersion(port_t *prt)
 {
     if(protoRSTP <= prt->rcvdBpduData.protocolVersion)
-        assign(prt->rcvdRSTP, boolTrue);
+        prt->rcvdRSTP = true;
     else
-        assign(prt->rcvdSTP, boolTrue);
+        prt->rcvdSTP = true;
 }
 
 /* 13.26.22 updtRcvdInfoWhile */
@@ -2200,7 +2200,7 @@ static void updtRolesDisabledTree(tree_t *tree)
     per_tree_port_t *ptp;
 
     FOREACH_PTP_IN_TREE(ptp, tree)
-        assign(ptp->selectedRole, roleDisabled);
+        ptp->selectedRole = roleDisabled;
 }
 
 /* 13.26.23 updtRolesTree */
@@ -2332,7 +2332,7 @@ static void updtRolesTree(tree_t *tree)
         /* f) Set Disabled role */
         if(ioDisabled == ptp->infoIs)
         {
-            assign(ptp->selectedRole, roleDisabled);
+            ptp->selectedRole = roleDisabled;
             continue;
         }
 
@@ -2343,24 +2343,24 @@ static void updtRolesTree(tree_t *tree)
             per_tree_port_t *cist_tree = GET_CIST_PTP_FROM_PORT(prt);
             if(roleRoot == cist_tree->selectedRole)
             {
-                assign(ptp->selectedRole, roleMaster);
+                ptp->selectedRole = roleMaster;
                 if(!samePriorityAndTimers(&ptp->portPriority,
                                           &ptp->designatedPriority,
                                           &ptp->portTimes,
                                           timesOfRootPort,
                                           /*cist*/ false))
-                    assign(ptp->updtInfo, boolTrue);
+                    ptp->updtInfo = true;
                 continue;
             }
             if(roleAlternate == cist_tree->selectedRole)
             {
-                assign(ptp->selectedRole, roleAlternate);
+                ptp->selectedRole = roleAlternate;
                 if(!samePriorityAndTimers(&ptp->portPriority,
                                           &ptp->designatedPriority,
                                           &ptp->portTimes,
                                           timesOfRootPort,
                                           /*cist*/ false))
-                    assign(ptp->updtInfo, boolTrue);
+                    ptp->updtInfo = true;
                 continue;
             }
         }
@@ -2369,20 +2369,20 @@ static void updtRolesTree(tree_t *tree)
             /* h) Set role for the aged info */
             if(ioAged == ptp->infoIs)
             {
-                assign(ptp->selectedRole, roleDesignated);
-                assign(ptp->updtInfo, boolTrue);
+                ptp->selectedRole = roleDesignated;
+                ptp->updtInfo = true;
                 continue;
             }
             /* i) Set role for the mine info */
             if(ioMine == ptp->infoIs)
             {
-                assign(ptp->selectedRole, roleDesignated);
+                ptp->selectedRole = roleDesignated;
                 if(!samePriorityAndTimers(&ptp->portPriority,
                                           &ptp->designatedPriority,
                                           &ptp->portTimes,
                                           timesOfRootPort,
                                           /*cist*/ false))
-                    assign(ptp->updtInfo, boolTrue);
+                    ptp->updtInfo = true;
                 continue;
             }
             if(ioReceived == ptp->infoIs)
@@ -2390,8 +2390,8 @@ static void updtRolesTree(tree_t *tree)
                 /* j) Set Root role */
                 if(root_ptp == ptp)
                 {
-                    assign(ptp->selectedRole, roleRoot);
-                    assign(ptp->updtInfo, boolFalse);
+                    ptp->selectedRole = roleRoot;
+                    ptp->updtInfo = false;
                     continue;
                 }
                 if(betterorsamePriority(&ptp->portPriority,
@@ -2402,22 +2402,22 @@ static void updtRolesTree(tree_t *tree)
                            tree->BridgeIdentifier))
                     {
                         /* k) Set Alternate role */
-                        assign(ptp->selectedRole, roleAlternate);
+                        ptp->selectedRole = roleAlternate;
                     }
                     else
                     {
                         /* l) Set Backup role */
-                        assign(ptp->selectedRole, roleBackup);
+                        ptp->selectedRole = roleBackup;
                     }
                     /* reset updtInfo for both k) and l) */
-                    assign(ptp->updtInfo, boolFalse);
+                    ptp->updtInfo = false;
                     continue;
                 }
                 else /* designatedPriority is better than portPriority */
                 {
                     /* m) Set Designated role */
-                    assign(ptp->selectedRole, roleDesignated);
-                    assign(ptp->updtInfo, boolTrue);
+                    ptp->selectedRole = roleDesignated;
+                    ptp->updtInfo = true;
                     continue;
                 }
             }
@@ -2464,9 +2464,9 @@ static void PRSM_to_DISCARD(port_t *prt/*, bool begin*/)
 {
     prt->PRSM_state = PRSM_DISCARD;
 
-    assign(prt->rcvdBpdu, boolFalse);
-    assign(prt->rcvdRSTP, boolFalse);
-    assign(prt->rcvdSTP, boolFalse);
+    prt->rcvdBpdu = false;
+    prt->rcvdRSTP = false;
+    prt->rcvdSTP = false;
     clearAllRcvdMsgs(prt);
     assign(prt->edgeDelayWhile, prt->bridge->Migrate_Time);
 
@@ -2482,8 +2482,8 @@ static void PRSM_to_RECEIVE(port_t *prt)
     updtBPDUVersion(prt);
     prt->rcvdInternal = fromSameRegion(prt);
     setRcvdMsgs(prt);
-    assign(prt->operEdge, boolFalse);
-    assign(prt->rcvdBpdu, boolFalse);
+    prt->operEdge = false;
+    prt->rcvdBpdu = false;
     assign(prt->edgeDelayWhile, prt->bridge->Migrate_Time);
 
     /* No need to run, no one condition will be met
@@ -2534,7 +2534,7 @@ static void PPMSM_to_CHECKING_RSTP(port_t *prt/*, bool begin*/)
     prt->PPMSM_state = PPMSM_CHECKING_RSTP;
 
     bridge_t *br = prt->bridge;
-    assign(prt->mcheck, boolFalse);
+    prt->mcheck = false;
     prt->sendRSTP = rstpVersion(br);
     assign(prt->mdelayWhile, br->Migrate_Time);
 
@@ -2547,7 +2547,7 @@ static void PPMSM_to_SELECTING_STP(port_t *prt)
 {
     prt->PPMSM_state = PPMSM_SELECTING_STP;
 
-    assign(prt->sendRSTP, boolFalse);
+    prt->sendRSTP = false;
     assign(prt->mdelayWhile, prt->bridge->Migrate_Time);
 
     PPMSM_run(prt);
@@ -2557,8 +2557,8 @@ static void PPMSM_to_SENSING(port_t *prt)
 {
     prt->PPMSM_state = PPMSM_SENSING;
 
-    assign(prt->rcvdRSTP, boolFalse);
-    assign(prt->rcvdSTP, boolFalse);
+    prt->rcvdRSTP = false;
+    prt->rcvdSTP = false;
 
     PPMSM_run(prt);
 }
@@ -2601,7 +2601,7 @@ static void BDSM_to_EDGE(port_t *prt/*, bool begin*/)
 {
     prt->BDSM_state = BDSM_EDGE;
 
-    assign(prt->operEdge, boolTrue);
+    prt->operEdge = true;
 
     /* No need to run, no one condition will be met
      * if(!begin)
@@ -2612,7 +2612,7 @@ static void BDSM_to_NOT_EDGE(port_t *prt/*, bool begin*/)
 {
     prt->BDSM_state = BDSM_NOT_EDGE;
 
-    assign(prt->operEdge, boolFalse);
+    prt->operEdge = false;
 
     /* No need to run, no one condition will be met
      * if(!begin)
@@ -2664,8 +2664,8 @@ static void PTSM_to_TRANSMIT_INIT(port_t *prt, bool begin)
 {
     prt->PTSM_state = PTSM_TRANSMIT_INIT;
 
-    assign(prt->newInfo, boolTrue);
-    assign(prt->newInfoMsti, boolTrue);
+    prt->newInfo = true;
+    prt->newInfoMsti = true;
     assign(prt->txCount, 0u);
 
     if(!begin && prt->portEnabled) /* prevent infinite loop */
@@ -2676,10 +2676,10 @@ static void PTSM_to_TRANSMIT_CONFIG(port_t *prt)
 {
     prt->PTSM_state = PTSM_TRANSMIT_CONFIG;
 
-    assign(prt->newInfo, boolFalse);
+    prt->newInfo = false;
     txConfig(prt);
     ++(prt->txCount);
-    assign(prt->tcAck, boolFalse);
+    prt->tcAck = false;
 
     PTSM_run(prt);
 }
@@ -2688,7 +2688,7 @@ static void PTSM_to_TRANSMIT_TCN(port_t *prt)
 {
     prt->PTSM_state = PTSM_TRANSMIT_TCN;
 
-    assign(prt->newInfo, boolFalse);
+    prt->newInfo = false;
     txTcn(prt);
     ++(prt->txCount);
 
@@ -2699,11 +2699,11 @@ static void PTSM_to_TRANSMIT_RSTP(port_t *prt)
 {
     prt->PTSM_state = PTSM_TRANSMIT_RSTP;
 
-    assign(prt->newInfo, boolFalse);
-    assign(prt->newInfoMsti, boolFalse);
+    prt->newInfo = false;
+    prt->newInfoMsti = false;
     txMstp(prt);
     ++(prt->txCount);
-    assign(prt->tcAck, boolFalse);
+    prt->tcAck = false;
 
     PTSM_run(prt);
 }
@@ -2781,7 +2781,7 @@ static void PTSM_run(port_t *prt)
                 /* allTransmitReady = false; */
                 return;
             }
-            assign(cistRole, ptp->role);
+            cistRole = ptp->role;
             mstiMasterPort = false;
             list_for_each_entry_continue(ptp, &prt->trees, port_list)
             {
@@ -2841,15 +2841,15 @@ static void PISM_to_DISABLED(per_tree_port_t *ptp, bool begin)
     PISM_LOG("");
     ptp->PISM_state = PISM_DISABLED;
 
-    assign(ptp->rcvdMsg, boolFalse);
-    assign(ptp->proposing, boolFalse);
-    assign(ptp->proposed, boolFalse);
-    assign(ptp->agree, boolFalse);
-    assign(ptp->agreed, boolFalse);
+    ptp->rcvdMsg = false;
+    ptp->proposing = false;
+    ptp->proposed = false;
+    ptp->agree = false;
+    ptp->agreed = false;
     assign(ptp->rcvdInfoWhile, 0u);
-    assign(ptp->infoIs, ioDisabled);
-    assign(ptp->reselect, boolTrue);
-    assign(ptp->selected, boolFalse);
+    ptp->infoIs = ioDisabled;
+    ptp->reselect = true;
+    ptp->selected = false;
 
     if(!begin)
         PISM_run(ptp);
@@ -2860,9 +2860,9 @@ static void PISM_to_AGED(per_tree_port_t *ptp)
     PISM_LOG("");
     ptp->PISM_state = PISM_AGED;
 
-    assign(ptp->infoIs, ioAged);
-    assign(ptp->reselect, boolTrue);
-    assign(ptp->selected, boolFalse);
+    ptp->infoIs = ioAged;
+    ptp->reselect = true;
+    ptp->selected = false;
 
     PISM_run(ptp);
 }
@@ -2872,20 +2872,20 @@ static void PISM_to_UPDATE(per_tree_port_t *ptp)
     PISM_LOG("");
     ptp->PISM_state = PISM_UPDATE;
 
-    assign(ptp->proposing, boolFalse);
-    assign(ptp->proposed, boolFalse);
+    ptp->proposing = false;
+    ptp->proposed = false;
     ptp->agreed = ptp->agreed && betterorsameInfo(ptp, ioMine);
     ptp->synced = ptp->synced && ptp->agreed;
     assign(ptp->portPriority, ptp->designatedPriority);
     assign(ptp->portTimes, ptp->designatedTimes);
-    assign(ptp->updtInfo, boolFalse);
-    assign(ptp->infoIs, ioMine);
+    ptp->updtInfo = false;
+    ptp->infoIs = ioMine;
     /* newInfoXst = TRUE; */
     port_t *prt = ptp->port;
     if(0 == ptp->MSTID)
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     PISM_run(ptp);
 }
@@ -2897,9 +2897,9 @@ static void PISM_to_SUPERIOR_DESIGNATED(per_tree_port_t *ptp)
 
     port_t *prt = ptp->port;
 
-    assign(prt->infoInternal, prt->rcvdInternal);
-    assign(ptp->agreed, boolFalse);
-    assign(ptp->proposing, boolFalse);
+    prt->infoInternal = prt->rcvdInternal;
+    ptp->agreed = false;
+    ptp->proposing = false;
     recordProposal(ptp);
     setTcFlags(ptp);
     ptp->agree = ptp->agree && betterorsameInfo(ptp, ioReceived);
@@ -2908,10 +2908,10 @@ static void PISM_to_SUPERIOR_DESIGNATED(per_tree_port_t *ptp)
     recordPriority(ptp);
     recordTimes(ptp);
     updtRcvdInfoWhile(ptp);
-    assign(ptp->infoIs, ioReceived);
-    assign(ptp->reselect, boolTrue);
-    assign(ptp->selected, boolFalse);
-    assign(ptp->rcvdMsg, boolFalse);
+    ptp->infoIs = ioReceived;
+    ptp->reselect = true;
+    ptp->selected = false;
+    ptp->rcvdMsg = false;
 
     PISM_run(ptp);
 }
@@ -2923,12 +2923,12 @@ static void PISM_to_REPEATED_DESIGNATED(per_tree_port_t *ptp)
 
     port_t *prt = ptp->port;
 
-    assign(prt->infoInternal, prt->rcvdInternal);
+    prt->infoInternal = prt->rcvdInternal;
     recordProposal(ptp);
     setTcFlags(ptp);
     recordAgreement(ptp);
     updtRcvdInfoWhile(ptp);
-    assign(ptp->rcvdMsg, boolFalse);
+    ptp->rcvdMsg = false;
 
     PISM_run(ptp);
 }
@@ -2939,7 +2939,7 @@ static void PISM_to_INFERIOR_DESIGNATED(per_tree_port_t *ptp)
     ptp->PISM_state = PISM_INFERIOR_DESIGNATED;
 
     recordDispute(ptp);
-    assign(ptp->rcvdMsg, boolFalse);
+    ptp->rcvdMsg = false;
 
     PISM_run(ptp);
 }
@@ -2951,7 +2951,7 @@ static void PISM_to_NOT_DESIGNATED(per_tree_port_t *ptp)
 
     recordAgreement(ptp);
     setTcFlags(ptp);
-    assign(ptp->rcvdMsg, boolFalse);
+    ptp->rcvdMsg = false;
 
     PISM_run(ptp);
 }
@@ -2961,7 +2961,7 @@ static void PISM_to_OTHER(per_tree_port_t *ptp)
     PISM_LOG("");
     ptp->PISM_state = PISM_OTHER;
 
-    assign(ptp->rcvdMsg, boolFalse);
+    ptp->rcvdMsg = false;
 
     PISM_run(ptp);
 }
@@ -3153,12 +3153,12 @@ static void PRTSM_to_INIT_PORT(per_tree_port_t *ptp/*, bool begin*/)
     unsigned int MaxAge, FwdDelay;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(ptp->port);
 
-    assign(ptp->role, roleDisabled);
-    assign(ptp->learn, boolFalse);
-    assign(ptp->forward, boolFalse);
-    assign(ptp->synced, boolFalse);
-    assign(ptp->sync, boolTrue);
-    assign(ptp->reRoot, boolTrue);
+    ptp->role = roleDisabled;
+    ptp->learn = false;
+    ptp->forward = false;
+    ptp->synced = false;
+    ptp->sync = true;
+    ptp->reRoot = true;
     /* 13.25.6 */
     FwdDelay = __be16_to_cpu(cist->designatedTimes.Forward_Delay);
     assign(ptp->rrWhile, FwdDelay);
@@ -3198,9 +3198,9 @@ static void PRTSM_to_DISABLE_PORT(per_tree_port_t *ptp)
      * Solution: do not follow the standard, and do role = roleDisabled
      *  instead of role = selectedRole.
      */
-    assign(ptp->role, roleDisabled);
-    assign(ptp->learn, boolFalse);
-    assign(ptp->forward, boolFalse);
+    ptp->role = roleDisabled;
+    ptp->learn = false;
+    ptp->forward = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3211,10 +3211,10 @@ static void PRTSM_to_DISABLED_PORT(per_tree_port_t *ptp, unsigned int MaxAge)
     ptp->PRTSM_state = PRTSM_DISABLED_PORT;
 
     assign(ptp->fdWhile, MaxAge);
-    assign(ptp->synced, boolTrue);
+    ptp->synced = true;
     assign(ptp->rrWhile, 0u);
-    assign(ptp->sync, boolFalse);
-    assign(ptp->reRoot, boolFalse);
+    ptp->sync = false;
+    ptp->reRoot = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3227,7 +3227,7 @@ static void PRTSM_to_MASTER_PROPOSED(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_MASTER_PROPOSED;
 
     setSyncTree(ptp->tree);
-    assign(ptp->proposed, boolFalse);
+    ptp->proposed = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3237,9 +3237,9 @@ static void PRTSM_to_MASTER_AGREED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_AGREED;
 
-    assign(ptp->proposed, boolFalse);
-    assign(ptp->sync, boolFalse);
-    assign(ptp->agree, boolTrue);
+    ptp->proposed = false;
+    ptp->sync = false;
+    ptp->agree = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3250,8 +3250,8 @@ static void PRTSM_to_MASTER_SYNCED(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_MASTER_SYNCED;
 
     assign(ptp->rrWhile, 0u);
-    assign(ptp->synced, boolTrue);
-    assign(ptp->sync, boolFalse);
+    ptp->synced = true;
+    ptp->sync = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3261,7 +3261,7 @@ static void PRTSM_to_MASTER_RETIRED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_RETIRED;
 
-    assign(ptp->reRoot, boolFalse);
+    ptp->reRoot = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3271,9 +3271,9 @@ static void PRTSM_to_MASTER_FORWARD(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_FORWARD;
 
-    assign(ptp->forward, boolTrue);
+    ptp->forward = true;
     assign(ptp->fdWhile, 0u);
-    assign(ptp->agreed, ptp->port->sendRSTP);
+    ptp->agreed = ptp->port->sendRSTP;
 
     PRTSM_runr(ptp, true);
 }
@@ -3283,7 +3283,7 @@ static void PRTSM_to_MASTER_LEARN(per_tree_port_t *ptp, unsigned int forwardDela
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_LEARN;
 
-    assign(ptp->learn, boolTrue);
+    ptp->learn = true;
     assign(ptp->fdWhile, forwardDelay);
 
     PRTSM_runr(ptp, true);
@@ -3294,9 +3294,9 @@ static void PRTSM_to_MASTER_DISCARD(per_tree_port_t *ptp, unsigned int forwardDe
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_DISCARD;
 
-    assign(ptp->learn, boolFalse);
-    assign(ptp->forward, boolFalse);
-    assign(ptp->disputed, boolFalse);
+    ptp->learn = false;
+    ptp->forward = false;
+    ptp->disputed = false;
     assign(ptp->fdWhile, forwardDelay);
 
     PRTSM_runr(ptp, true);
@@ -3307,7 +3307,7 @@ static void PRTSM_to_MASTER_PORT(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_MASTER_PORT;
 
-    assign(ptp->role, roleMaster);
+    ptp->role = roleMaster;
 
     PRTSM_runr(ptp, true);
 }
@@ -3320,7 +3320,7 @@ static void PRTSM_to_ROOT_PROPOSED(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_ROOT_PROPOSED;
 
     setSyncTree(ptp->tree);
-    assign(ptp->proposed, boolFalse);
+    ptp->proposed = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3330,15 +3330,15 @@ static void PRTSM_to_ROOT_AGREED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_ROOT_AGREED;
 
-    assign(ptp->proposed, boolFalse);
-    assign(ptp->sync, boolFalse);
-    assign(ptp->agree, boolTrue);
+    ptp->proposed = false;
+    ptp->sync = false;
+    ptp->agree = true;
     /* newInfoXst = TRUE; */
     port_t *prt = ptp->port;
     if(0 == ptp->MSTID)
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3348,8 +3348,8 @@ static void PRTSM_to_ROOT_SYNCED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_ROOT_SYNCED;
 
-    assign(ptp->synced, boolTrue);
-    assign(ptp->sync, boolFalse);
+    ptp->synced = true;
+    ptp->sync = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3370,7 +3370,7 @@ static void PRTSM_to_ROOT_FORWARD(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_ROOT_FORWARD;
 
     assign(ptp->fdWhile, 0u);
-    assign(ptp->forward, boolTrue);
+    ptp->forward = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3381,7 +3381,7 @@ static void PRTSM_to_ROOT_LEARN(per_tree_port_t *ptp, unsigned int forwardDelay)
     ptp->PRTSM_state = PRTSM_ROOT_LEARN;
 
     assign(ptp->fdWhile, forwardDelay);
-    assign(ptp->learn, boolTrue);
+    ptp->learn = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3391,7 +3391,7 @@ static void PRTSM_to_REROOTED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_REROOTED;
 
-    assign(ptp->reRoot, boolFalse);
+    ptp->reRoot = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3401,7 +3401,7 @@ static void PRTSM_to_ROOT_PORT(per_tree_port_t *ptp, unsigned int FwdDelay)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_ROOT_PORT;
 
-    assign(ptp->role, roleRoot);
+    ptp->role = roleRoot;
     assign(ptp->rrWhile, FwdDelay);
 
     PRTSM_runr(ptp, true);
@@ -3416,7 +3416,7 @@ static void PRTSM_to_DESIGNATED_PROPOSE(per_tree_port_t *ptp)
 
     port_t *prt = ptp->port;
 
-    assign(ptp->proposing, boolTrue);
+    ptp->proposing = true;
     /* newInfoXst = TRUE; */
     if(0 == ptp->MSTID)
     { /* CIST */
@@ -3427,10 +3427,10 @@ static void PRTSM_to_DESIGNATED_PROPOSE(per_tree_port_t *ptp)
                                    prt->bridge->Migrate_Time
                                  : MaxAge;
         assign(prt->edgeDelayWhile, EdgeDelay);
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     }
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3440,15 +3440,15 @@ static void PRTSM_to_DESIGNATED_AGREED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_AGREED;
 
-    assign(ptp->proposed, boolFalse);
-    assign(ptp->sync, boolFalse);
-    assign(ptp->agree, boolTrue);
+    ptp->proposed = false;
+    ptp->sync = false;
+    ptp->agree = true;
     /* newInfoXst = TRUE; */
     port_t *prt = ptp->port;
     if(0 == ptp->MSTID)
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3459,8 +3459,8 @@ static void PRTSM_to_DESIGNATED_SYNCED(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_DESIGNATED_SYNCED;
 
     assign(ptp->rrWhile, 0u);
-    assign(ptp->synced, boolTrue);
-    assign(ptp->sync, boolFalse);
+    ptp->synced = true;
+    ptp->sync = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3470,7 +3470,7 @@ static void PRTSM_to_DESIGNATED_RETIRED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_RETIRED;
 
-    assign(ptp->reRoot, boolFalse);
+    ptp->reRoot = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3480,9 +3480,9 @@ static void PRTSM_to_DESIGNATED_FORWARD(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_FORWARD;
 
-    assign(ptp->forward, boolTrue);
+    ptp->forward = true;
     assign(ptp->fdWhile, 0u);
-    assign(ptp->agreed, ptp->port->sendRSTP);
+    ptp->agreed = ptp->port->sendRSTP;
 
     PRTSM_runr(ptp, true);
 }
@@ -3492,7 +3492,7 @@ static void PRTSM_to_DESIGNATED_LEARN(per_tree_port_t *ptp, unsigned int forward
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_LEARN;
 
-    assign(ptp->learn, boolTrue);
+    ptp->learn = true;
     assign(ptp->fdWhile, forwardDelay);
 
     PRTSM_runr(ptp, true);
@@ -3503,9 +3503,9 @@ static void PRTSM_to_DESIGNATED_DISCARD(per_tree_port_t *ptp, unsigned int forwa
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_DISCARD;
 
-    assign(ptp->learn, boolFalse);
-    assign(ptp->forward, boolFalse);
-    assign(ptp->disputed, boolFalse);
+    ptp->learn = false;
+    ptp->forward = false;
+    ptp->disputed = false;
     assign(ptp->fdWhile, forwardDelay);
 
     PRTSM_runr(ptp, true);
@@ -3516,7 +3516,7 @@ static void PRTSM_to_DESIGNATED_PORT(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_DESIGNATED_PORT;
 
-    assign(ptp->role, roleDesignated);
+    ptp->role = roleDesignated;
 
     PRTSM_runr(ptp, true);
 }
@@ -3528,9 +3528,9 @@ static void PRTSM_to_BLOCK_PORT(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_BLOCK_PORT;
 
-    assign(ptp->role, ptp->selectedRole);
-    assign(ptp->learn, boolFalse);
-    assign(ptp->forward, boolFalse);
+    ptp->role = ptp->selectedRole;
+    ptp->learn = false;
+    ptp->forward = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3551,7 +3551,7 @@ static void PRTSM_to_ALTERNATE_PROPOSED(per_tree_port_t *ptp)
     ptp->PRTSM_state = PRTSM_ALTERNATE_PROPOSED;
 
     setSyncTree(ptp->tree);
-    assign(ptp->proposed, boolFalse);
+    ptp->proposed = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3561,14 +3561,14 @@ static void PRTSM_to_ALTERNATE_AGREED(per_tree_port_t *ptp)
     PRTSM_LOG("");
     ptp->PRTSM_state = PRTSM_ALTERNATE_AGREED;
 
-    assign(ptp->proposed, boolFalse);
-    assign(ptp->agree, boolTrue);
+    ptp->proposed = false;
+    ptp->agree = true;
     /* newInfoXst = TRUE; */
     port_t *prt = ptp->port;
     if(0 == ptp->MSTID)
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     PRTSM_runr(ptp, true);
 }
@@ -3579,10 +3579,10 @@ static void PRTSM_to_ALTERNATE_PORT(per_tree_port_t *ptp, unsigned int forwardDe
     ptp->PRTSM_state = PRTSM_ALTERNATE_PORT;
 
     assign(ptp->fdWhile, forwardDelay);
-    assign(ptp->synced, boolTrue);
+    ptp->synced = true;
     assign(ptp->rrWhile, 0u);
-    assign(ptp->sync, boolFalse);
-    assign(ptp->reRoot, boolFalse);
+    ptp->sync = false;
+    ptp->reRoot = false;
 
     PRTSM_runr(ptp, true);
 }
@@ -3970,8 +3970,8 @@ static void PSTSM_to_DISCARDING(per_tree_port_t *ptp, bool begin)
     */
     if(BR_STATE_BLOCKING != ptp->state)
         MSTP_OUT_set_state(ptp, BR_STATE_BLOCKING);
-    assign(ptp->learning, boolFalse);
-    assign(ptp->forwarding, boolFalse);
+    ptp->learning = false;
+    ptp->forwarding = false;
 
     if(!begin)
         PSTSM_run(ptp);
@@ -3984,7 +3984,7 @@ static void PSTSM_to_LEARNING(per_tree_port_t *ptp)
     /* enableLearning(); */
     if(BR_STATE_LEARNING != ptp->state)
         MSTP_OUT_set_state(ptp, BR_STATE_LEARNING);
-    assign(ptp->learning, boolTrue);
+    ptp->learning = true;
 
     PSTSM_run(ptp);
 }
@@ -3996,7 +3996,7 @@ static void PSTSM_to_FORWARDING(per_tree_port_t *ptp)
     /* enableForwarding(); */
     if(BR_STATE_FORWARDING != ptp->state)
         MSTP_OUT_set_state(ptp, BR_STATE_FORWARDING);
-    assign(ptp->forwarding, boolTrue);
+    ptp->forwarding = true;
 
     /* No need to run, no one condition will be met
       PSTSM_run(ptp); */
@@ -4035,7 +4035,7 @@ static void TCSM_to_INACTIVE(per_tree_port_t *ptp, bool begin)
     assign(ptp->tcWhile, 0u);
     set_TopologyChange(ptp->tree, false);
     if(0 == ptp->MSTID) /* CIST */
-        assign(ptp->port->tcAck, boolFalse);
+        ptp->port->tcAck = false;
 
     if(!begin)
         TCSM_run(ptp);
@@ -4048,11 +4048,11 @@ static void TCSM_to_LEARNING(per_tree_port_t *ptp)
     if(0 == ptp->MSTID) /* CIST */
     {
         port_t *prt = ptp->port;
-        assign(prt->rcvdTcn, boolFalse);
-        assign(prt->rcvdTcAck, boolFalse);
+        prt->rcvdTcn = false;
+        prt->rcvdTcAck = false;
     }
-    assign(ptp->rcvdTc, boolFalse);
-    assign(ptp->tcProp, boolFalse);
+    ptp->rcvdTc = false;
+    ptp->tcProp = false;
 
     TCSM_run(ptp);
 }
@@ -4066,9 +4066,9 @@ static void TCSM_to_DETECTED(per_tree_port_t *ptp)
     /* newInfoXst = TRUE; */
     port_t *prt = ptp->port;
     if(0 == ptp->MSTID)
-        assign(prt->newInfo, boolTrue);
+        prt->newInfo = true;
     else
-        assign(prt->newInfoMsti, boolTrue);
+        prt->newInfoMsti = true;
 
     TCSM_run(ptp);
 }
@@ -4086,13 +4086,13 @@ static void TCSM_to_NOTIFIED_TC(per_tree_port_t *ptp)
 {
     ptp->TCSM_state = TCSM_NOTIFIED_TC;
 
-    assign(ptp->rcvdTc, boolFalse);
+    ptp->rcvdTc = false;
     if(0 == ptp->MSTID) /* CIST */
     {
         port_t *prt = ptp->port;
-        assign(prt->rcvdTcn, boolFalse);
+        prt->rcvdTcn = false;
         if(roleDesignated == ptp->role)
-            assign(prt->tcAck, boolTrue);
+            prt->tcAck = true;
     }
     setTcPropTree(ptp);
 
@@ -4105,7 +4105,7 @@ static void TCSM_to_PROPAGATING(per_tree_port_t *ptp)
 
     newTcWhile(ptp);
     set_fdbFlush(ptp);
-    assign(ptp->tcProp, boolFalse);
+    ptp->tcProp = false;
 
     TCSM_run(ptp);
 }
@@ -4116,7 +4116,7 @@ static void TCSM_to_ACKNOWLEDGED(per_tree_port_t *ptp)
 
     assign(ptp->tcWhile, 0u);
     set_TopologyChange(ptp->tree, false);
-    assign(ptp->port->rcvdTcAck, boolFalse);
+    ptp->port->rcvdTcAck = false;
 
     TCSM_run(ptp);
 }

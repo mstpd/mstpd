@@ -40,10 +40,6 @@
     memcmp(&_cmp1, &_cmp2, sizeof(_cmp1)); })
 #define cmp(x, _op, y) (_ncmp((x), (y)) _op 0)
 
-/* Stricter version of bool constants, for the assign macro */
-#define boolFalse   ((bool)false)
-#define boolTrue    ((bool)true)
-
 /* 13.7, Table 13-1 */
 #define HMAC_KEY    {0x13, 0xAC, 0x06, 0xA6, 0x2E, 0x47, 0xFD, 0x51, \
                      0xF9, 0x5D, 0x2B, 0xA2, 0x43, 0xCD, 0x03, 0x46}
@@ -187,20 +183,20 @@ typedef enum
 
 typedef enum
 {
-    _io_Disabled,
-    _io_Mine,
-    _io_Aged,
-    _io_Received
+    ioDisabled,
+    ioMine,
+    ioAged,
+    ioReceived
 } port_info_origin_t;
 
 typedef enum
 {
-    _pr_Disabled,
-    _pr_Root,
-    _pr_Designated,
-    _pr_Alternate,
-    _pr_Backup,
-    _pr_Master
+    roleDisabled,
+    roleRoot,
+    roleDesignated,
+    roleAlternate,
+    roleBackup,
+    roleMaster
 } port_role_t;
 
 typedef enum
@@ -213,9 +209,9 @@ typedef enum
 
 typedef enum
 {
-    _pv_STP = 0,
-    _pv_RSTP = 2,
-    _pv_MSTP = 3
+    protoSTP = 0,
+    protoRSTP = 2,
+    protoMSTP = 3
 } protocol_version_t;
 
 typedef enum
@@ -249,24 +245,6 @@ typedef enum
     p2pForceFalse
 }
 admin_p2p_t;
-
-/* Stricter version of port_info_origin & port_role & protocol_version
- * constants, for the assign macro */
-#define ioDisabled  ((port_info_origin_t)_io_Disabled)
-#define ioMine      ((port_info_origin_t)_io_Mine)
-#define ioAged      ((port_info_origin_t)_io_Aged)
-#define ioReceived  ((port_info_origin_t)_io_Received)
-
-#define roleDisabled    ((port_role_t)_pr_Disabled)
-#define roleRoot        ((port_role_t)_pr_Root)
-#define roleDesignated  ((port_role_t)_pr_Designated)
-#define roleAlternate   ((port_role_t)_pr_Alternate)
-#define roleBackup      ((port_role_t)_pr_Backup)
-#define roleMaster      ((port_role_t)_pr_Master)
-
-#define protoSTP    ((protocol_version_t)_pv_STP)
-#define protoRSTP   ((protocol_version_t)_pv_RSTP)
-#define protoMSTP   ((protocol_version_t)_pv_MSTP)
 
 /* 13.28  Port Receive state machine */
 typedef enum
