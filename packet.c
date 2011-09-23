@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <linux/if_packet.h>
 #include <linux/filter.h>
+#include <asm/byteorder.h>
 
 #include "epoll_loop.h"
 #include "netif_utils.h"
@@ -66,7 +67,7 @@ void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len)
     struct sockaddr_ll sl =
     {
         .sll_family = AF_PACKET,
-        .sll_protocol = htons(ETH_P_802_2),
+        .sll_protocol = __constant_cpu_to_be16(ETH_P_802_2),
         .sll_ifindex = ifindex,
         .sll_halen = ETH_ALEN,
     };

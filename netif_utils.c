@@ -38,7 +38,7 @@
 
 #include "log.h"
 
-int netsock = -1;
+static int netsock = -1;
 
 int netsock_init(void)
 {

@@ -1010,7 +1010,7 @@ static void command_helpall(void)
     }
 }
 
-static void help()
+static void help(void)
 {
     printf("Usage: mstpctl [commands]\n");
     printf("commands:\n");

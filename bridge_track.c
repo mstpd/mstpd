@@ -29,6 +29,7 @@
 #include <asm/byteorder.h>
 
 #include "bridge_ctl.h"
+#include "ctl_functions.h"
 #include "netif_utils.h"
 #include "packet.h"
 #include "log.h"

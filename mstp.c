@@ -1583,7 +1583,7 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
             /* 13.26.6.NOTE: A Configuration BPDU implicitly conveys a
              *   Designated Port Role */
             roleIsDesignated = true;
-            assign(mPri->IntRootPathCost, 0u);
+            assign(mPri->IntRootPathCost, __constant_cpu_to_be32(0));
             assign(mPri->DesignatedBridgeID, b->cistRRootID);
             /* messageTimes.remainingHops */
             assign(mTimes->remainingHops, prt->bridge->MaxHops);
