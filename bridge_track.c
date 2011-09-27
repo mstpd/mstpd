@@ -27,6 +27,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <linux/param.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
 
@@ -469,6 +470,20 @@ static int br_flush_port(char *ifname)
     return 0;
 }
 
+static int br_set_ageing_time(char *brname, unsigned int ageing_time)
+{
+    char fname[128], str_time[32];
+    snprintf(fname, sizeof(fname), "/sys/class/net/%s/bridge/ageing_time",
+             brname);
+    int fd = open(fname, O_WRONLY);
+    TSTM(0 <= fd, -1, "Couldn't open file %s for write: %m", fname);
+    int len = sprintf(str_time, "%u", ageing_time * HZ);
+    int write_result = write(fd, str_time, len);
+    close(fd);
+    TST(len == write_result, -1);
+    return 0;
+}
+
 /* External actions for MSTP protocol */
 
 void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
@@ -537,10 +552,19 @@ void MSTP_OUT_flush_all_fids(per_tree_port_t * ptp)
     driver_flush_all_fids(ptp);
 }
 
-/* ageingTime < 0 => command driver to use its internal setting */
-void MSTP_OUT_set_ageing_time(bridge_t * br, int ageingTime)
+/* 802.1Q-2005 wants per-port ageing time.
+ * We do not support it, so set ageing time for the whole bridge.
+ */
+void MSTP_OUT_set_ageing_time(bridge_t * br, unsigned int ageingTime)
 {
-    /* TODO: do set new ageing time */
+    unsigned int actual_ageing_time;
+
+    actual_ageing_time = driver_set_ageing_time(br, ageingTime);
+    INFO_BRNAME(br, "Setting new ageing time to %u", actual_ageing_time);
+
+    /* Translate new ageing time to the kernel bridge code */
+    if(0 > br_set_ageing_time(br->sysdeps.name, actual_ageing_time))
+        ERROR_BRNAME(br, "Couldn't set new ageing time in kernel bridge");
 }
 
 void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)

@@ -392,6 +392,7 @@ typedef struct
     __u8 Max_Age;             /* 13.22.i */
     unsigned int Transmit_Hold_Count; /* 13.22.g */
     unsigned int Migrate_Time;        /* 13.22.h */
+    unsigned int Ageing_Time;  /* 8.8.3 */
     unsigned int rapidAgeingWhile;
 
     __u16 vid2fid[MAX_VID + 1];
@@ -562,7 +563,7 @@ void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name);
 /* External actions (outputs) */
 void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state);
 void MSTP_OUT_flush_all_fids(per_tree_port_t *ptp);
-void MSTP_OUT_set_ageing_time(bridge_t *br, int ageingTime);
+void MSTP_OUT_set_ageing_time(bridge_t *br, unsigned int ageingTime);
 void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t *bpdu, int size);
 
 /* Structures for communicating with user */

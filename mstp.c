@@ -196,6 +196,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     assign(br->Max_Age, (__u8)20);       /* 17.14 of 802.1D */
     assign(br->Transmit_Hold_Count, 6u); /* 17.14 of 802.1D */
     assign(br->Migrate_Time, 3u); /* 17.14 of 802.1D */
+    assign(br->Ageing_Time, 300u);/* 8.8.3 Table 8-3 */
     assign(br->rapidAgeingWhile, 0u);
 
     br->uptime = 0;
@@ -438,7 +439,7 @@ void MSTP_IN_one_second(bridge_t *br)
     if(br->rapidAgeingWhile)
     {
         if((--(br->rapidAgeingWhile)) == 0)
-            MSTP_OUT_set_ageing_time(br, -1);
+            MSTP_OUT_set_ageing_time(br, br->Ageing_Time);
     }
 
     br_state_machines_run(br);
