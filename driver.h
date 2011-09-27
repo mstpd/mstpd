@@ -13,5 +13,6 @@
 #define _MSTP_DRIVER_H
 
 int driver_set_new_state(per_tree_port_t *ptp, int new_state);
+void driver_flush_all_fids(per_tree_port_t *ptp);
 
 #endif /* _MSTP_DRIVER_H */

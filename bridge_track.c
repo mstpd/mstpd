@@ -25,6 +25,8 @@
 ******************************************************************************/
 
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
 
@@ -455,6 +457,18 @@ static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
     return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
 }
 
+static int br_flush_port(char *ifname)
+{
+    char fname[128];
+    snprintf(fname, sizeof(fname), "/sys/class/net/%s/brport/flush", ifname);
+    int fd = open(fname, O_WRONLY);
+    TSTM(0 <= fd, -1, "Couldn't open flush file %s for write: %m", fname);
+    int write_result = write(fd, "1", 1);
+    close(fd);
+    TST(1 == write_result, -1);
+    return 0;
+}
+
 /* External actions for MSTP protocol */
 
 void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
@@ -508,11 +522,19 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
  */
 void MSTP_OUT_flush_all_fids(per_tree_port_t * ptp)
 {
-    /* TODO: do real flushing.
-     * Make it asynchronous, with completion function calling
-     * MSTP_IN_all_fids_flushed(ptp)
-     */
-    MSTP_IN_all_fids_flushed(ptp);
+    port_t *ifc = ptp->port;
+    bridge_t *br = ifc->bridge;
+
+    /* Translate CIST flushing to the kernel bridge code */
+    if(0 == ptp->MSTID)
+    { /* CIST */
+        if(0 > br_flush_port(ifc->sysdeps.name))
+            ERROR_PRTNAME(br, ifc,
+                          "Couldn't flush kernel bridge forwarding database");
+    }
+    /* Completion signal MSTP_IN_all_fids_flushed will be called by driver */
+    INFO_MSTINAME(br, ifc, ptp, "Flushing forwarding database");
+    driver_flush_all_fids(ptp);
 }
 
 /* ageingTime < 0 => command driver to use its internal setting */

@@ -26,3 +26,12 @@ int driver_set_new_state(per_tree_port_t *ptp, int new_state)
     /* TODO: insert driver-specific code here */
     return new_state;
 }
+
+void driver_flush_all_fids(per_tree_port_t *ptp)
+{
+    /* TODO: do real flushing.
+     * Make it asynchronous, with completion function calling
+     * MSTP_IN_all_fids_flushed(ptp)
+     */
+    MSTP_IN_all_fids_flushed(ptp);
+}
