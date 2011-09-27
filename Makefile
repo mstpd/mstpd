@@ -1,7 +1,7 @@
 version := 0.01
 
 DSOURCES = main.c epoll_loop.c brmon.c bridge_track.c libnetlink.c mstp.c \
-           packet.c netif_utils.c ctl_socket_server.c hmac_md5.c
+           packet.c netif_utils.c ctl_socket_server.c hmac_md5.c driver_deps.c
 
 DOBJECTS = $(DSOURCES:.c=.o)
 

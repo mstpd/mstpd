@@ -1,20 +1,21 @@
 # DO NOT DELETE
 
-bridge_track.o: bridge_ctl.h netif_utils.h packet.h log.h ctl_socket_server.h
-bridge_track.o: mstp.h
+bridge_track.o: bridge_ctl.h ctl_functions.h mstp.h list.h netif_utils.h
+bridge_track.o: packet.h log.h ctl_socket_server.h driver.h libnetlink.h
 brmon.o: libnetlink.h bridge_ctl.h netif_utils.h epoll_loop.h
-ctl_main.o: ctl_socket_client.h ctl_functions.h mstp.h bridge_ctl.h log.h
-ctl_main.o: ctl_socket_server.h
-ctl_socket_client.o: ctl_functions.h mstp.h bridge_ctl.h log.h
+ctl_main.o: ctl_socket_client.h ctl_functions.h mstp.h bridge_ctl.h list.h
+ctl_main.o: log.h ctl_socket_server.h
+ctl_socket_client.o: ctl_functions.h mstp.h bridge_ctl.h list.h log.h
 ctl_socket_client.o: ctl_socket_server.h
 ctl_socket_server.o: ctl_socket_client.h ctl_functions.h mstp.h bridge_ctl.h
-ctl_socket_server.o: epoll_loop.h log.h ctl_socket_server.h
+ctl_socket_server.o: list.h epoll_loop.h log.h ctl_socket_server.h
+driver_deps.o: log.h ctl_socket_server.h mstp.h bridge_ctl.h list.h
 epoll_loop.o: epoll_loop.h bridge_ctl.h
-hmac_md5.o: mstp.h bridge_ctl.h
+hmac_md5.o: mstp.h bridge_ctl.h list.h
 libnetlink.o: libnetlink.h
 main.o: epoll_loop.h bridge_ctl.h netif_utils.h packet.h log.h
-main.o: ctl_socket_server.h mstp.h
-mstp.o: mstp.h bridge_ctl.h log.h ctl_socket_server.h
+main.o: ctl_socket_server.h mstp.h list.h
+mstp.o: mstp.h bridge_ctl.h list.h log.h ctl_socket_server.h
 netif_utils.o: log.h ctl_socket_server.h
 packet.o: epoll_loop.h netif_utils.h bridge_ctl.h packet.h log.h
 packet.o: ctl_socket_server.h
