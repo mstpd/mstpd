@@ -1555,18 +1555,6 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
 
     if(0 == ptp->MSTID)
     { /* CIST */
-        switch(BPDU_FLAGS_ROLE_GET(b->flags))
-        {
-            case encodedRoleAlternateBackup:
-            case encodedRoleRoot:
-                roleIsDesignated = false;
-                break;
-            case encodedRoleDesignated:
-                roleIsDesignated = true;
-                break;
-            default:
-                return OtherInfo;
-        }
         cist = true;
 
         assign(mPri->RRootID, b->cistRRootID);
@@ -1590,6 +1578,18 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
         }
         else
         { /* MST BPDU */
+            switch(BPDU_FLAGS_ROLE_GET(b->flags))
+            {
+                case encodedRoleAlternateBackup:
+                case encodedRoleRoot:
+                    roleIsDesignated = false;
+                    break;
+                case encodedRoleDesignated:
+                    roleIsDesignated = true;
+                    break;
+                default:
+                    return OtherInfo;
+            }
             assign(mPri->IntRootPathCost, b->cistIntRootPathCost);
             assign(mPri->DesignatedBridgeID, b->cistBridgeID);
             /* messageTimes.remainingHops */
