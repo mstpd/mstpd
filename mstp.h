@@ -113,10 +113,10 @@ typedef struct
 {
     __u8 remainingHops;
     /* not used for MSTIs, only for CIST */
-    __be16 Forward_Delay;
-    __be16 Max_Age;
-    __be16 Message_Age;
-    __be16 Hello_Time;
+    __u8 Forward_Delay;
+    __u8 Max_Age;
+    __u8 Message_Age;
+    __u8 Hello_Time;
 } times_t;
 
 typedef struct
@@ -150,10 +150,10 @@ typedef struct
     __be32 cistExtRootPathCost;
     bridge_identifier_t cistRRootID;
     port_identifier_t cistPortID;
-    __be16 MessageAge;
-    __be16 MaxAge;
-    __be16 HelloTime;
-    __be16 ForwardDelay;
+    __u8 MessageAge[2];
+    __u8 MaxAge[2];
+    __u8 HelloTime[2];
+    __u8 ForwardDelay[2];
     /* Config BPDU ends here */
     __u8 version1_len; /* always zero */
     /* RST BPDU ends here */
@@ -386,10 +386,10 @@ typedef struct
 
     /* Per-bridge configuration parameters */
     mst_configuration_identifier_t MstConfigId; /* 13.24.b */
-    __u8 MaxHops;              /* 13.22.o */
     protocol_version_t ForceProtocolVersion; /* 13.22.e */
-    __be16 Forward_Delay;      /* 13.22.f */
-    __be16 Max_Age;            /* 13.22.i */
+    __u8 MaxHops;             /* 13.22.o */
+    __u8 Forward_Delay;       /* 13.22.f */
+    __u8 Max_Age;             /* 13.22.i */
     unsigned int Transmit_Hold_Count; /* 13.22.g */
     unsigned int Migrate_Time;        /* 13.22.h */
     unsigned int rapidAgeingWhile;
@@ -573,10 +573,10 @@ typedef struct
     bridge_identifier_t designated_root;
     unsigned int root_path_cost;
     port_identifier_t root_port_id;
-    unsigned int root_max_age;
-    unsigned int root_forward_delay;
-    unsigned int bridge_max_age;
-    unsigned int bridge_forward_delay;
+    __u8 root_max_age;
+    __u8 root_forward_delay;
+    __u8 bridge_max_age;
+    __u8 bridge_forward_delay;
     unsigned int tx_hold_count;
     protocol_version_t protocol_version;
     bridge_identifier_t regional_root;
@@ -604,10 +604,10 @@ void MSTP_IN_get_msti_bridge_status(tree_t *tree, MSTI_BridgeStatus *status);
 /* 12.8.1.3 Set CIST Bridge Protocol Parameters */
 typedef struct
 {
-    unsigned int bridge_max_age;
+    __u8 bridge_max_age;
     bool set_bridge_max_age;
 
-    unsigned int bridge_forward_delay;
+    __u8 bridge_forward_delay;
     bool set_bridge_forward_delay;
 
     /* Superseded by MSTP_IN_set_msti_bridge_config for the CIST.
@@ -644,7 +644,7 @@ typedef struct
     bridge_identifier_t designated_bridge; /* from portPriority */
     port_identifier_t designated_port; /* from portPriority */
     bool tc_ack; /* tcAck */
-    unsigned int port_hello_time; /* from portTimes */
+    __u8 port_hello_time; /* from portTimes */
     bool admin_edge_port;
     bool auto_edge_port; /* not in standard */
     bool oper_edge_port;

@@ -102,10 +102,10 @@ static int do_showbridge(const char *br_name)
         printf("none\n");
     printf("  path cost     %-10u ", s.root_path_cost);
     printf("internal path cost   %u\n", s.internal_path_cost);
-    printf("  max age       %-10u ", s.root_max_age);
-    printf("bridge max age       %u\n", s.bridge_max_age);
-    printf("  forward delay %-10u ", s.root_forward_delay);
-    printf("bridge forward delay %u\n", s.bridge_forward_delay);
+    printf("  max age       %-10hhu ", s.root_max_age);
+    printf("bridge max age       %hhu\n", s.bridge_max_age);
+    printf("  forward delay %-10hhu ", s.root_forward_delay);
+    printf("bridge forward delay %hhu\n", s.bridge_forward_delay);
     printf("  tx hold count %-10u ", s.tx_hold_count);
     printf("max hops             %hhu\n", s.max_hops);
     printf("  force protocol version     %u\n", s.protocol_version);
@@ -333,7 +333,7 @@ static int do_showport(int br_index, const char *bridge_name,
         printf("admin point-to-point %s\n", ADMIN_P2P_STR(s.admin_p2p));
         printf("  restricted role    %-23s ", BOOL_STR(s.restricted_role));
         printf("restricted TCN       %s\n", BOOL_STR(s.restricted_tcn));
-        printf("  port hello time    %-23u ", s.port_hello_time);
+        printf("  port hello time    %-23hhu ", s.port_hello_time);
         printf("disputed             %s\n", BOOL_STR(s.disputed));
     }
     else
@@ -540,7 +540,10 @@ static int cmd_setbridgemaxage(int argc, char *const *argv)
     int br_index = get_index(argv[1], "bridge");
     if(0 > br_index)
         return br_index;
-    return set_bridge_cfg(bridge_max_age, getuint(argv[2]));
+    unsigned int max_age = getuint(argv[2]);
+    if(max_age > 255)
+        max_age = 255;
+    return set_bridge_cfg(bridge_max_age, max_age);
 }
 
 static int cmd_setbridgefdelay(int argc, char *const *argv)
@@ -548,7 +551,10 @@ static int cmd_setbridgefdelay(int argc, char *const *argv)
     int br_index = get_index(argv[1], "bridge");
     if(0 > br_index)
         return br_index;
-    return set_bridge_cfg(bridge_forward_delay, getuint(argv[2]));
+    unsigned int forward_delay = getuint(argv[2]);
+    if(forward_delay > 255)
+        forward_delay = 255;
+    return set_bridge_cfg(bridge_forward_delay, forward_delay);
 }
 
 static int cmd_setbridgemaxhops(int argc, char *const *argv)

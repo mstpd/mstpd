@@ -103,13 +103,13 @@ static tree_t * create_tree(bridge_t *br, __u8 *macaddr, __be16 MSTID)
     assign(tree->BridgePriority.RootID, tree->BridgeIdentifier);
     assign(tree->BridgePriority.RRootID, tree->BridgeIdentifier);
     assign(tree->BridgePriority.DesignatedBridgeID, tree->BridgeIdentifier);
-    assign(tree->BridgeTimes.remainingHops, br->MaxHops); /* 13.23.4 */
-    assign(tree->BridgeTimes.Forward_Delay, br->Forward_Delay); /* 13.23.4 */
-    assign(tree->BridgeTimes.Max_Age, br->Max_Age); /* 13.23.4 */
     /* 13.23.4 */
-    assign(tree->BridgeTimes.Message_Age, __constant_cpu_to_be16(0));
+    assign(tree->BridgeTimes.remainingHops, br->MaxHops);
+    assign(tree->BridgeTimes.Forward_Delay, br->Forward_Delay);
+    assign(tree->BridgeTimes.Max_Age, br->Max_Age);
+    assign(tree->BridgeTimes.Message_Age, (__u8)0);
     /* 17.14 of 802.1D */
-    assign(tree->BridgeTimes.Hello_Time, __constant_cpu_to_be16(2));
+    assign(tree->BridgeTimes.Hello_Time, (__u8)2);
 
     /* 12.8.1.1.3.(b,c,d) */
     tree->time_since_topology_change = 0;
@@ -188,10 +188,10 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
             macaddr[3], macaddr[4], macaddr[5]);
     assign(br->MstConfigId.s.revision_level, __constant_cpu_to_be16(0));
     RecalcConfigDigest(br); /* set br->MstConfigId.s.configuration_digest */
-    assign(br->MaxHops, (__u8)20); /* 13.37.3 */
     br->ForceProtocolVersion = protoMSTP;
-    assign(br->Forward_Delay, __constant_cpu_to_be16(15)); /* 17.14 of 802.1D */
-    assign(br->Max_Age, __constant_cpu_to_be16(20)); /* 17.14 of 802.1D */
+    assign(br->MaxHops, (__u8)20);       /* 13.37.3 */
+    assign(br->Forward_Delay, (__u8)15); /* 17.14 of 802.1D */
+    assign(br->Max_Age, (__u8)20);       /* 17.14 of 802.1D */
     assign(br->Transmit_Hold_Count, 6u); /* 17.14 of 802.1D */
     assign(br->Migrate_Time, 3u); /* 17.14 of 802.1D */
     assign(br->rapidAgeingWhile, 0u);
@@ -562,11 +562,11 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     assign(status->internal_path_cost,
            __be32_to_cpu(cist->rootPriority.IntRootPathCost));
     assign(status->root_port_id, cist->rootPortId);
-    status->root_max_age = __be16_to_cpu(cist->rootTimes.Max_Age);
-    status->root_forward_delay = __be16_to_cpu(cist->rootTimes.Forward_Delay);
-    status->bridge_max_age = __be16_to_cpu(br->Max_Age);
-    status->bridge_forward_delay = __be16_to_cpu(br->Forward_Delay);
-    status->max_hops = br->MaxHops;
+    assign(status->root_max_age, cist->rootTimes.Max_Age);
+    assign(status->root_forward_delay, cist->rootTimes.Forward_Delay);
+    assign(status->bridge_max_age, br->Max_Age);
+    assign(status->bridge_forward_delay, br->Forward_Delay);
+    assign(status->max_hops, br->MaxHops);
     assign(status->tx_hold_count, br->Transmit_Hold_Count);
     status->protocol_version = br->ForceProtocolVersion;
     status->enabled = br->bridgeEnabled;
@@ -591,8 +591,7 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
 {
     bool changed, changedBridgeTimes, init;
     int r = 0;
-    unsigned int new_forward_delay, new_max_age;
-    __be16 valueMaxAge, valueForwardDelay;
+    __u8 new_forward_delay, new_max_age;
     tree_t *tree;
     port_t *prt;
     per_tree_port_t *ptp;
@@ -603,31 +602,33 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         new_max_age = cfg->bridge_max_age;
         if((6 > new_max_age) || (40 < new_max_age))
         {
-            ERROR_BRNAME(br, "Bridge Max Age must be between 6 and 40");
+            ERROR_BRNAME(br,
+                "Bridge Max Age must be between 6 and 40 seconds");
             r = -1;
         }
     }
     else
-        new_max_age = __be16_to_cpu(br->Max_Age);
+        new_max_age = br->Max_Age;
 
     if(cfg->set_bridge_forward_delay)
     {
         new_forward_delay = cfg->bridge_forward_delay;
         if((4 > new_forward_delay) || (30 < new_forward_delay))
         {
-            ERROR_BRNAME(br, "Bridge Forward Delay must be between 4 and 30");
+            ERROR_BRNAME(br,
+                "Bridge Forward Delay must be between 4 and 30 seconds");
             r = -1;
         }
     }
     else
-        new_forward_delay = __be16_to_cpu(br->Forward_Delay);
+        new_forward_delay = br->Forward_Delay;
 
     if(cfg->set_bridge_max_age || cfg->set_bridge_forward_delay)
     {
         if((2 * (new_forward_delay - 1)) < new_max_age)
         {
             ERROR_BRNAME(br, "Configured Bridge Times don't meet "
-                         "2 * (Bridge Foward Delay - 1) >= Bridge Max Age");
+                "2 * (Bridge Foward Delay - 1 second) >= Bridge Max Age");
             r = -1;
         }
     }
@@ -651,7 +652,8 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
     {
         if((1 > cfg->tx_hold_count) || (10 < cfg->tx_hold_count))
         {
-            ERROR_BRNAME(br, "Transmit Hold Count must be between 1 and 10\n");
+            ERROR_BRNAME(br,
+                "Transmit Hold Count must be between 1 and 10 seconds");
             r = -1;
         }
     }
@@ -673,14 +675,12 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
 
     if(cfg->set_bridge_max_age || cfg->set_bridge_forward_delay)
     {
-        valueMaxAge = __cpu_to_be16(new_max_age);
-        valueForwardDelay = __cpu_to_be16(new_forward_delay);
-        if(cmp(valueMaxAge, !=, br->Max_Age)
-           || cmp(valueForwardDelay, !=, br->Forward_Delay)
+        if(cmp(new_max_age, !=, br->Max_Age)
+           || cmp(new_forward_delay, !=, br->Forward_Delay)
           )
         {
-            assign(br->Max_Age, valueMaxAge);
-            assign(br->Forward_Delay, valueForwardDelay);
+            assign(br->Max_Age, new_max_age);
+            assign(br->Forward_Delay, new_forward_delay);
             changed = changedBridgeTimes = true;
         }
     }
@@ -797,7 +797,7 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     assign(status->designated_internal_cost,
            __be32_to_cpu(cist->portPriority.IntRootPathCost));
     status->tc_ack = prt->tcAck;
-    status->port_hello_time = __be16_to_cpu(cist->portTimes.Hello_Time);
+    assign(status->port_hello_time, cist->portTimes.Hello_Time);
     status->admin_edge_port = prt->AdminEdgePort;
     status->auto_edge_port = prt->AutoEdge;
     status->oper_edge_port = prt->operEdge;
@@ -1514,9 +1514,8 @@ static void newTcWhile(per_tree_port_t *ptp)
     if(prt->sendRSTP)
     {
         per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-        unsigned int HelloTime = __be16_to_cpu(cist->portTimes.Hello_Time);
 
-        assign(ptp->tcWhile, HelloTime + 1);
+        ptp->tcWhile = cist->portTimes.Hello_Time + 1;
         set_TopologyChange(tree, true);
 
         if(0 == ptp->MSTID)
@@ -1528,8 +1527,7 @@ static void newTcWhile(per_tree_port_t *ptp)
 
     times_t *times = &tree->rootTimes;
 
-    ptp->tcWhile = __be16_to_cpu(times->Max_Age)
-                   + __be16_to_cpu(times->Forward_Delay);
+    ptp->tcWhile = times->Max_Age + times->Forward_Delay;
     set_TopologyChange(tree, true);
 }
 
@@ -1562,10 +1560,12 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
         assign(mPri->RootID, b->cistRootID);
         assign(mPri->ExtRootPathCost, b->cistExtRootPathCost);
         /* messageTimes */
-        assign(mTimes->Forward_Delay, b->ForwardDelay);
-        assign(mTimes->Max_Age, b->MaxAge);
-        assign(mTimes->Message_Age, b->MessageAge);
-        assign(mTimes->Hello_Time, b->HelloTime);
+#define NEAREST_WHOLE_SECOND(msgTime)  \
+    ((128 > msgTime[1]) ? msgTime[0] : msgTime[0] + 1)
+        mTimes->Forward_Delay = NEAREST_WHOLE_SECOND(b->ForwardDelay);
+        mTimes->Max_Age = NEAREST_WHOLE_SECOND(b->MaxAge);
+        mTimes->Message_Age = NEAREST_WHOLE_SECOND(b->MessageAge);
+        mTimes->Hello_Time = NEAREST_WHOLE_SECOND(b->HelloTime);
         if(protoMSTP > b->protocolVersion)
         { /* STP or RSTP Configuration BPDU */
             /* 13.26.6.NOTE: A Configuration BPDU implicitly conveys a
@@ -1820,9 +1820,9 @@ static void recordProposal(per_tree_port_t *ptp)
 static void recordTimes(per_tree_port_t *ptp)
 {
     assign(ptp->portTimes, ptp->msgTimes);
-    if(__be16_to_cpu(ptp->portTimes.Hello_Time) < MIN_COMPAT_HELLO_TIME)
-        assign(ptp->portTimes.Hello_Time,
-               __constant_cpu_to_be16(MIN_COMPAT_HELLO_TIME));
+
+    if(MIN_COMPAT_HELLO_TIME > ptp->portTimes.Hello_Time)
+        ptp->portTimes.Hello_Time = MIN_COMPAT_HELLO_TIME;
 }
 
 /* 13.24.s) + 17.19.7 of 802.1D : fdbFlush */
@@ -1846,8 +1846,7 @@ static void set_fdbFlush(per_tree_port_t *ptp)
     else
     {
         per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-        unsigned int FwdDelay =
-            __be16_to_cpu(cist->designatedTimes.Forward_Delay);
+        unsigned int FwdDelay = cist->designatedTimes.Forward_Delay;
         /* Initiate rapid ageing */
         MSTP_OUT_set_ageing_time(br, FwdDelay);
         assign(br->rapidAgeingWhile, FwdDelay);
@@ -2032,10 +2031,14 @@ static void txConfig(port_t *prt)
     assign(b.cistExtRootPathCost, cist->designatedPriority.ExtRootPathCost);
     assign(b.cistRRootID, cist->designatedPriority.DesignatedBridgeID);
     assign(b.cistPortID, cist->designatedPriority.DesignatedPortID);
-    assign(b.MessageAge, cist->designatedTimes.Message_Age);
-    assign(b.MaxAge, cist->designatedTimes.Max_Age);
-    assign(b.HelloTime, cist->portTimes.Hello_Time); /* ! use portTimes ! */
-    assign(b.ForwardDelay, cist->designatedTimes.Forward_Delay);
+    b.MessageAge[0] = cist->designatedTimes.Message_Age;
+    b.MessageAge[1] = 0;
+    b.MaxAge[0] = cist->designatedTimes.Max_Age;
+    b.MaxAge[1] = 0;
+    b.HelloTime[0] = cist->portTimes.Hello_Time; /* ! use portTimes ! */
+    b.HelloTime[1] = 0;
+    b.ForwardDelay[0] = cist->designatedTimes.Forward_Delay;
+    b.ForwardDelay[1] = 0;
 
     MSTP_OUT_tx_bpdu(prt, &b, CONFIG_BPDU_SIZE);
 }
@@ -2093,10 +2096,14 @@ static void txMstp(port_t *prt)
     assign(b.cistExtRootPathCost, cist->designatedPriority.ExtRootPathCost);
     assign(b.cistRRootID, cist->designatedPriority.RRootID);
     assign(b.cistPortID, cist->designatedPriority.DesignatedPortID);
-    assign(b.MessageAge, cist->designatedTimes.Message_Age);
-    assign(b.MaxAge, cist->designatedTimes.Max_Age);
-    assign(b.HelloTime, cist->portTimes.Hello_Time); /* ! use portTimes ! */
-    assign(b.ForwardDelay, cist->designatedTimes.Forward_Delay);
+    b.MessageAge[0] = cist->designatedTimes.Message_Age;
+    b.MessageAge[1] = 0;
+    b.MaxAge[0] = cist->designatedTimes.Max_Age;
+    b.MaxAge[1] = 0;
+    b.HelloTime[0] = cist->portTimes.Hello_Time; /* ! use portTimes ! */
+    b.HelloTime[1] = 0;
+    b.ForwardDelay[0] = cist->designatedTimes.Forward_Delay;
+    b.ForwardDelay[1] = 0;
 
     b.version1_len = 0;
 
@@ -2182,9 +2189,9 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
 {
     port_t *prt = ptp->port;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-    unsigned int Message_Age = __be16_to_cpu(cist->portTimes.Message_Age);
-    unsigned int Max_Age = __be16_to_cpu(cist->portTimes.Max_Age);
-    unsigned int Hello_Time = __be16_to_cpu(cist->portTimes.Hello_Time);
+    unsigned int Message_Age = cist->portTimes.Message_Age;
+    unsigned int Max_Age = cist->portTimes.Max_Age;
+    unsigned int Hello_Time = cist->portTimes.Hello_Time;
 
     if((!prt->rcvdInternal && ((Message_Age + 1) <= Max_Age))
        || (prt->rcvdInternal && (cist->portTimes.remainingHops > 1))
@@ -2283,10 +2290,7 @@ static void updtRolesTree(tree_t *tree)
                 --(tree->rootTimes.remainingHops);
         }
         else
-            assign(tree->rootTimes.Message_Age,
-                   __cpu_to_be16(__be16_to_cpu(tree->rootTimes.Message_Age)
-                                 + 1)
-                  );
+            ++(tree->rootTimes.Message_Age);
         timesOfRootPort = &root_ptp->portTimes;
     }
     else
@@ -2742,7 +2746,7 @@ static void PTSM_to_IDLE(port_t *prt)
     prt->PTSM_state = PTSM_IDLE;
 
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-    prt->helloWhen = __be16_to_cpu(cist->portTimes.Hello_Time);
+    prt->helloWhen = cist->portTimes.Hello_Time;
 
     PTSM_run(prt);
 }
@@ -3160,10 +3164,10 @@ static void PRTSM_to_INIT_PORT(per_tree_port_t *ptp/*, bool begin*/)
     ptp->sync = true;
     ptp->reRoot = true;
     /* 13.25.6 */
-    FwdDelay = __be16_to_cpu(cist->designatedTimes.Forward_Delay);
+    FwdDelay = cist->designatedTimes.Forward_Delay;
     assign(ptp->rrWhile, FwdDelay);
     /* 13.25.8 */
-    MaxAge = __be16_to_cpu(cist->designatedTimes.Max_Age);
+    MaxAge = cist->designatedTimes.Max_Age;
     assign(ptp->fdWhile, MaxAge);
     assign(ptp->rbWhile, 0u);
 
@@ -3421,7 +3425,7 @@ static void PRTSM_to_DESIGNATED_PROPOSE(per_tree_port_t *ptp)
     if(0 == ptp->MSTID)
     { /* CIST */
         /* 13.25.8. This tree is CIST. */
-        unsigned int MaxAge = __be16_to_cpu(ptp->designatedTimes.Max_Age);
+        unsigned int MaxAge = ptp->designatedTimes.Max_Age;
         /* 13.25.c) -> 17.20.4 of 802.1D : EdgeDelay */
         unsigned int EdgeDelay = prt->operPointToPointMAC ?
                                    prt->bridge->Migrate_Time
@@ -3608,16 +3612,16 @@ static void PRTSM_runr(per_tree_port_t *ptp, bool recursive_call)
         cist = GET_CIST_PTP_FROM_PORT(prt);
 
         /* 13.25.6 */
-        FwdDelay = __be16_to_cpu(cist->designatedTimes.Forward_Delay);
+        FwdDelay = cist->designatedTimes.Forward_Delay;
 
         /* 13.25.7 */
-        HelloTime = __be16_to_cpu(cist->portTimes.Hello_Time);
+        HelloTime = cist->portTimes.Hello_Time;
 
         /* 13.25.d) -> 17.20.5 of 802.1D */
         forwardDelay = prt->sendRSTP ? HelloTime : FwdDelay;
 
         /* 13.25.8 */
-        MaxAge = __be16_to_cpu(cist->designatedTimes.Max_Age);
+        MaxAge = cist->designatedTimes.Max_Age;
     }
 
     PRTSM_LOG("role = %d, selectedRole = %d, selected = %d, updtInfo = %d",
