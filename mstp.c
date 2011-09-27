@@ -148,6 +148,8 @@ static per_tree_port_t * create_ptp(tree_t *tree, port_t *prt)
     assign(ptp->portPriority, tree->BridgePriority);
     assign(ptp->portTimes, tree->BridgeTimes);
 
+    ptp->calledFromFlushRoutine = false;
+
     /* The following are initialized in BEGIN state:
      * - rcvdMsg: in Port Receive SM
      * - fdWhile, rrWhile, rbWhile, role, learn, forward,
@@ -445,11 +447,14 @@ void MSTP_IN_one_second(bridge_t *br)
 void MSTP_IN_all_fids_flushed(per_tree_port_t *ptp)
 {
     bridge_t *br = ptp->port->bridge;
+    ptp->fdbFlush = false;
     if(!br->bridgeEnabled)
         return;
-    ptp->fdbFlush = false;
-    TCSM_run(ptp);
-    br_state_machines_run(br);
+    if(!ptp->calledFromFlushRoutine)
+    {
+        TCSM_run(ptp);
+        br_state_machines_run(br);
+    }
 }
 
 /* NOTE: bpdu pointer is unaligned, but it works because
@@ -1841,7 +1846,9 @@ static void set_fdbFlush(per_tree_port_t *ptp)
     if(rstpVersion(br))
     {
         ptp->fdbFlush = true;
+        ptp->calledFromFlushRoutine = true;
         MSTP_OUT_flush_all_fids(ptp);
+        ptp->calledFromFlushRoutine = false;
     }
     else
     {

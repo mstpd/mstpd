@@ -530,6 +530,9 @@ typedef struct
     PSTSM_states_t PSTSM_state;
     TCSM_states_t TCSM_state;
 
+    /* Auxiliary flag, helps preventing infinite recursion */
+    bool calledFromFlushRoutine;
+
     /* Pointer to the corresponding MSTI Configuration Message
      * in the port->rcvdBpduData */
     msti_configuration_message_t *rcvdMstiConfig;
