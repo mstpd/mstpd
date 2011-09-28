@@ -1559,6 +1559,26 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
 
     if(0 == ptp->MSTID)
     { /* CIST */
+        if(protoSTP != b->protocolVersion)
+        {
+            switch(BPDU_FLAGS_ROLE_GET(b->flags))
+            {
+                case encodedRoleAlternateBackup:
+                case encodedRoleRoot:
+                    roleIsDesignated = false;
+                    break;
+                case encodedRoleDesignated:
+                    roleIsDesignated = true;
+                    break;
+                default:
+                    return OtherInfo;
+            }
+        }
+        else
+        { /* 13.26.6.NOTE: A Configuration BPDU implicitly conveys a
+           *   Designated Port Role */
+            roleIsDesignated = true;
+        }
         cist = true;
 
         assign(mPri->RRootID, b->cistRRootID);
@@ -1573,10 +1593,7 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
         mTimes->Message_Age = NEAREST_WHOLE_SECOND(b->MessageAge);
         mTimes->Hello_Time = NEAREST_WHOLE_SECOND(b->HelloTime);
         if(protoMSTP > b->protocolVersion)
-        { /* STP or RSTP Configuration BPDU */
-            /* 13.26.6.NOTE: A Configuration BPDU implicitly conveys a
-             *   Designated Port Role */
-            roleIsDesignated = true;
+        { /* STP Configuration BPDU or RST BPDU */
             assign(mPri->IntRootPathCost, __constant_cpu_to_be32(0));
             assign(mPri->DesignatedBridgeID, b->cistRRootID);
             /* messageTimes.remainingHops */
@@ -1584,18 +1601,6 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
         }
         else
         { /* MST BPDU */
-            switch(BPDU_FLAGS_ROLE_GET(b->flags))
-            {
-                case encodedRoleAlternateBackup:
-                case encodedRoleRoot:
-                    roleIsDesignated = false;
-                    break;
-                case encodedRoleDesignated:
-                    roleIsDesignated = true;
-                    break;
-                default:
-                    return OtherInfo;
-            }
             assign(mPri->IntRootPathCost, b->cistIntRootPathCost);
             assign(mPri->DesignatedBridgeID, b->cistBridgeID);
             /* messageTimes.remainingHops */
