@@ -32,6 +32,12 @@
 #include "ctl_socket_client.h"
 #include "log.h"
 
+#ifdef  __LIBC_HAS_VERSIONSORT__
+#define sorting_func    versionsort
+#else
+#define sorting_func    alphasort
+#endif
+
 static int get_index_die(const char *ifname, const char *doc, bool die)
 {
     int r = if_nametoindex(ifname);
@@ -147,7 +153,7 @@ static int cmd_showbridge(int argc, char *const *argv)
     else
     {
         /* TODO: use versionsort, if available */
-        count = scandir(SYSFS_CLASS_NET, &namelist, isbridge, alphasort);
+        count = scandir(SYSFS_CLASS_NET, &namelist, isbridge, sorting_func);
         if(0 > count)
         {
             fprintf(stderr, "Error getting list of all bridges\n");
@@ -379,7 +385,7 @@ static int cmd_showport(int argc, char *const *argv)
         char buf[SYSFS_PATH_MAX];
         snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", argv[1]);
         /* TODO: use versionsort, if available */
-        count = scandir(buf, &namelist, not_dot_dotdot, alphasort);
+        count = scandir(buf, &namelist, not_dot_dotdot, sorting_func);
         if(0 > count)
         {
             fprintf(stderr, "Error getting list of all ports of bridge %s\n",

@@ -9,7 +9,8 @@ CTLSOURCES = ctl_main.c ctl_socket_client.c
 
 CTLOBJECTS = $(CTLSOURCES:.c=.o)
 
-CFLAGS += -Werror -O2 -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I.
+CFLAGS += -Werror -O2 -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I. \
+          -D_GNU_SOURCE -D__LIBC_HAS_VERSIONSORT__
 
 all: mstpd mstpctl
 
