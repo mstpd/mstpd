@@ -772,13 +772,17 @@ int CTL_get_mstilist(int br_index, int *num_mstis, __u16 *mstids)
 int CTL_create_msti(int br_index, __u16 mstid)
 {
     CTL_CHECK_BRIDGE;
-    return MSTP_IN_create_msti(br, mstid) ? 0 : -1;
+    if((!driver_create_msti(br, mstid)) || (!MSTP_IN_create_msti(br, mstid)))
+        return -1;
+    return 0;
 }
 
 int CTL_delete_msti(int br_index, __u16 mstid)
 {
     CTL_CHECK_BRIDGE;
-    return MSTP_IN_delete_msti(br, mstid) ? 0 : -1;
+    if((!driver_delete_msti(br, mstid)) || (!MSTP_IN_delete_msti(br, mstid)))
+        return -1;
+    return 0;
 }
 
 int CTL_get_mstconfid(int br_index, mst_configuration_identifier_t *cfg)

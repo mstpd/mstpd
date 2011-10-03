@@ -27,6 +27,18 @@ int driver_set_new_state(per_tree_port_t *ptp, int new_state)
     return new_state;
 }
 
+bool driver_create_msti(bridge_t *br, __u16 mstid)
+{
+    /* TODO: send "create msti" command to driver */
+    return true;
+}
+
+bool driver_delete_msti(bridge_t *br, __u16 mstid)
+{
+    /* TODO: send "delete msti" command to driver */
+    return true;
+}
+
 void driver_flush_all_fids(per_tree_port_t *ptp)
 {
     /* TODO: do real flushing.
