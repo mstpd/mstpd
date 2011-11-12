@@ -25,6 +25,12 @@ mstpctl: $(CTLOBJECTS)
 clean:
 	rm -f *.o *~ .depend.bak mstpd mstpctl
 
+install: all
+	-mkdir -pv $(DESTDIR)/sbin
+	install -m 755 mstpd $(DESTDIR)/sbin/mstpd
+	install -m 755 mstpctl $(DESTDIR)/sbin/mstpctl
+	install -m 755 bridge-stp $(DESTDIR)/sbin/bridge-stp
+
 romfs: all
 	$(ROMFSINST) /sbin/mstpd
 	$(ROMFSINST) /sbin/mstpctl
