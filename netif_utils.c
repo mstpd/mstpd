@@ -65,23 +65,17 @@ int get_hwaddr(char *ifname, __u8 *hwaddr)
     return 0;
 }
 
-int ethtool_get_link(char *ifname)
+int get_flags(char *ifname)
 {
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ);
-    struct ethtool_value eval;
-
-    eval.cmd = ETHTOOL_GLINK;
-    ifr.ifr_data = (caddr_t)&eval;
-    if(0 > ioctl(netsock, SIOCETHTOOL, &ifr))
+    if(0 > ioctl(netsock, SIOCGIFFLAGS, &ifr))
     {
-        ERROR("Cannot get link status for %s: %m\n", ifname);
+        ERROR("%s: get interface flags failed: %m", ifname);
         return -1;
     }
-    if(eval.data)
-        return 1;
-    return 0;
+    return ifr.ifr_flags;
 }
 
 int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex)

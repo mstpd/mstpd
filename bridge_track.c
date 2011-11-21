@@ -279,13 +279,15 @@ static void set_if_up(port_t * ifc, bool up)
 }
 
 /* br_index == if_index means: interface is bridge master */
-int bridge_notify(int br_index, int if_index, bool newlink, bool up)
+int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
 {
     port_t *ifc;
     bridge_t *br = NULL, *other_br;
+    bool up = !!(flags & IFF_UP);
+    bool running = up && (flags & IFF_RUNNING);
 
-    LOG("br_index %d, if_index %d, newlink %d, up %d",
-        br_index, if_index, newlink, up);
+    LOG("br_index %d, if_index %d, newlink %d, up %d, running %d",
+        br_index, if_index, newlink, up, running);
 
     if((br_index >= 0) && (br_index != if_index))
     {
@@ -296,9 +298,9 @@ int bridge_notify(int br_index, int if_index, bool newlink, bool up)
             ERROR("Couldn't create data for bridge interface %d", br_index);
             return -1;
         }
-        int br_up = ethtool_get_link(br->sysdeps.name);
-        if(br_up >= 0)
-            set_br_up(br, !!br_up);
+        int br_flags = get_flags(br->sysdeps.name);
+        if(br_flags >= 0)
+            set_br_up(br, !!(flags & IFF_UP));
     }
 
     if(br)
@@ -336,7 +338,7 @@ int bridge_notify(int br_index, int if_index, bool newlink, bool up)
             delete_if(ifc);
             return 0;
         }
-        set_if_up(ifc, up);	/* And speed and duplex */
+        set_if_up(ifc, running); /* And speed and duplex */
     }
     else
     { /* Interface is not a bridge slave */

@@ -66,7 +66,7 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     int len = n->nlmsg_len;
     char b1[IFNAMSIZ];
     int af_family = ifi->ifi_family;
-    bool newlink, up;
+    bool newlink;
     int br_index;
 
     if(n->nlmsg_type == NLMSG_DONE)
@@ -154,12 +154,6 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     fflush(fp);
 
     newlink = (n->nlmsg_type == RTM_NEWLINK);
-    up = false;
-    if(newlink && tb[IFLA_OPERSTATE])
-    {
-        int state = *(uint8_t*)RTA_DATA(tb[IFLA_OPERSTATE]);
-        up = (state == IF_OPER_UP) || (state == IF_OPER_UNKNOWN);
-    }
 
     if(tb[IFLA_MASTER])
         br_index = *(int*)RTA_DATA(tb[IFLA_MASTER]);
@@ -168,7 +162,7 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     else
         br_index = -1;
 
-    bridge_notify(br_index, ifi->ifi_index, newlink, up);
+    bridge_notify(br_index, ifi->ifi_index, newlink, ifi->ifi_flags);
 
     return 0;
 }

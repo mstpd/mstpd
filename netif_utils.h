@@ -31,9 +31,9 @@
 int netsock_init(void);
 
 int get_hwaddr(char *ifname, unsigned char *hwaddr);
+int get_flags(char *ifname);
 
 int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex);
-int ethtool_get_link(char *ifname);
 
 bool is_bridge(char *if_name);
 
