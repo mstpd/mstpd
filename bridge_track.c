@@ -300,7 +300,7 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
         }
         int br_flags = get_flags(br->sysdeps.name);
         if(br_flags >= 0)
-            set_br_up(br, !!(flags & IFF_UP));
+            set_br_up(br, !!(br_flags & IFF_UP));
     }
 
     if(br)
