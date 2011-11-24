@@ -57,6 +57,9 @@ typedef struct _log_string
 
 #define MSTP_SERVER_SOCK_NAME ".mstp_server"
 
+/* Commands sent from bridge-stp script needs this flag */
+#define RESPONSE_FIRST_HANDLE_LATER     0x10000
+
 /* COMMANDS */
 #define CTL_DECLARE(name) \
 int CTL_ ## name name ## _ARGS
@@ -444,6 +447,23 @@ struct set_fids2mstids_OUT
 #define set_fids2mstids_COPY_OUT ({ (void)0; })
 #define set_fids2mstids_CALL (in->br_index, in->fids2mstids)
 CTL_DECLARE(set_fids2mstids);
+
+/* stp_mode_notification */
+#define CMD_CODE_stp_mode_notification  (122 | RESPONSE_FIRST_HANDLE_LATER)
+#define stp_mode_notification_ARGS (int br_index, bool on)
+struct stp_mode_notification_IN
+{
+    int br_index;
+    bool on;
+};
+struct stp_mode_notification_OUT
+{
+};
+#define stp_mode_notification_COPY_IN  ({ in->br_index = br_index; \
+                                          in->on = on; })
+#define stp_mode_notification_COPY_OUT ({ (void)0; })
+#define stp_mode_notification_CALL (in->br_index, in->on)
+CTL_DECLARE(stp_mode_notification);
 
 /* General case part in ctl command server switch */
 #define SERVER_MESSAGE_CASE(name)                            \

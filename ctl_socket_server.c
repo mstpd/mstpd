@@ -82,6 +82,7 @@ static int handle_message(int cmd, void *inbuf, int lin,
         SERVER_MESSAGE_CASE(set_fid2mstid);
         SERVER_MESSAGE_CASE(set_vids2fids);
         SERVER_MESSAGE_CASE(set_fids2mstids);
+        SERVER_MESSAGE_CASE(stp_mode_notification);
 
         default:
             ERROR("CTL: Unknown command %d", cmd);
@@ -150,8 +151,11 @@ static void ctl_rcv_handler(uint32_t events, struct epoll_event_handler *p)
     msg_log_offset = 0;
     ctl_in_handler = 1;
 
-    mhdr.res = handle_message(mhdr.cmd, msg_inbuf, mhdr.lin,
-                              msg_outbuf, mhdr.lout);
+    if(!(mhdr.cmd & RESPONSE_FIRST_HANDLE_LATER))
+        mhdr.res = handle_message(mhdr.cmd, msg_inbuf, mhdr.lin,
+                                  msg_outbuf, mhdr.lout);
+    else
+        mhdr.res = 0;
 
     ctl_in_handler = 0;
     if(0 > mhdr.res)
@@ -172,6 +176,9 @@ static void ctl_rcv_handler(uint32_t events, struct epoll_event_handler *p)
             ("CTL: Couldn't send full response, sent %d bytes instead of %zd.",
              l, sizeof(mhdr) + mhdr.lout + mhdr.llog);
     }
+
+    if(mhdr.cmd & RESPONSE_FIRST_HANDLE_LATER)
+        handle_message(mhdr.cmd, msg_inbuf, mhdr.lin, msg_outbuf, mhdr.lout);
 }
 
 static struct epoll_event_handler ctl_handler = {0};

@@ -175,7 +175,7 @@ static bool check_mac_address(char *name, __u8 *addr)
     }
 }
 
-static int stp_enabled(bridge_t * br)
+static bool stp_enabled(bridge_t * br)
 {
     char path[40 + IFNAMSIZ];
     sprintf(path, "/sys/class/net/%s/bridge/stp_state", br->sysdeps.name);
@@ -189,9 +189,8 @@ static int stp_enabled(bridge_t * br)
     return enabled == 2; /* ie user mode STP */
 }
 
-static void set_br_up(bridge_t * br, bool up)
+static void set_br_up(bridge_t * br, bool up, bool stp_up)
 {
-    int stp_up = stp_enabled(br);
     INFO("%s was %s stp was %s", br->sysdeps.name,
          br->sysdeps.up ? "up" : "down", br->sysdeps.stp_up ? "up" : "down");
     INFO("Set bridge %s %s stp %s" , br->sysdeps.name,
@@ -300,7 +299,7 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
         }
         int br_flags = get_flags(br->sysdeps.name);
         if(br_flags >= 0)
-            set_br_up(br, !!(br_flags & IFF_UP));
+            set_br_up(br, !!(br_flags & IFF_UP), stp_enabled(br));
     }
 
     if(br)
@@ -367,7 +366,7 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
                         return -1;
                     }
                 }
-                set_br_up(br, up);
+                set_br_up(br, up, stp_enabled(br));
             }
         }
     }
@@ -839,4 +838,14 @@ int CTL_set_fids2mstids(int br_index, __u16 *fids2mstids)
 {
     CTL_CHECK_BRIDGE;
     return MSTP_IN_set_all_fids2mstids(br, fids2mstids) ? 0 : -1;
+}
+
+int CTL_stp_mode_notification(int br_index, bool on)
+{
+    int br_flags;
+    CTL_CHECK_BRIDGE;
+    if(0 > (br_flags = get_flags(br->sysdeps.name)))
+        return br_flags;
+    set_br_up(br, !!(br_flags & IFF_UP), on);
+    return 0;
 }

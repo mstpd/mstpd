@@ -908,6 +908,14 @@ static int cmd_setfid2mstid(int argc, char *const *argv)
     return CTL_set_fid2mstid(br_index, fid, mstid);
 }
 
+static int cmd_stp_mode_notification(int argc, char *const *argv, bool on)
+{
+    int br_index = get_index(argv[1], "bridge");
+    if(0 > br_index)
+        return br_index;
+    return CTL_stp_mode_notification(br_index, on);
+}
+
 struct command
 {
     int nargs;
@@ -1070,6 +1078,12 @@ int main(int argc, char *const *argv)
     argv += optind;
     if(NULL == (cmd = command_lookup(argv[0])))
     {
+        /* Two special commands not intended for interactive use */
+        if(!strcmp(argv[0], "notify-daemon-that-stp-is-on"))
+            return cmd_stp_mode_notification(argc, argv, true);
+        if(!strcmp(argv[0], "notify-daemon-that-stp-is-off"))
+            return cmd_stp_mode_notification(argc, argv, false);
+
         fprintf(stderr, "never heard of command [%s]\n", argv[0]);
         goto help;
     }
@@ -1111,6 +1125,7 @@ CLIENT_SIDE_FUNCTION(set_vid2fid)
 CLIENT_SIDE_FUNCTION(set_fid2mstid)
 CLIENT_SIDE_FUNCTION(set_vids2fids)
 CLIENT_SIDE_FUNCTION(set_fids2mstids)
+CLIENT_SIDE_FUNCTION(stp_mode_notification)
 
 /*********************** Logging *********************/
 
