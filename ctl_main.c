@@ -910,8 +910,17 @@ static int cmd_setfid2mstid(int argc, char *const *argv)
 
 static int cmd_stp_mode_notification(int argc, char *const *argv, bool on)
 {
-    int br_index = get_index(argv[1], "bridge");
-    if(0 > br_index)
+    int br_index;
+    /* Because this command has special handling,
+     * argc was not checked earlier
+     */
+    if(2 > argc)
+    {
+        fprintf(stderr,
+                "Incorrect number of arguments for notification command\n");
+        exit(1);
+    }
+    if(0 > (br_index = get_index(argv[1], "bridge")))
         return br_index;
     return CTL_stp_mode_notification(br_index, on);
 }
