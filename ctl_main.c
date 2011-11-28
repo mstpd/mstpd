@@ -84,8 +84,80 @@ static inline int get_id(const char *str, const char *doc, unsigned int max_id)
                        GET_NUM_FROM_PRIO(x)
 
 #define BOOL_STR(x) ((x) ? "yes" : "no")
+#define PROTO_VERS_STR(x)   ((protoRSTP == (x)) ? "rstp" : \
+                             ((protoMSTP <= (x)) ? "mstp" : "stp"))
 
-static int do_showbridge(const char *br_name)
+typedef enum {
+    PARAM_NULL = 0,
+    /* bridge params */
+    PARAM_ENABLED,
+    PARAM_BRID,
+    PARAM_DSGNROOT,
+    PARAM_REGNROOT,
+    PARAM_ROOTPORT,
+    PARAM_PATHCOST,
+    PARAM_INTPATHCOST,
+    PARAM_MAXAGE,
+    PARAM_BRMAXAGE,
+    PARAM_FWDDELAY,
+    PARAM_BRFWDDELAY,
+    PARAM_TXHOLDCNT,
+    PARAM_MAXHOPS,
+    PARAM_FORCEPROTVERS,
+    PARAM_TOPCHNGTIME,
+    PARAM_TOPCHNGCNT,
+    PARAM_TOPCHNGSTATE,
+    /* port params */
+    PARAM_ROLE,
+    PARAM_STATE,
+    PARAM_PORTID,
+    PARAM_EXTPORTCOST,
+    PARAM_ADMINEXTCOST,
+    PARAM_INTPORTCOST,
+    PARAM_ADMININTCOST,
+    PARAM_DSGNEXTCOST,
+    PARAM_DSGNRROOT,
+    PARAM_DSGNINTCOST,
+    PARAM_DSGNBR,
+    PARAM_DSGNPORT,
+    PARAM_ADMINEDGEPORT,
+    PARAM_AUTOEDGEPORT,
+    PARAM_OPEREDGEPORT,
+    PARAM_TOPCHNGACK,
+    PARAM_P2P,
+    PARAM_ADMINP2P,
+    PARAM_RESTRROLE,
+    PARAM_RESTRTCN,
+    PARAM_PORTHELLOTIME,
+    PARAM_DISPUTED,
+} param_id_t;
+
+typedef struct {
+    param_id_t id;
+    char *str;
+} cmd_param_t;
+
+static const cmd_param_t cist_bridge_params[] = {
+    { PARAM_ENABLED,      "enabled" },
+    { PARAM_BRID,         "bridge-id" },
+    { PARAM_DSGNROOT,     "designated-root" },
+    { PARAM_REGNROOT,     "regional-root" },
+    { PARAM_ROOTPORT,     "root-port" },
+    { PARAM_PATHCOST,     "path-cost" },
+    { PARAM_INTPATHCOST,  "internal-path-cost" },
+    { PARAM_MAXAGE,       "max-age" },
+    { PARAM_BRMAXAGE,     "bridge-max-age" },
+    { PARAM_FWDDELAY,     "forward-delay" },
+    { PARAM_BRFWDDELAY,   "bridge-forward-delay" },
+    { PARAM_TXHOLDCNT,    "tx-hold-count" },
+    { PARAM_MAXHOPS,      "max-hops" },
+    { PARAM_FORCEPROTVERS,"force-protocol-version" },
+    { PARAM_TOPCHNGTIME,  "time-since-topology-change" },
+    { PARAM_TOPCHNGCNT,   "topology-change-count" },
+    { PARAM_TOPCHNGSTATE, "topology-change" },
+};
+
+static int do_showbridge(const char *br_name, param_id_t param_id)
 {
     CIST_BridgeStatus s;
     char root_port_name[IFNAMSIZ];
@@ -96,28 +168,96 @@ static int do_showbridge(const char *br_name)
 
     if(CTL_get_cist_bridge_status(br_index, &s, root_port_name))
         return -1;
-    printf("%s CIST info\n", br_name);
-    printf("  enabled         %s\n", BOOL_STR(s.enabled));
-    printf("  bridge id       "BR_ID_FMT"\n", BR_ID_ARGS(s.bridge_id));
-    printf("  designated root "BR_ID_FMT"\n", BR_ID_ARGS(s.designated_root));
-    printf("  regional root   "BR_ID_FMT"\n", BR_ID_ARGS(s.regional_root));
-    printf("  root port       ");
-    if(0 != (root_portno = GET_NUM_FROM_PRIO(s.root_port_id)))
-        printf("%s (#%u)\n", root_port_name, root_portno);
-    else
-        printf("none\n");
-    printf("  path cost     %-10u ", s.root_path_cost);
-    printf("internal path cost   %u\n", s.internal_path_cost);
-    printf("  max age       %-10hhu ", s.root_max_age);
-    printf("bridge max age       %hhu\n", s.bridge_max_age);
-    printf("  forward delay %-10hhu ", s.root_forward_delay);
-    printf("bridge forward delay %hhu\n", s.bridge_forward_delay);
-    printf("  tx hold count %-10u ", s.tx_hold_count);
-    printf("max hops             %hhu\n", s.max_hops);
-    printf("  force protocol version     %u\n", s.protocol_version);
-    printf("  time since topology change %u\n", s.time_since_topology_change);
-    printf("  toplogy change count       %u\n", s.topology_change_count);
-    printf("  topology change            %s\n", BOOL_STR(s.topology_change));
+    switch(param_id)
+    {
+        case PARAM_NULL:
+            printf("%s CIST info\n", br_name);
+            printf("  enabled         %s\n", BOOL_STR(s.enabled));
+            printf("  bridge id       "BR_ID_FMT"\n",
+                   BR_ID_ARGS(s.bridge_id));
+            printf("  designated root "BR_ID_FMT"\n",
+                   BR_ID_ARGS(s.designated_root));
+            printf("  regional root   "BR_ID_FMT"\n",
+                   BR_ID_ARGS(s.regional_root));
+            printf("  root port       ");
+            if(0 != (root_portno = GET_NUM_FROM_PRIO(s.root_port_id)))
+                printf("%s (#%u)\n", root_port_name, root_portno);
+            else
+                printf("none\n");
+            printf("  path cost     %-10u ", s.root_path_cost);
+            printf("internal path cost   %u\n", s.internal_path_cost);
+            printf("  max age       %-10hhu ", s.root_max_age);
+            printf("bridge max age       %hhu\n", s.bridge_max_age);
+            printf("  forward delay %-10hhu ", s.root_forward_delay);
+            printf("bridge forward delay %hhu\n", s.bridge_forward_delay);
+            printf("  tx hold count %-10u ", s.tx_hold_count);
+            printf("max hops             %hhu\n", s.max_hops);
+            printf("  force protocol version     %s\n",
+                   PROTO_VERS_STR(s.protocol_version));
+            printf("  time since topology change %u\n",
+                   s.time_since_topology_change);
+            printf("  topology change count      %u\n",
+                   s.topology_change_count);
+            printf("  topology change            %s\n",
+                   BOOL_STR(s.topology_change));
+            break;
+        case PARAM_ENABLED:
+            printf("%s\n", BOOL_STR(s.enabled));
+            break;
+        case PARAM_BRID:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.bridge_id));
+            break;
+        case PARAM_DSGNROOT:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.designated_root));
+            break;
+        case PARAM_REGNROOT:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.regional_root));
+            break;
+        case PARAM_ROOTPORT:
+            if(0 != (root_portno = GET_NUM_FROM_PRIO(s.root_port_id)))
+                printf("%s\n", root_port_name);
+            else
+                printf("\n");
+            break;
+        case PARAM_PATHCOST:
+            printf("%u\n", s.root_path_cost);
+            break;
+        case PARAM_INTPATHCOST:
+            printf("%u\n", s.internal_path_cost);
+            break;
+        case PARAM_MAXAGE:
+            printf("%hhu\n", s.root_max_age);
+            break;
+        case PARAM_BRMAXAGE:
+            printf("%hhu\n", s.bridge_max_age);
+            break;
+        case PARAM_FWDDELAY:
+            printf("%hhu\n", s.root_forward_delay);
+            break;
+        case PARAM_BRFWDDELAY:
+            printf("%hhu\n", s.bridge_forward_delay);
+            break;
+        case PARAM_TXHOLDCNT:
+            printf("%u\n", s.tx_hold_count);
+            break;
+        case PARAM_MAXHOPS:
+            printf("%hhu\n", s.max_hops);
+            break;
+        case PARAM_FORCEPROTVERS:
+            printf("%s\n", PROTO_VERS_STR(s.protocol_version));
+            break;
+        case PARAM_TOPCHNGTIME:
+            printf("%u\n", s.time_since_topology_change);
+            break;
+        case PARAM_TOPCHNGCNT:
+            printf("%u\n", s.topology_change_count);
+            break;
+        case PARAM_TOPCHNGSTATE:
+            printf("%s\n", BOOL_STR(s.topology_change));
+            break;
+        default:
+            return -2; /* -2 = unknown param */
+    }
 
     return 0;
 }
@@ -145,10 +285,23 @@ static int cmd_showbridge(int argc, char *const *argv)
     int i, count = 0;
     int r = 0;
     struct dirent **namelist;
+    param_id_t param_id = PARAM_NULL;
 
     if(1 < argc)
     {
         count = argc - 1;
+        if(1 < count)
+        { /* check if last argument is known parameter name */
+            for(i = 0; i < COUNT_OF(cist_bridge_params); ++i)
+            {
+                if(0 == strcmp(argv[count], cist_bridge_params[i].str))
+                {
+                    param_id = cist_bridge_params[i].id;
+                    --count;
+                    break;
+                }
+            }
+        }
     }
     else
     {
@@ -169,7 +322,7 @@ static int cmd_showbridge(int argc, char *const *argv)
         else
             name = namelist[i]->d_name;
 
-        int err = do_showbridge(name);
+        int err = do_showbridge(name, param_id);
         if(err)
             r = err;
     }
@@ -290,11 +443,37 @@ static int cmd_showtree(int argc, char *const *argv)
         _str;                                         \
     })
 
+static const cmd_param_t cist_port_params[] = {
+    { PARAM_ENABLED,      "enabled" },
+    { PARAM_ROLE,         "role" },
+    { PARAM_STATE,        "state" },
+    { PARAM_PORTID,       "port-id" },
+    { PARAM_EXTPORTCOST,  "external-port-cost" },
+    { PARAM_ADMINEXTCOST, "admin-external-cost" },
+    { PARAM_INTPORTCOST,  "internal-port-cost" },
+    { PARAM_ADMININTCOST, "admin-internal-cost" },
+    { PARAM_DSGNROOT,     "designated-root" },
+    { PARAM_DSGNEXTCOST,  "dsgn-external-cost" },
+    { PARAM_DSGNRROOT,    "dsgn-regional-root" },
+    { PARAM_DSGNINTCOST,  "dsgn-internal-cost" },
+    { PARAM_DSGNBR,       "designated-bridge" },
+    { PARAM_DSGNPORT,     "designated-port" },
+    { PARAM_ADMINEDGEPORT,"admin-edge-port" },
+    { PARAM_AUTOEDGEPORT, "auto-edge-port" },
+    { PARAM_OPEREDGEPORT, "oper-edge-port" },
+    { PARAM_TOPCHNGACK,   "topology-change-ack" },
+    { PARAM_P2P,          "point-to-point" },
+    { PARAM_ADMINP2P,     "admin-point-to-point" },
+    { PARAM_RESTRROLE,    "restricted-role" },
+    { PARAM_RESTRTCN,     "restricted-TCN" },
+    { PARAM_PORTHELLOTIME,"port-hello-time" },
+    { PARAM_DISPUTED,     "disputed" },
+};
 
 static int detail = 0;
 
 static int do_showport(int br_index, const char *bridge_name,
-                       const char *port_name)
+                       const char *port_name, param_id_t param_id)
 {
     CIST_PortStatus s;
     int r = 0;
@@ -309,52 +488,145 @@ static int do_showport(int br_index, const char *bridge_name,
         return -1;
     }
 
-    if(detail)
+    switch(param_id)
     {
-        printf("%s:%s CIST info\n", bridge_name, port_name);
-        printf("  enabled            %-23s ", BOOL_STR(s.enabled));
-        printf("role                 %s\n", ROLE_STR(s.role));
-        printf("  port id            "PRT_ID_FMT"                   ",
-               PRT_ID_ARGS(s.port_id));
-        printf("state                %s\n", STATE_STR(s.state));
-        printf("  external port cost %-23u ", s.external_port_path_cost);
-        printf("admin external cost  %u\n", s.admin_external_port_path_cost);
-        printf("  internal port cost %-23u ", s.internal_port_path_cost);
-        printf("admin internal cost  %u\n", s.admin_internal_port_path_cost);
-        printf("  designated root    "BR_ID_FMT" ",
-               BR_ID_ARGS(s.designated_root));
-        printf("dsgn external cost   %u\n", s.designated_external_cost);
-        printf("  dsgn regional root "BR_ID_FMT" ",
-               BR_ID_ARGS(s.designated_regional_root));
-        printf("dsgn internal cost   %u\n", s.designated_internal_cost);
-        printf("  designated bridge  "BR_ID_FMT" ",
-               BR_ID_ARGS(s.designated_bridge));
-        printf("designated port      "PRT_ID_FMT"\n",
-               PRT_ID_ARGS(s.designated_port));
-        printf("  admin edge port    %-23s ", BOOL_STR(s.admin_edge_port));
-        printf("auto edge port       %s\n", BOOL_STR(s.auto_edge_port));
-        printf("  oper edge port     %-23s ", BOOL_STR(s.oper_edge_port));
-        printf("toplogy change ack   %s\n", BOOL_STR(s.tc_ack));
-        printf("  point-to-point     %-23s ", BOOL_STR(s.oper_p2p));
-        printf("admin point-to-point %s\n", ADMIN_P2P_STR(s.admin_p2p));
-        printf("  restricted role    %-23s ", BOOL_STR(s.restricted_role));
-        printf("restricted TCN       %s\n", BOOL_STR(s.restricted_tcn));
-        printf("  port hello time    %-23hhu ", s.port_hello_time);
-        printf("disputed             %s\n", BOOL_STR(s.disputed));
+        case PARAM_NULL:
+            if(detail)
+            {
+                printf("%s:%s CIST info\n", bridge_name, port_name);
+                printf("  enabled            %-23s ", BOOL_STR(s.enabled));
+                printf("role                 %s\n", ROLE_STR(s.role));
+                printf("  port id            "PRT_ID_FMT"                   ",
+                       PRT_ID_ARGS(s.port_id));
+                printf("state                %s\n", STATE_STR(s.state));
+                printf("  external port cost %-23u ",
+                       s.external_port_path_cost);
+                printf("admin external cost  %u\n",
+                       s.admin_external_port_path_cost);
+                printf("  internal port cost %-23u ",
+                       s.internal_port_path_cost);
+                printf("admin internal cost  %u\n",
+                       s.admin_internal_port_path_cost);
+                printf("  designated root    "BR_ID_FMT" ",
+                       BR_ID_ARGS(s.designated_root));
+                printf("dsgn external cost   %u\n",
+                       s.designated_external_cost);
+                printf("  dsgn regional root "BR_ID_FMT" ",
+                       BR_ID_ARGS(s.designated_regional_root));
+                printf("dsgn internal cost   %u\n",
+                       s.designated_internal_cost);
+                printf("  designated bridge  "BR_ID_FMT" ",
+                       BR_ID_ARGS(s.designated_bridge));
+                printf("designated port      "PRT_ID_FMT"\n",
+                       PRT_ID_ARGS(s.designated_port));
+                printf("  admin edge port    %-23s ",
+                       BOOL_STR(s.admin_edge_port));
+                printf("auto edge port       %s\n",
+                       BOOL_STR(s.auto_edge_port));
+                printf("  oper edge port     %-23s ",
+                       BOOL_STR(s.oper_edge_port));
+                printf("topology change ack  %s\n", BOOL_STR(s.tc_ack));
+                printf("  point-to-point     %-23s ", BOOL_STR(s.oper_p2p));
+                printf("admin point-to-point %s\n",
+                       ADMIN_P2P_STR(s.admin_p2p));
+                printf("  restricted role    %-23s ",
+                       BOOL_STR(s.restricted_role));
+                printf("restricted TCN       %s\n",
+                       BOOL_STR(s.restricted_tcn));
+                printf("  port hello time    %-23hhu ", s.port_hello_time);
+                printf("disputed             %s\n", BOOL_STR(s.disputed));
+            }
+            else
+            {
+                printf("%c%c %-5s "PRT_ID_FMT" %4s "BR_ID_FMT" "BR_ID_FMT" "
+                                                    PRT_ID_FMT" %s\n",
+                       (s.oper_p2p) ? ' ' : '*',
+                       (s.oper_edge_port) ? 'E' : ' ',
+                       port_name,
+                       PRT_ID_ARGS(s.port_id),
+                       s.enabled ? SHORT_STATE_STR(s.state) : "down",
+                       BR_ID_ARGS(s.designated_root),
+                       BR_ID_ARGS(s.designated_bridge),
+                       PRT_ID_ARGS(s.designated_port),
+                       SHORT_ROLE_STR(s.role));
+            }
+            break;
+        case PARAM_ENABLED:
+            printf("%s\n", BOOL_STR(s.enabled));
+            break;
+        case PARAM_ROLE:
+            printf("%s\n", ROLE_STR(s.role));
+            break;
+        case PARAM_STATE:
+            printf("%s\n", STATE_STR(s.state));
+            break;
+        case PARAM_PORTID:
+            printf(PRT_ID_FMT"\n", PRT_ID_ARGS(s.port_id));
+            break;
+        case PARAM_EXTPORTCOST:
+            printf("%u\n", s.external_port_path_cost);
+            break;
+        case PARAM_ADMINEXTCOST:
+            printf("%u\n", s.admin_external_port_path_cost);
+            break;
+        case PARAM_INTPORTCOST:
+            printf("%u\n", s.internal_port_path_cost);
+            break;
+        case PARAM_ADMININTCOST:
+            printf("%u\n", s.admin_internal_port_path_cost);
+            break;
+        case PARAM_DSGNROOT:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.designated_root));
+            break;
+        case PARAM_DSGNEXTCOST:
+            printf("%u\n", s.designated_external_cost);
+            break;
+        case PARAM_DSGNRROOT:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.designated_regional_root));
+            break;
+        case PARAM_DSGNINTCOST:
+            printf("%u\n", s.designated_internal_cost);
+            break;
+        case PARAM_DSGNBR:
+            printf(BR_ID_FMT"\n", BR_ID_ARGS(s.designated_bridge));
+            break;
+        case PARAM_DSGNPORT:
+            printf(PRT_ID_FMT"\n", PRT_ID_ARGS(s.designated_port));
+            break;
+        case PARAM_ADMINEDGEPORT:
+            printf("%s\n", BOOL_STR(s.admin_edge_port));
+            break;
+        case PARAM_AUTOEDGEPORT:
+            printf("%s\n", BOOL_STR(s.auto_edge_port));
+            break;
+        case PARAM_OPEREDGEPORT:
+            printf("%s\n", BOOL_STR(s.oper_edge_port));
+            break;
+        case PARAM_TOPCHNGACK:
+            printf("%s\n", BOOL_STR(s.tc_ack));
+            break;
+        case PARAM_P2P:
+            printf("%s\n", BOOL_STR(s.oper_p2p));
+            break;
+        case PARAM_ADMINP2P:
+            printf("%s\n", ADMIN_P2P_STR(s.admin_p2p));
+            break;
+        case PARAM_RESTRROLE:
+            printf("%s\n", BOOL_STR(s.restricted_role));
+            break;
+        case PARAM_RESTRTCN:
+            printf("%s\n", BOOL_STR(s.restricted_tcn));
+            break;
+        case PARAM_PORTHELLOTIME:
+            printf("%hhu\n", s.port_hello_time);
+            break;
+        case PARAM_DISPUTED:
+            printf("%s\n", BOOL_STR(s.disputed));
+            break;
+        default:
+            return -2; /* -2 = unknown param */
     }
-    else
-    {
-        printf("%c%c %-5s "PRT_ID_FMT" %4s "BR_ID_FMT" "BR_ID_FMT" "PRT_ID_FMT" %s\n",
-               (s.oper_p2p) ? ' ' : '*',
-               (s.oper_edge_port) ? 'E' : ' ',
-               port_name,
-               PRT_ID_ARGS(s.port_id),
-               s.enabled ? SHORT_STATE_STR(s.state) : "down",
-               BR_ID_ARGS(s.designated_root),
-               BR_ID_ARGS(s.designated_bridge),
-               PRT_ID_ARGS(s.designated_port),
-               SHORT_ROLE_STR(s.role));
-    }
+
     return 0;
 }
 
@@ -375,10 +647,23 @@ static int cmd_showport(int argc, char *const *argv)
 
     int i, count = 0;
     struct dirent **namelist;
+    param_id_t param_id = PARAM_NULL;
 
     if(2 < argc)
     {
         count = argc - 2;
+        if(1 < count)
+        { /* check if last argument is known parameter name */
+            for(i = 0; i < COUNT_OF(cist_port_params); ++i)
+            {
+                if(0 == strcmp(argv[argc - 1], cist_port_params[i].str))
+                {
+                    param_id = cist_port_params[i].id;
+                    --count;
+                    break;
+                }
+            }
+        }
     }
     else
     {
@@ -402,7 +687,7 @@ static int cmd_showport(int argc, char *const *argv)
         else
             name = namelist[i]->d_name;
 
-        int err = do_showport(br_index, argv[1], name);
+        int err = do_showport(br_index, argv[1], name, param_id);
         if(err)
             r = err;
     }
@@ -939,7 +1224,7 @@ static const struct command commands[] =
 {
     /* Show global bridge */
     {0, 32, "showbridge", cmd_showbridge,
-     "[<bridge> ... ]", "Show bridge state for the CIST"},
+     "[<bridge> ... [param]]", "Show bridge state for the CIST"},
     {1, 0, "showmstilist", cmd_showmstilist,
      "<bridge>", "Show list of registered MSTIs"},
     {1, 0, "showmstconfid", cmd_showmstconfid,
@@ -950,9 +1235,9 @@ static const struct command commands[] =
      "<bridge>", "Show FID-to-MSTID allocation table"},
     /* Show global port */
     {1, 32, "showport", cmd_showport,
-     "<bridge> [<port> ... ]", "Show port state for the CIST"},
+     "<bridge> [<port> ... [param]]", "Show port state for the CIST"},
     {1, 32, "showportdetail", cmd_showportdetail,
-     "<bridge> [<port> ... ]", "Show port detailed state for the CIST"},
+     "<bridge> [<port> ... [param]]", "Show port detailed state for the CIST"},
     /* Show tree bridge */
     {2, 0, "showtree", cmd_showtree,
      "<bridge> <mstid>", "Show bridge state for the given MSTI"},
