@@ -305,7 +305,6 @@ static int cmd_showbridge(int argc, char *const *argv)
     }
     else
     {
-        /* TODO: use versionsort, if available */
         count = scandir(SYSFS_CLASS_NET, &namelist, isbridge, sorting_func);
         if(0 > count)
         {
@@ -362,7 +361,7 @@ static int cmd_showtree(int argc, char *const *argv)
         printf("none\n");
     printf("  internal path cost %u\n", s.internal_path_cost);
     printf("  time since topology change %u\n", s.time_since_topology_change);
-    printf("  toplogy change count       %u\n", s.topology_change_count);
+    printf("  topology change count      %u\n", s.topology_change_count);
     printf("  topology change            %s\n", BOOL_STR(s.topology_change));
 
     return 0;
@@ -669,7 +668,6 @@ static int cmd_showport(int argc, char *const *argv)
     {
         char buf[SYSFS_PATH_MAX];
         snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", argv[1]);
-        /* TODO: use versionsort, if available */
         count = scandir(buf, &namelist, not_dot_dotdot, sorting_func);
         if(0 > count)
         {

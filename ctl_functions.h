@@ -57,7 +57,7 @@ typedef struct _log_string
 
 #define MSTP_SERVER_SOCK_NAME ".mstp_server"
 
-/* Commands sent from bridge-stp script needs this flag */
+/* Commands sent from bridge-stp script need this flag */
 #define RESPONSE_FIRST_HANDLE_LATER     0x10000
 
 /* COMMANDS */
