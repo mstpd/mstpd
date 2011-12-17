@@ -206,7 +206,6 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
         return false;
     list_add_tail(&cist->bridge_list, &br->trees);
 
-    br_state_machines_begin(br);
     return true;
 }
 
