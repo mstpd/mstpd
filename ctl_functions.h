@@ -448,6 +448,16 @@ struct set_fids2mstids_OUT
 #define set_fids2mstids_CALL (in->br_index, in->fids2mstids)
 CTL_DECLARE(set_fids2mstids);
 
+/* add bridges */
+#define CMD_CODE_add_bridges    122
+#define add_bridges_ARGS (int *br_array, int* *ifaces_lists)
+CTL_DECLARE(add_bridges);
+
+/* delete bridges */
+#define CMD_CODE_del_bridges    123
+#define del_bridges_ARGS (int *br_array)
+CTL_DECLARE(del_bridges);
+
 /* General case part in ctl command server switch */
 #define SERVER_MESSAGE_CASE(name)                            \
     case CMD_CODE_ ## name : do                              \

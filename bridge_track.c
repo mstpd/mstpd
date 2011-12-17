@@ -839,3 +839,13 @@ int CTL_set_fids2mstids(int br_index, __u16 *fids2mstids)
     CTL_CHECK_BRIDGE;
     return MSTP_IN_set_all_fids2mstids(br, fids2mstids) ? 0 : -1;
 }
+
+int CTL_add_bridges(int *br_array, int* *ifaces_lists)
+{
+    return 0;
+}
+
+int CTL_del_bridges(int *br_array)
+{
+    return 0;
+}

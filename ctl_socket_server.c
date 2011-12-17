@@ -83,6 +83,91 @@ static int handle_message(int cmd, void *inbuf, int lin,
         SERVER_MESSAGE_CASE(set_vids2fids);
         SERVER_MESSAGE_CASE(set_fids2mstids);
 
+        case CMD_CODE_add_bridges:
+        {
+            if(0 != lout)
+            {
+                LOG("Bad sizes: lout %d != 0", lout);
+                return -1;
+            }
+            if(sizeof(int) > lin)
+            {
+                LOG("Bad sizes: lin == 0");
+                return -1;
+            }
+            int *br_array = inbuf;
+            int i, serialized_data_count, chunk_count, brcount = br_array[0];
+            int *ptr = br_array + (serialized_data_count = (brcount + 1));
+            if(lin < ((serialized_data_count + 1) * sizeof(int)))
+            {
+bad_lin1:       LOG("Bad sizes: lin %d < %d", lin,
+                    (serialized_data_count + 1) * sizeof(int));
+                return -1;
+            }
+            for(i = 0; i < brcount; ++i)
+            {
+                serialized_data_count += (chunk_count = *ptr + 1);
+                if(i < (brcount - 1))
+                {
+                    if(lin < ((serialized_data_count + 1) * sizeof(int)))
+                        goto bad_lin1;
+                    ptr += chunk_count;
+                }
+                else
+                {
+                    if(lin != (serialized_data_count * sizeof(int)))
+                    {
+                        LOG("Bad sizes: lin %d != %d", lin,
+                            serialized_data_count * sizeof(int));
+                        return -1;
+                    }
+                }
+            }
+            int* *ifaces_lists = malloc(brcount * sizeof(int*));
+            if(NULL == ifaces_lists)
+            {
+                LOG("out of memory, brcount = %d\n", brcount);
+                return -1;
+            }
+            ptr = br_array + (brcount + 1);
+            for(i = 0; i < brcount; ++i)
+            {
+                ifaces_lists[i] = ptr;
+                ptr += ifaces_lists[i][0] + 1;
+            }
+            int r = CTL_add_bridges(br_array, ifaces_lists);
+            free(ifaces_lists);
+            if(r)
+                return r;
+            return r;
+        }
+
+        case CMD_CODE_del_bridges:
+        {
+            if(0 != lout)
+            {
+                LOG("Bad sizes: lout %d != 0", lout);
+                return -1;
+            }
+            if(sizeof(int) > lin)
+            {
+                LOG("Bad sizes: lin == 0");
+                return -1;
+            }
+            int *br_array = inbuf;
+            int brcount = br_array[0];
+            if(((brcount + 1) * sizeof(int)) != lin)
+            {
+                LOG("Bad sizes: lin %d != %d", lin,
+                    (brcount + 1) * sizeof(int));
+                return -1;
+            }
+            int r = CTL_del_bridges(br_array);
+            if(r)
+                return r;
+            return r;
+        }
+
         default:
             ERROR("CTL: Unknown command %d", cmd);
             return -1;

@@ -636,6 +636,18 @@ static int not_dot_dotdot(const struct dirent *entry)
     return !('.' == n[0] && (0 == n[1] || ('.' == n[1] && 0 == n[2])));
 }
 
+static int get_port_list(const char *br_ifname, struct dirent ***namelist)
+{
+    int res;
+    char buf[SYSFS_PATH_MAX];
+
+    snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", br_ifname);
+    if(0 > (res = scandir(buf, namelist, not_dot_dotdot, sorting_func)))
+        fprintf(stderr, "Error getting list of all ports of bridge %s\n",
+                br_ifname);
+    return res;
+}
+
 static int cmd_showport(int argc, char *const *argv)
 {
     int r = 0;
@@ -666,15 +678,8 @@ static int cmd_showport(int argc, char *const *argv)
     }
     else
     {
-        char buf[SYSFS_PATH_MAX];
-        snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", argv[1]);
-        count = scandir(buf, &namelist, not_dot_dotdot, sorting_func);
-        if(0 > count)
-        {
-            fprintf(stderr, "Error getting list of all ports of bridge %s\n",
-                    argv[1]);
-            return -1;
-        }
+        if(0 > (count = get_port_list(argv[1], &namelist)))
+            return count;
     }
 
     for(i = 0; i < count; ++i)
@@ -738,6 +743,91 @@ static int cmd_showtreeport(int argc, char *const *argv)
            PRT_ID_ARGS(s.designated_port));
 
     return 0;
+}
+
+static int cmd_addbridge(int argc, char *const *argv)
+{
+    int i, j, res, ifcount, brcount = argc - 1;
+    int *br_array;
+    int* *ifaces_lists;
+
+    if(NULL == (br_array = malloc((brcount + 1) * sizeof(int))))
+    {
+out_of_memory_exit:
+        fprintf(stderr, "out of memory, brcount = %d\n", brcount);
+        return -1;
+    }
+    if(NULL == (ifaces_lists = malloc(brcount * sizeof(int*))))
+    {
+        free(br_array);
+        goto out_of_memory_exit;
+    }
+
+    br_array[0] = brcount;
+    for(i = 1; i <= brcount; ++i)
+    {
+        struct dirent **namelist;
+
+        br_array[i] = get_index(argv[i], "bridge");
+
+        if(0 > (ifcount = get_port_list(argv[i], &namelist)))
+        {
+ifaces_error_exit:
+            for(i -= 2; i >= 0; --i)
+                free(ifaces_lists[i]);
+            free(ifaces_lists);
+            free(br_array);
+            return ifcount;
+        }
+
+        if(NULL == (ifaces_lists[i - 1] = malloc((ifcount + 1) * sizeof(int))))
+        {
+            fprintf(stderr, "out of memory, bridge %s, ifcount = %d\n",
+                    argv[i], ifcount);
+            for(j = 0; j < ifcount; ++j)
+                free(namelist[j]);
+            free(namelist);
+            ifcount = -1;
+            goto ifaces_error_exit;
+        }
+
+        ifaces_lists[i - 1][0] = ifcount;
+        for(j = 1; j <= ifcount; ++j)
+        {
+            ifaces_lists[i - 1][j] = get_index(namelist[j - 1]->d_name, "port");
+            free(namelist[j - 1]);
+        }
+        free(namelist);
+    }
+
+    res = CTL_add_bridges(br_array, ifaces_lists);
+
+    for(i = 0; i < brcount; ++i)
+        free(ifaces_lists[i]);
+    free(ifaces_lists);
+    free(br_array);
+    return res;
+}
+
+static int cmd_delbridge(int argc, char *const *argv)
+{
+    int i, res, brcount = argc - 1;
+    int *br_array;
+
+    if(NULL == (br_array = malloc((brcount + 1) * sizeof(int))))
+    {
+        fprintf(stderr, "out of memory, brcount = %d\n", brcount);
+        return -1;
+    }
+
+    br_array[0] = brcount;
+    for(i = 1; i <= brcount; ++i)
+        br_array[i] = get_index(argv[i], "bridge");
+
+    res = CTL_del_bridges(br_array);
+
+    free(br_array);
+    return res;
 }
 
 static unsigned int getuint(const char *s)
@@ -1203,6 +1293,12 @@ struct command
 
 static const struct command commands[] =
 {
+    /* Add/delete bridges */
+    {1, 32, "addbridge", cmd_addbridge,
+     "<bridge> [<bridge> ...]", "Add bridges to the mstpd's list"},
+    {1, 32, "delbridge", cmd_delbridge,
+     "<bridge> [<bridge> ...]", "Remove bridges from the mstpd's list"},
+
     /* Show global bridge */
     {0, 32, "showbridge", cmd_showbridge,
      "[<bridge> ... [param]]", "Show bridge state for the CIST"},
@@ -1394,6 +1490,60 @@ CLIENT_SIDE_FUNCTION(set_vid2fid)
 CLIENT_SIDE_FUNCTION(set_fid2mstid)
 CLIENT_SIDE_FUNCTION(set_vids2fids)
 CLIENT_SIDE_FUNCTION(set_fids2mstids)
+
+CTL_DECLARE(add_bridges)
+{
+    int res = 0;
+    LogString log = { .buf = "" };
+    int i, chunk_count, brcount, serialized_data_count;
+    int *serialized_data, *ptr;
+
+    chunk_count = serialized_data_count = (brcount = br_array[0]) + 1;
+    for(i = 0; i < brcount; ++i)
+        serialized_data_count += ifaces_lists[i][0] + 1;
+    if(NULL == (serialized_data = malloc(serialized_data_count * sizeof(int))))
+    {
+        LOG("out of memory, serialized_data_count = %d",
+            serialized_data_count);
+        return -1;
+    }
+    memcpy(serialized_data, br_array, chunk_count * sizeof(int));
+    ptr = serialized_data + chunk_count;
+    for(i = 0; i < brcount; ++i)
+    {
+        chunk_count = ifaces_lists[i][0] + 1;
+        memcpy(ptr, ifaces_lists[i], chunk_count * sizeof(int));
+        ptr += chunk_count;
+    }
+
+    int r = send_ctl_message(CMD_CODE_add_bridges, serialized_data,
+                             serialized_data_count * sizeof(int),
+                             NULL, 0, &log, &res);
+    free(serialized_data);
+    if(r || res)
+        LOG("Got return code %d, %d\n%s", r, res, log.buf);
+    if(r)
+        return r;
+    if(res)
+        return res;
+    return 0;
+}
+
+CTL_DECLARE(del_bridges)
+{
+    int res = 0;
+    LogString log = { .buf = "" };
+    int r = send_ctl_message(CMD_CODE_del_bridges,
+                             br_array, (br_array[0] + 1) * sizeof(int),
+                             NULL, 0, &log, &res);
+    if(r || res)
+        LOG("Got return code %d, %d\n%s", r, res, log.buf);
+    if(r)
+        return r;
+    if(res)
+        return res;
+    return 0;
+}
 
 /*********************** Logging *********************/
 
