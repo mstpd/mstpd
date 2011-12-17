@@ -839,13 +839,3 @@ int CTL_set_fids2mstids(int br_index, __u16 *fids2mstids)
     CTL_CHECK_BRIDGE;
     return MSTP_IN_set_all_fids2mstids(br, fids2mstids) ? 0 : -1;
 }
-
-int CTL_stp_mode_notification(int br_index, bool on)
-{
-    int br_flags;
-    CTL_CHECK_BRIDGE;
-    if(0 > (br_flags = get_flags(br->sysdeps.name)))
-        return br_flags;
-    set_br_up(br, !!(br_flags & IFF_UP), on);
-    return 0;
-}

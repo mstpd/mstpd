@@ -44,12 +44,12 @@ case $2 in
         checkpid $pid_file || exit 1
         for b in $MSTP_BRIDGES; do
             if [ "$bridge" == "$b" ]; then
-                exec /sbin/mstpctl notify-daemon-that-stp-is-on $bridge
+                exit 0
             fi
         done
         exit 1 ;;
     stop)
-        exec /sbin/mstpctl notify-daemon-that-stp-is-off $bridge
+        exit 0
         ;;
     *)
         echo "Unknown action:" $2
