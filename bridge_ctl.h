@@ -37,7 +37,7 @@ typedef struct
     __u8 macaddr[ETH_ALEN];
     char name[IFNAMSIZ];
 
-    bool up, stp_up;
+    bool up;
 } sysdep_br_data_t;
 
 typedef struct

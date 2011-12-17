@@ -175,38 +175,16 @@ static bool check_mac_address(char *name, __u8 *addr)
     }
 }
 
-static bool stp_enabled(bridge_t * br)
+static void set_br_up(bridge_t * br, bool up)
 {
-    char path[40 + IFNAMSIZ];
-    sprintf(path, "/sys/class/net/%s/bridge/stp_state", br->sysdeps.name);
-    FILE *f = fopen(path, "r");
-    int enabled = 0;
-    if(!f || (1 != fscanf(f, "%d", &enabled)))
-        ERROR("Can't read from %s", path);
-    fclose(f);
-    INFO("STP on %s state %d", br->sysdeps.name, enabled);
-
-    return enabled == 2; /* ie user mode STP */
-}
-
-static void set_br_up(bridge_t * br, bool up, bool stp_up)
-{
-    INFO("%s was %s stp was %s", br->sysdeps.name,
-         br->sysdeps.up ? "up" : "down", br->sysdeps.stp_up ? "up" : "down");
-    INFO("Set bridge %s %s stp %s" , br->sysdeps.name,
-         up ? "up" : "down", stp_up ? "up" : "down");
+    INFO("%s was %s", br->sysdeps.name, br->sysdeps.up ? "up" : "down");
+    INFO("Set bridge %s %s", br->sysdeps.name, up ? "up" : "down");
 
     bool changed = false;
 
     if(up != br->sysdeps.up)
     {
         br->sysdeps.up = up;
-        changed = true;
-    }
-
-    if(br->sysdeps.stp_up != stp_up)
-    {
-        br->sysdeps.stp_up = stp_up;
         changed = true;
     }
 
@@ -218,7 +196,7 @@ static void set_br_up(bridge_t * br, bool up, bool stp_up)
     }
 
     if(changed)
-        MSTP_IN_set_bridge_enable(br, br->sysdeps.up && br->sysdeps.stp_up);
+        MSTP_IN_set_bridge_enable(br, br->sysdeps.up);
 }
 
 static void set_if_up(port_t * ifc, bool up)
@@ -291,15 +269,10 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
     if((br_index >= 0) && (br_index != if_index))
     {
         if(!(br = find_br(br_index)))
-            br = create_br(br_index);
-        if(!br)
-        {
-            ERROR("Couldn't create data for bridge interface %d", br_index);
-            return -1;
-        }
+            return -2; /* bridge not in list */
         int br_flags = get_flags(br->sysdeps.name);
         if(br_flags >= 0)
-            set_br_up(br, !!(br_flags & IFF_UP), stp_enabled(br));
+            set_br_up(br, !!(br_flags & IFF_UP));
     }
 
     if(br)
@@ -358,15 +331,8 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
             if(br_index == if_index)
             {
                 if(!(br = find_br(br_index)))
-                {
-                    if(!(br = create_br(br_index)))
-                    {
-                        ERROR("Couldn't create data for bridge interface %d",
-                              br_index);
-                        return -1;
-                    }
-                }
-                set_br_up(br, up, stp_enabled(br));
+                    return -2; /* bridge not in list */
+                set_br_up(br, up);
             }
         }
     }
@@ -412,8 +378,6 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
     /* sanity checks */
     TST(br == ifc->bridge,);
     TST(ifc->sysdeps.up,);
-    if(!br->sysdeps.stp_up)
-        return;
 
     /* Validate Ethernet and LLC header,
      * maybe we can skip this check thanks to Berkeley filter in packet socket?
@@ -842,10 +806,83 @@ int CTL_set_fids2mstids(int br_index, __u16 *fids2mstids)
 
 int CTL_add_bridges(int *br_array, int* *ifaces_lists)
 {
+    int i, j, ifcount, brcount = br_array[0];
+    bridge_t *br, *other_br;
+    port_t *ifc, *nxt;
+    int br_flags, if_flags;
+    int *if_array;
+    bool found;
+
+    for(i = 1; i <= brcount; ++i)
+    {
+        if(NULL == (br = find_br(br_array[i])))
+        {
+            if(NULL == (br = create_br(br_array[i])))
+            {
+                ERROR("Couldn't create data for bridge interface %d",
+                      br_array[i]);
+                return -1;
+            }
+            if(0 <= (br_flags = get_flags(br->sysdeps.name)))
+                set_br_up(br, !!(br_flags & IFF_UP));
+        }
+        if_array = ifaces_lists[i - 1];
+        ifcount = if_array[0];
+        /* delete all interfaces which are not in list */
+        list_for_each_entry_safe(ifc, nxt, &br->ports, br_list)
+        {
+            found = false;
+            for(j = 1; j <= ifcount; ++j)
+            {
+                if(ifc->sysdeps.if_index == if_array[j])
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if(!found)
+                delete_if(ifc);
+        }
+        /* add all new interfaces from the list */
+        for(j = 1; j <= ifcount; ++j)
+        {
+            if(NULL != find_if(br, if_array[j]))
+                continue;
+            /* Check if this interface is slave of another bridge */
+            list_for_each_entry(other_br, &bridges, list)
+            {
+                if(other_br != br)
+                    if(delete_if_byindex(other_br, if_array[j]))
+                    {
+                        INFO("Device %d has come to bridge %s. "
+                             "Missed notify for deletion from bridge %s",
+                             if_array[j], br->sysdeps.name,
+                             other_br->sysdeps.name);
+                        break;
+                    }
+            }
+            if(NULL == (ifc = create_if(br, if_array[j])))
+            {
+                INFO("Couldn't create data for interface %d (master %s)",
+                     if_array[j], br->sysdeps.name);
+                continue;
+            }
+            if(0 <= (if_flags = get_flags(ifc->sysdeps.name)))
+                set_if_up(ifc, (IFF_UP | IFF_RUNNING) ==
+                               (if_flags & (IFF_UP | IFF_RUNNING))
+                         );
+        }
+    }
+
     return 0;
 }
 
 int CTL_del_bridges(int *br_array)
 {
+    int i, brcount = br_array[0];
+
+    for(i = 1; i <= brcount; ++i)
+        delete_br_byindex(br_array[i]);
+
     return 0;
 }
