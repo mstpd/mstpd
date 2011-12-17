@@ -449,12 +449,12 @@ struct set_fids2mstids_OUT
 CTL_DECLARE(set_fids2mstids);
 
 /* add bridges */
-#define CMD_CODE_add_bridges    122
+#define CMD_CODE_add_bridges    (122 | RESPONSE_FIRST_HANDLE_LATER)
 #define add_bridges_ARGS (int *br_array, int* *ifaces_lists)
 CTL_DECLARE(add_bridges);
 
 /* delete bridges */
-#define CMD_CODE_del_bridges    123
+#define CMD_CODE_del_bridges    (123 | RESPONSE_FIRST_HANDLE_LATER)
 #define del_bridges_ARGS (int *br_array)
 CTL_DECLARE(del_bridges);
 
