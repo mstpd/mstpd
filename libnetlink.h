@@ -34,8 +34,13 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
               void *jarg);
 int rtnl_send(struct rtnl_handle *rth, const char *buf, int);
 
+int addattr(struct nlmsghdr *n, int maxlen, int type);
 int addattr8(struct nlmsghdr *n, int maxlen, int type, __u8 data);
+int addattr16(struct nlmsghdr *n, int maxlen, int type, __u16 data);
 int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data);
+int addattr64(struct nlmsghdr *n, int maxlen, int type, __u64 data);
+int addattrstrz(struct nlmsghdr *n, int maxlen, int type, const char *data);
+
 int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
               int alen);
 int addraw_l(struct nlmsghdr *n, int maxlen, const void *data, int len);
