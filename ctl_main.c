@@ -1173,22 +1173,25 @@ static int cmd_showvid2fid(int argc, char *const *argv)
     printf("%s VID-to-FID allocation table:\n", argv[1]);
     int i, cur_fid;
     int interval_count;
+    char first_char;
     vid2fid[MAX_VID + 1] = 0xFFFF; /* helps to finalize last interval */
     do{
-        cur_fid = vid2fid[0];
+        cur_fid = vid2fid[1];
         for(i = 1; i <= MAX_VID; ++i)
             if(cur_fid > vid2fid[i])
                 cur_fid = vid2fid[i];
         if(cur_fid > MAX_FID)
             break;
         printf("  FID %u:", cur_fid);
-        for(i = 0, interval_count = 0; i <= (MAX_VID + 1); ++i)
+        first_char = ' ';
+        for(i = 1, interval_count = 0; i <= (MAX_VID + 1); ++i)
         {
             if(cur_fid != vid2fid[i])
             {
                 if(interval_count)
                 {
-                    printf(" %u", i - interval_count);
+                    printf("%c%u", first_char, i - interval_count);
+                    first_char = ',';
                     if(1 < interval_count)
                         printf("-%u", i - 1);
                     interval_count = 0;
@@ -1217,6 +1220,7 @@ static int cmd_showfid2mstid(int argc, char *const *argv)
     printf("%s FID-to-MSTID allocation table:\n", argv[1]);
     int i, cur_mstid;
     int interval_count;
+    char first_char;
     fid2mstid[MAX_FID + 1] = 0xFFFF; /* helps to finalize last interval */
     do{
         cur_mstid = fid2mstid[0];
@@ -1226,13 +1230,15 @@ static int cmd_showfid2mstid(int argc, char *const *argv)
         if(cur_mstid > MAX_MSTID)
             break;
         printf("  MSTID %u:", cur_mstid);
+        first_char = ' ';
         for(i = 0, interval_count = 0; i <= (MAX_FID + 1); ++i)
         {
             if(cur_mstid != fid2mstid[i])
             {
                 if(interval_count)
                 {
-                    printf(" %u", i - interval_count);
+                    printf("%c%u", first_char, i - interval_count);
+                    first_char = ',';
                     if(1 < interval_count)
                         printf("-%u", i - 1);
                     interval_count = 0;
@@ -1248,23 +1254,110 @@ static int cmd_showfid2mstid(int argc, char *const *argv)
     return 0;
 }
 
+static int ParseList(const char *str_c, __u16 *array,
+                     __u16 max_index, const char *index_doc,
+                     __u16 max_value, const char *value_doc,
+                     bool no_zero_index)
+{
+    char *next, *str, *list = strdup(str_c);
+    if(NULL == list)
+    {
+        fprintf(stderr, "Out of memory'\n");
+        return -ENOMEM;
+    }
+    str = list;
+    while(('\0' != *list) && (':' != *list))
+        ++list;
+    if('\0' == *list)
+    {
+bad_format:
+        free(str);
+        fprintf(stderr, "Bad format in argument: '%s'\n", str_c);
+        return -1;
+    }
+    *list++ = '\0';
+    int value = get_id(str, value_doc, max_value);
+    if(0 > value)
+    {
+        free(str);
+        return value;
+    }
+    int i, nn, first_index, last_index;
+    bool end = false;
+    next = list;
+    do{
+        list = next;
+        while(('\0' != *next) && (',' != *next))
+            ++next;
+        if('\0' == *next)
+            end = true;
+        else
+            *next++ = '\0';
+        nn = 0;
+        first_index = -1;
+        if((1 > sscanf(list, "%d%n", &first_index, &nn)) || (first_index < 0))
+        {
+            /* check for '*' */
+            while((' ' == *list) || ('\t' == *list))
+                ++list;
+            if('*' != *list)
+                goto bad_format;
+            for(i = (no_zero_index ? 1 : 0); i <= max_index; ++i)
+                if(array[i] > max_value)
+                    array[i] = value;
+            continue;
+        }
+        if((first_index > max_index) || (no_zero_index && (0 == first_index)))
+        {
+bad_index:
+            free(str);
+            fprintf(stderr, "Bad %s %d in argument: '%s'\n",
+                    index_doc, first_index, str_c);
+            return -1;
+        }
+        list += nn;
+        while(('\0' != *list) && (('0' > *list) || ('9' < *list)))
+            ++list;
+        if('\0' == *list)
+            last_index = first_index;
+        else
+        {
+            last_index = -1;
+            if((1 > sscanf(list, "%d", &last_index)) || (last_index < 0))
+                goto bad_format;
+            if((last_index > max_index) || (no_zero_index && (0 == last_index)))
+            {
+                first_index = last_index; /* for proper error string */
+                goto bad_index;
+            }
+        }
+        if(first_index > last_index)
+        {
+            i = first_index;
+            first_index = last_index;
+            last_index = i;
+        }
+        for(i = first_index; i <= last_index; ++i)
+            array[i] = value;
+    }while(!end);
+
+    free(str);
+    return 0;
+}
+
 static int cmd_setvid2fid(int argc, char *const *argv)
 {
     int br_index = get_index(argv[1], "bridge");
     if(0 > br_index)
         return br_index;
-    int vid = get_id(argv[2], "VID", MAX_VID);
-    if(0 > vid)
-        return vid;
-    if(0 == vid)
-    {
-        fprintf(stderr, "Bad VID %s\n", argv[2]);
-        return -1;
-    }
-    int fid = get_id(argv[3], "FID", MAX_FID);
-    if(0 > fid)
-        return fid;
-    return CTL_set_vid2fid(br_index, vid, fid);
+    __u16 vids2fids[MAX_VID + 1];
+    memset(vids2fids, 0xFF, sizeof(vids2fids));
+    int i, ret;
+    for(i = 2; i < argc; ++i)
+        if(0 > (ret = ParseList(argv[i], vids2fids, MAX_VID, "VID",
+                                MAX_FID, "FID", true)))
+            return ret;
+    return CTL_set_vids2fids(br_index, vids2fids);
 }
 
 static int cmd_setfid2mstid(int argc, char *const *argv)
@@ -1272,13 +1365,14 @@ static int cmd_setfid2mstid(int argc, char *const *argv)
     int br_index = get_index(argv[1], "bridge");
     if(0 > br_index)
         return br_index;
-    int fid = get_id(argv[2], "FID", MAX_FID);
-    if(0 > fid)
-        return fid;
-    int mstid = get_id(argv[3], "mstid", MAX_MSTID);
-    if(0 > mstid)
-        return mstid;
-    return CTL_set_fid2mstid(br_index, fid, mstid);
+    __u16 fids2mstids[MAX_FID + 1];
+    memset(fids2mstids, 0xFF, sizeof(fids2mstids));
+    int i, ret;
+    for(i = 2; i < argc; ++i)
+        if(0 > (ret = ParseList(argv[i], fids2mstids, MAX_FID, "FID",
+                                MAX_MSTID, "mstid", false)))
+            return ret;
+    return CTL_set_fids2mstids(br_index, fids2mstids);
 }
 
 struct command
@@ -1326,10 +1420,12 @@ static const struct command commands[] =
     {3, 0, "setmstconfid", cmd_setmstconfid,
      "<bridge> <revision> <name>",
      "Set MST ConfigId elements: Revision Level (0-65535) and Name"},
-    {3, 0, "setvid2fid", cmd_setvid2fid,
-     "<bridge> <VID> <FID>", "Set VID-to-FID allocation"},
-    {3, 0, "setfid2mstid", cmd_setfid2mstid,
-     "<bridge> <FID> <mstid>", "Set FID-to-MSTID allocation"},
+    {2, 32, "setvid2fid", cmd_setvid2fid,
+     "<bridge> <FID>:<VIDs List> [<FID>:<VIDs List> ...]",
+     "Set VIDs-to-FIDs allocation"},
+    {2, 32, "setfid2mstid", cmd_setfid2mstid,
+     "<bridge> <mstid>:<FIDs List> [<mstid>:<FIDs List> ...]",
+     "Set FIDs-to-MSTIDs allocation"},
     {2, 0, "setmaxage", cmd_setbridgemaxage,
      "<bridge> <max_age>", "Set bridge max age (6-40)"},
     {2, 0, "setfdelay", cmd_setbridgefdelay,

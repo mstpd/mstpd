@@ -1039,22 +1039,16 @@ bool MSTP_IN_set_all_vids2fids(bridge_t *br, __u16 *vids2fids)
     bool vid2mstid_changed;
     int vid;
 
-    for(vid = 1; vid <= MAX_VID; ++vid)
-        if(vids2fids[vid] > MAX_FID)
-        {
-            ERROR_BRNAME(br, "Error allocating VID(%hu) to FID(%hu)",
-                         vid, vids2fids[vid]);
-            return false;
-        }
-
     vid2mstid_changed = false;
     for(vid = 1; vid <= MAX_VID; ++vid)
     {
-        if(br->fid2mstid[vids2fids[vid]] != br->fid2mstid[br->vid2fid[vid]])
-        {
-            vid2mstid_changed = true;
-            break;
+        if(vids2fids[vid] > MAX_FID)
+        { /* Incorrect value == keep prev value */
+            vids2fids[vid] = br->vid2fid[vid];
+            continue;
         }
+        if(br->fid2mstid[vids2fids[vid]] != br->fid2mstid[br->vid2fid[vid]])
+            vid2mstid_changed = true;
     }
     memcpy(br->vid2fid, vids2fids, sizeof(br->vid2fid));
     if(vid2mstid_changed)
@@ -1125,7 +1119,12 @@ bool MSTP_IN_set_all_fids2mstids(bridge_t *br, __u16 *fids2mstids)
 
     for(fid = 0; fid <= MAX_FID; ++fid)
     {
-        MSTID[fid] = __cpu_to_be16(fids2mstids[fid]);
+        if(fids2mstids[fid] > MAX_MSTID)
+        { /* Incorrect value == keep prev value */
+            fids2mstids[fid] = __be16_to_cpu(MSTID[fid] = br->fid2mstid[fid]);
+        }
+        else
+            MSTID[fid] = __cpu_to_be16(fids2mstids[fid]);
         found = false;
         FOREACH_TREE_IN_BRIDGE(tree, br)
         {
