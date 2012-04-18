@@ -2343,6 +2343,7 @@ static void updtRolesTree(tree_t *tree)
     FOREACH_PTP_IN_TREE(ptp, tree)
     {
         port_t *prt = ptp->port;
+        per_tree_port_t *cist_tree = GET_CIST_PTP_FROM_PORT(prt);
 
         /* f) Set Disabled role */
         if(ioDisabled == ptp->infoIs)
@@ -2351,11 +2352,9 @@ static void updtRolesTree(tree_t *tree)
             continue;
         }
 
-        if(!cist && (ioReceived == ptp->infoIs)
-           && !prt->infoInternal)
+        if(!cist && (ioReceived == cist_tree->infoIs) && !prt->infoInternal)
         {
             /* g) Set role for the boundary port in MSTI */
-            per_tree_port_t *cist_tree = GET_CIST_PTP_FROM_PORT(prt);
             if(roleRoot == cist_tree->selectedRole)
             {
                 ptp->selectedRole = roleMaster;
@@ -2379,7 +2378,8 @@ static void updtRolesTree(tree_t *tree)
                 continue;
             }
         }
-        else /* if(cist || (ioReceived != ptp->infoIs) || prt->infoInternal) */
+        else
+     /* if(cist || (ioReceived != cist_tree->infoIs) || prt->infoInternal) */
         {
             /* h) Set role for the aged info */
             if(ioAged == ptp->infoIs)
