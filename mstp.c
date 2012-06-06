@@ -2269,12 +2269,14 @@ static void updtRolesTree(tree_t *tree)
                                      + ptp->InternalPortPathCost)
                       );
             }
-            else
+            else if(cist) /* Yes, this check might be superfluous,
+                           * but I want to be on the safe side */
             {
                 assign(root_path_priority.ExtRootPathCost,
                        __cpu_to_be32(__be32_to_cpu(root_path_priority.ExtRootPathCost)
                                      + prt->ExternalPortPathCost)
                       );
+                assign(root_path_priority.RRootID, tree->BridgeIdentifier);
                 assign(root_path_priority.IntRootPathCost,
                        __constant_cpu_to_be32(0));
             }
