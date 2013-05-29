@@ -390,6 +390,11 @@ typedef struct
     __u8 MaxHops;             /* 13.22.o */
     __u8 Forward_Delay;       /* 13.22.f */
     __u8 Max_Age;             /* 13.22.i */
+    /* The 802.1Q-2005 (13.22.j) says that this parameter is substituted by
+     * the per-port Hello Time, but we still need it for compatibility
+     * with old STP implementations.
+     */
+    __u8 Hello_Time;
     unsigned int Transmit_Hold_Count; /* 13.22.g */
     unsigned int Migrate_Time;        /* 13.22.h */
     unsigned int Ageing_Time;  /* 8.8.3 */
@@ -588,6 +593,7 @@ typedef struct
     unsigned int internal_path_cost;
     bool enabled; /* not in standard */
     __u8 max_hops;
+    __u8 bridge_hello_time;
 } CIST_BridgeStatus;
 
 void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status);
@@ -627,6 +633,9 @@ typedef struct
 
     __u8 max_hops;
     bool set_max_hops;
+
+    __u8 bridge_hello_time;
+    bool set_bridge_hello_time;
 } CIST_BridgeConfig;
 
 int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg);

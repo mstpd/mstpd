@@ -18,7 +18,7 @@
  * ---- Bad IEEE! ----
  * For now I decide: All structures will hold Hello_Time,
  * because in 802.1D they do.
- * Maybe 802.1Q-2011 clarifies this, but I don't have the text.
+ * Besides, it is necessary for compatibility with old STP implementations.
  */
 
 /* 802.1Q-2005 does not define but widely use variable name newInfoXst.
@@ -116,8 +116,7 @@ static tree_t * create_tree(bridge_t *br, __u8 *macaddr, __be16 MSTID)
     assign(tree->BridgeTimes.Forward_Delay, br->Forward_Delay);
     assign(tree->BridgeTimes.Max_Age, br->Max_Age);
     assign(tree->BridgeTimes.Message_Age, (__u8)0);
-    /* 17.14 of 802.1D */
-    assign(tree->BridgeTimes.Hello_Time, (__u8)2);
+    assign(tree->BridgeTimes.Hello_Time, br->Hello_Time);
 
     /* 12.8.1.1.3.(b,c,d) */
     tree->time_since_topology_change = 0;
@@ -205,6 +204,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     assign(br->Transmit_Hold_Count, 6u); /* 17.14 of 802.1D */
     assign(br->Migrate_Time, 3u); /* 17.14 of 802.1D */
     assign(br->Ageing_Time, 300u);/* 8.8.3 Table 8-3 */
+    assign(br->Hello_Time, (__u8)2);     /* 17.14 of 802.1D */
 
     br->uptime = 0;
 
@@ -585,6 +585,7 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     assign(status->tx_hold_count, br->Transmit_Hold_Count);
     status->protocol_version = br->ForceProtocolVersion;
     status->enabled = br->bridgeEnabled;
+    assign(status->bridge_hello_time, br->Hello_Time);
 }
 
 /* 12.8.1.2 Read MSTI Bridge Protocol Parameters */
@@ -682,6 +683,15 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         }
     }
 
+    if(cfg->set_bridge_hello_time)
+    {
+        if((1 > cfg->bridge_hello_time) || (10 < cfg->bridge_hello_time))
+        {
+            ERROR_BRNAME(br, "Bridge Hello Time must be between 1 and 10");
+            r = -1;
+        }
+    }
+
     if(r)
         return r;
 
@@ -728,6 +738,17 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         }
     }
 
+    if(cfg->set_bridge_hello_time)
+    {
+        if(cfg->bridge_hello_time != br->Hello_Time)
+        {
+            INFO_BRNAME(br, "bridge hello_time new=%hhu, old=%hhu",
+                        cfg->bridge_hello_time, br->Hello_Time);
+            assign(br->Hello_Time, cfg->bridge_hello_time);
+            changed = changedBridgeTimes = true;
+        }
+    }
+
     /* Thirdly, finalize changes */
     if(changedBridgeTimes)
     {
@@ -736,6 +757,7 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
             assign(tree->BridgeTimes.remainingHops, br->MaxHops);
             assign(tree->BridgeTimes.Forward_Delay, br->Forward_Delay);
             assign(tree->BridgeTimes.Max_Age, br->Max_Age);
+            assign(tree->BridgeTimes.Hello_Time, br->Hello_Time);
         /* Comment found in rstpd by Srinivas Aji:
          * Do this for any change in BridgeTimes.
          * Otherwise we fail UNH rstp.op_D test 3.2 since when administratively

@@ -103,6 +103,7 @@ typedef enum {
     PARAM_BRFWDDELAY,
     PARAM_TXHOLDCNT,
     PARAM_MAXHOPS,
+    PARAM_BRHELLO,
     PARAM_FORCEPROTVERS,
     PARAM_TOPCHNGTIME,
     PARAM_TOPCHNGCNT,
@@ -151,6 +152,7 @@ static const cmd_param_t cist_bridge_params[] = {
     { PARAM_BRFWDDELAY,   "bridge-forward-delay" },
     { PARAM_TXHOLDCNT,    "tx-hold-count" },
     { PARAM_MAXHOPS,      "max-hops" },
+    { PARAM_BRHELLO,      "hello-time" },
     { PARAM_FORCEPROTVERS,"force-protocol-version" },
     { PARAM_TOPCHNGTIME,  "time-since-topology-change" },
     { PARAM_TOPCHNGCNT,   "topology-change-count" },
@@ -185,14 +187,15 @@ static int do_showbridge(const char *br_name, param_id_t param_id)
             else
                 printf("none\n");
             printf("  path cost     %-10u ", s.root_path_cost);
-            printf("internal path cost   %u\n", s.internal_path_cost);
+            printf("internal path cost     %u\n", s.internal_path_cost);
             printf("  max age       %-10hhu ", s.root_max_age);
-            printf("bridge max age       %hhu\n", s.bridge_max_age);
+            printf("bridge max age         %hhu\n", s.bridge_max_age);
             printf("  forward delay %-10hhu ", s.root_forward_delay);
-            printf("bridge forward delay %hhu\n", s.bridge_forward_delay);
+            printf("bridge forward delay   %hhu\n", s.bridge_forward_delay);
             printf("  tx hold count %-10u ", s.tx_hold_count);
-            printf("max hops             %hhu\n", s.max_hops);
-            printf("  force protocol version     %s\n",
+            printf("max hops               %hhu\n", s.max_hops);
+            printf("  hello time    %-10u ", s.bridge_hello_time);
+            printf("force protocol version %s\n",
                    PROTO_VERS_STR(s.protocol_version));
             printf("  time since topology change %u\n",
                    s.time_since_topology_change);
@@ -242,6 +245,9 @@ static int do_showbridge(const char *br_name, param_id_t param_id)
             break;
         case PARAM_MAXHOPS:
             printf("%hhu\n", s.max_hops);
+            break;
+        case PARAM_BRHELLO:
+            printf("%hhu\n", s.bridge_hello_time);
             break;
         case PARAM_FORCEPROTVERS:
             printf("%s\n", PROTO_VERS_STR(s.protocol_version));
@@ -925,6 +931,17 @@ static int cmd_setbridgemaxage(int argc, char *const *argv)
     return set_bridge_cfg(bridge_max_age, max_age);
 }
 
+static int cmd_setbridgehello(int argc, char *const *argv)
+{
+    int br_index = get_index(argv[1], "bridge");
+    if(0 > br_index)
+        return br_index;
+    unsigned int hello_time = getuint(argv[2]);
+    if(hello_time > 255)
+        hello_time = 255;
+    return set_bridge_cfg(bridge_hello_time, hello_time);
+}
+
 static int cmd_setbridgefdelay(int argc, char *const *argv)
 {
     int br_index = get_index(argv[1], "bridge");
@@ -1432,6 +1449,8 @@ static const struct command commands[] =
      "<bridge> <fwd_delay>", "Set bridge forward delay (4-30)"},
     {2, 0, "setmaxhops", cmd_setbridgemaxhops,
      "<bridge> <max_hops>", "Set bridge max hops (6-40)"},
+    {2, 0, "sethello", cmd_setbridgehello,
+     "<bridge> <hello_time>", "Set bridge hello time (1-10)"},
     {2, 0, "setforcevers", cmd_setbridgeforcevers,
      "<bridge> {mstp|rstp|stp}", "Force Spanning Tree protocol version"},
     {2, 0, "settxholdcount", cmd_setbridgetxholdcount,
