@@ -586,6 +586,7 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     status->protocol_version = br->ForceProtocolVersion;
     status->enabled = br->bridgeEnabled;
     assign(status->bridge_hello_time, br->Hello_Time);
+    assign(status->Ageing_Time, br->Ageing_Time);
 }
 
 /* 12.8.1.2 Read MSTI Bridge Protocol Parameters */
@@ -692,6 +693,16 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         }
     }
 
+    if(cfg->set_bridge_ageing_time)
+    {
+        if((10 > cfg->bridge_ageing_time)||(1000000 < cfg->bridge_ageing_time))
+        {
+            ERROR_BRNAME(br,
+                "Bridge Ageing Time must be between 10 and 1000000 seconds");
+            r = -1;
+        }
+    }
+
     if(r)
         return r;
 
@@ -746,6 +757,16 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
                         cfg->bridge_hello_time, br->Hello_Time);
             assign(br->Hello_Time, cfg->bridge_hello_time);
             changed = changedBridgeTimes = true;
+        }
+    }
+
+    if(cfg->set_bridge_ageing_time)
+    {
+        if(cfg->bridge_ageing_time != br->Ageing_Time)
+        {
+            INFO_BRNAME(br, "bridge ageing_time new=%u, old=%u",
+                        cfg->bridge_ageing_time, br->Ageing_Time);
+            assign(br->Ageing_Time, cfg->bridge_ageing_time);
         }
     }
 

@@ -592,6 +592,7 @@ typedef struct
     bridge_identifier_t regional_root;
     unsigned int internal_path_cost;
     bool enabled; /* not in standard */
+    unsigned int Ageing_Time;
     __u8 max_hops;
     __u8 bridge_hello_time;
 } CIST_BridgeStatus;
@@ -636,6 +637,9 @@ typedef struct
 
     __u8 bridge_hello_time;
     bool set_bridge_hello_time;
+
+    unsigned int bridge_ageing_time;
+    bool set_bridge_ageing_time;
 } CIST_BridgeConfig;
 
 int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg);
