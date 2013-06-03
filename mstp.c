@@ -244,6 +244,7 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->AdminEdgePort = false; /* 13.25 */
     prt->AutoEdge = true;       /* 13.25 */
     assign(prt->rapidAgeingWhile, 0u);
+    prt->deleted = false;
 
     /* The following are initialized in BEGIN state:
      * - mdelayWhile. mcheck, sendRSTP: in Port Protocol Migration SM
@@ -287,6 +288,7 @@ void MSTP_IN_delete_port(port_t *prt)
     per_tree_port_t *ptp, *nxt;
     bridge_t *br = prt->bridge;
 
+    prt->deleted = true;
     if(prt->portEnabled)
     {
         prt->portEnabled = false;
@@ -300,6 +302,7 @@ void MSTP_IN_delete_port(port_t *prt)
         free(ptp);
     }
 
+    list_del(&prt->br_list);
     br_state_machines_run(br);
 }
 
@@ -319,7 +322,6 @@ void MSTP_IN_delete_bridge(bridge_t *br)
 
     list_for_each_entry_safe(prt, nxt_prt, &br->ports, br_list)
     {
-        list_del(&prt->br_list);
         MSTP_IN_delete_port(prt);
         free(prt);
     }
@@ -447,7 +449,10 @@ void MSTP_IN_one_second(bridge_t *br)
         if(prt->rapidAgeingWhile)
         {
             if((--(prt->rapidAgeingWhile)) == 0)
-                MSTP_OUT_set_ageing_time(prt, br->Ageing_Time);
+            {
+                if(!prt->deleted)
+                    MSTP_OUT_set_ageing_time(prt, br->Ageing_Time);
+            }
         }
     }
 
@@ -1921,7 +1926,7 @@ static void set_fdbFlush(per_tree_port_t *ptp)
 {
     port_t *prt = ptp->port;
 
-    if(prt->operEdge)
+    if(prt->operEdge || prt->deleted)
     {
         ptp->fdbFlush = false;
         return;
@@ -2109,6 +2114,9 @@ static void txConfig(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
+    if(prt->deleted)
+        return;
+
     b.protocolIdentifier = 0;
     b.protocolVersion = protoSTP;
     b.bpduType = bpduTypeConfig;
@@ -2165,6 +2173,9 @@ static void txMstp(port_t *prt)
     int msti_msgs_total_size;
     per_tree_port_t *ptp;
     msti_configuration_message_t *msti_msg;
+
+    if(prt->deleted)
+        return;
 
     b.protocolIdentifier = 0;
     b.bpduType = bpduTypeRST;
@@ -2260,6 +2271,9 @@ static void txMstp(port_t *prt)
 static void txTcn(port_t *prt)
 {
     bpdu_t b;
+
+    if(prt->deleted)
+        return;
 
     b.protocolIdentifier = 0;
     b.protocolVersion = protoSTP;
@@ -4287,7 +4301,10 @@ static void PSTSM_to_DISCARDING(per_tree_port_t *ptp, bool begin)
     disableForwarding();
     */
     if(BR_STATE_BLOCKING != ptp->state)
-        MSTP_OUT_set_state(ptp, BR_STATE_BLOCKING);
+    {
+        if(!ptp->port->deleted)
+            MSTP_OUT_set_state(ptp, BR_STATE_BLOCKING);
+    }
     ptp->learning = false;
     ptp->forwarding = false;
 
@@ -4301,7 +4318,10 @@ static void PSTSM_to_LEARNING(per_tree_port_t *ptp)
 
     /* enableLearning(); */
     if(BR_STATE_LEARNING != ptp->state)
-        MSTP_OUT_set_state(ptp, BR_STATE_LEARNING);
+    {
+        if(!ptp->port->deleted)
+            MSTP_OUT_set_state(ptp, BR_STATE_LEARNING);
+    }
     ptp->learning = true;
 
     PSTSM_run(ptp, false /* actual run */);
@@ -4313,7 +4333,10 @@ static void PSTSM_to_FORWARDING(per_tree_port_t *ptp)
 
     /* enableForwarding(); */
     if(BR_STATE_FORWARDING != ptp->state)
-        MSTP_OUT_set_state(ptp, BR_STATE_FORWARDING);
+    {
+        if(!ptp->port->deleted)
+            MSTP_OUT_set_state(ptp, BR_STATE_FORWARDING);
+    }
     ptp->forwarding = true;
 
     /* No need to run, no one condition will be met

@@ -123,7 +123,6 @@ static port_t * find_if(bridge_t * br, int if_index)
 
 static inline void delete_if(port_t * ifc)
 {
-    list_del(&ifc->br_list);
     MSTP_IN_delete_port(ifc);
     free(ifc);
 }

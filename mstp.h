@@ -485,6 +485,8 @@ typedef struct
     bpdu_t rcvdBpduData;
     int rcvdBpduNumOfMstis;
 
+    bool deleted;
+
     sysdep_if_data_t sysdeps;
 } port_t;
 
