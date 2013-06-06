@@ -472,6 +472,8 @@ typedef struct
     admin_p2p_t AdminP2P; /* 6.4.3 */
     bool AdminEdgePort; /* 13.22.k */
     bool AutoEdge; /* 13.22.m */
+    bool BpduGuardPort;
+    bool BpduGuardError;
 
     unsigned int rapidAgeingWhile;
 
@@ -573,6 +575,7 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state);
 void MSTP_OUT_flush_all_fids(per_tree_port_t *ptp);
 void MSTP_OUT_set_ageing_time(port_t *prt, unsigned int ageingTime);
 void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t *bpdu, int size);
+void MSTP_OUT_shutdown_port(port_t *prt);
 
 /* Structures for communicating with user */
  /* 12.8.1.1 Read CIST Bridge Protocol Parameters */
@@ -681,6 +684,8 @@ typedef struct
     __u32 designated_internal_cost; /* from portPriority */
     __u32 admin_internal_port_path_cost; /* not in standard. 0 = auto */
     __u32 internal_port_path_cost; /* not in standard */
+    bool bpdu_guard_port;
+    bool bpdu_guard_error;
 } CIST_PortStatus;
 
 void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status);
@@ -732,6 +737,9 @@ typedef struct
 
     bool restricted_tcn;
     bool set_restricted_tcn;
+
+    bool bpdu_guard_port;
+    bool set_bpdu_guard_port;
 } CIST_PortConfig;
 
 int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg);

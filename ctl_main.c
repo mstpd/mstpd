@@ -132,6 +132,8 @@ typedef enum {
     PARAM_RESTRTCN,
     PARAM_PORTHELLOTIME,
     PARAM_DISPUTED,
+    PARAM_BPDUGUARDPORT,
+    PARAM_BPDUGUARDERROR,
 } param_id_t;
 
 typedef struct {
@@ -455,30 +457,32 @@ static int cmd_showtree(int argc, char *const *argv)
     })
 
 static const cmd_param_t cist_port_params[] = {
-    { PARAM_ENABLED,      "enabled" },
-    { PARAM_ROLE,         "role" },
-    { PARAM_STATE,        "state" },
-    { PARAM_PORTID,       "port-id" },
-    { PARAM_EXTPORTCOST,  "external-port-cost" },
-    { PARAM_ADMINEXTCOST, "admin-external-cost" },
-    { PARAM_INTPORTCOST,  "internal-port-cost" },
-    { PARAM_ADMININTCOST, "admin-internal-cost" },
-    { PARAM_DSGNROOT,     "designated-root" },
-    { PARAM_DSGNEXTCOST,  "dsgn-external-cost" },
-    { PARAM_DSGNRROOT,    "dsgn-regional-root" },
-    { PARAM_DSGNINTCOST,  "dsgn-internal-cost" },
-    { PARAM_DSGNBR,       "designated-bridge" },
-    { PARAM_DSGNPORT,     "designated-port" },
-    { PARAM_ADMINEDGEPORT,"admin-edge-port" },
-    { PARAM_AUTOEDGEPORT, "auto-edge-port" },
-    { PARAM_OPEREDGEPORT, "oper-edge-port" },
-    { PARAM_TOPCHNGACK,   "topology-change-ack" },
-    { PARAM_P2P,          "point-to-point" },
-    { PARAM_ADMINP2P,     "admin-point-to-point" },
-    { PARAM_RESTRROLE,    "restricted-role" },
-    { PARAM_RESTRTCN,     "restricted-TCN" },
-    { PARAM_PORTHELLOTIME,"port-hello-time" },
-    { PARAM_DISPUTED,     "disputed" },
+    { PARAM_ENABLED,       "enabled" },
+    { PARAM_ROLE,          "role" },
+    { PARAM_STATE,         "state" },
+    { PARAM_PORTID,        "port-id" },
+    { PARAM_EXTPORTCOST,   "external-port-cost" },
+    { PARAM_ADMINEXTCOST,  "admin-external-cost" },
+    { PARAM_INTPORTCOST,   "internal-port-cost" },
+    { PARAM_ADMININTCOST,  "admin-internal-cost" },
+    { PARAM_DSGNROOT,      "designated-root" },
+    { PARAM_DSGNEXTCOST,   "dsgn-external-cost" },
+    { PARAM_DSGNRROOT,     "dsgn-regional-root" },
+    { PARAM_DSGNINTCOST,   "dsgn-internal-cost" },
+    { PARAM_DSGNBR,        "designated-bridge" },
+    { PARAM_DSGNPORT,      "designated-port" },
+    { PARAM_ADMINEDGEPORT, "admin-edge-port" },
+    { PARAM_AUTOEDGEPORT,  "auto-edge-port" },
+    { PARAM_OPEREDGEPORT,  "oper-edge-port" },
+    { PARAM_TOPCHNGACK,    "topology-change-ack" },
+    { PARAM_P2P,           "point-to-point" },
+    { PARAM_ADMINP2P,      "admin-point-to-point" },
+    { PARAM_RESTRROLE,     "restricted-role" },
+    { PARAM_RESTRTCN,      "restricted-TCN" },
+    { PARAM_PORTHELLOTIME, "port-hello-time" },
+    { PARAM_DISPUTED,      "disputed" },
+    { PARAM_BPDUGUARDPORT, "bpdu-guard-port" },
+    { PARAM_BPDUGUARDERROR,"bpdu-guard-error" },
 };
 
 static int detail = 0;
@@ -546,6 +550,10 @@ static int do_showport(int br_index, const char *bridge_name,
                        BOOL_STR(s.restricted_tcn));
                 printf("  port hello time    %-23hhu ", s.port_hello_time);
                 printf("disputed             %s\n", BOOL_STR(s.disputed));
+                printf("  bpdu guard port    %-23s ",
+                       BOOL_STR(s.bpdu_guard_port));
+                printf("bpdu guard error     %s\n",
+                       BOOL_STR(s.bpdu_guard_error));
             }
             else
             {
@@ -633,6 +641,12 @@ static int do_showport(int br_index, const char *bridge_name,
             break;
         case PARAM_DISPUTED:
             printf("%s\n", BOOL_STR(s.disputed));
+            break;
+        case PARAM_BPDUGUARDPORT:
+            printf("%s\n", BOOL_STR(s.bpdu_guard_port));
+            break;
+        case PARAM_BPDUGUARDERROR:
+            printf("%s\n", BOOL_STR(s.bpdu_guard_error));
             break;
         default:
             return -2; /* -2 = unknown param */
@@ -1078,6 +1092,17 @@ static int cmd_setportrestrtcn(int argc, char *const *argv)
     return set_port_cfg(restricted_tcn, getyesno(argv[3], "yes", "no"));
 }
 
+static int cmd_setportbpduguard(int argc, char *const *argv)
+{
+    int br_index = get_index(argv[1], "bridge");
+    if(0 > br_index)
+        return br_index;
+    int port_index = get_index(argv[2], "port");
+    if(0 > port_index)
+        return port_index;
+    return set_port_cfg(bpdu_guard_port, getyesno(argv[3], "yes", "no"));
+}
+
 static int cmd_settreeportprio(int argc, char *const *argv)
 {
     int br_index = get_index(argv[1], "bridge");
@@ -1496,6 +1521,8 @@ static const struct command commands[] =
      "Restrict port ability to propagate received TCNs"},
     {2, 0, "portmcheck", cmd_portmcheck,
      "<bridge> <port>", "Try to get back from STP to rapid (RSTP/MSTP) mode"},
+    {3, 0, "setbpduguard", cmd_setportbpduguard,
+     "<bridge> <port> {yes|no}", "Set bpdu guard state"},
     /* Set tree port */
     {4, 0, "settreeportprio", cmd_settreeportprio,
      "<bridge> <port> <mstid> <priority>",

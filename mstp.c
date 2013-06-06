@@ -243,6 +243,8 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     assign(prt->ExternalPortPathCost, MAX_PATH_COST); /* 13.37.1 */
     prt->AdminEdgePort = false; /* 13.25 */
     prt->AutoEdge = true;       /* 13.25 */
+    prt->BpduGuardPort = false;
+    prt->BpduGuardError = false;
     assign(prt->rapidAgeingWhile, 0u);
     prt->deleted = false;
 
@@ -412,6 +414,7 @@ void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex)
         if(!prt->portEnabled)
         {
             prt->portEnabled = true;
+            prt->BpduGuardError = false;
             changed = true;
         }
     }
@@ -479,6 +482,15 @@ void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size)
 {
     int mstis_size;
     bridge_t *br = prt->bridge;
+
+    if(prt->BpduGuardPort)
+    {
+        prt->BpduGuardError = true;
+        ERROR_PRTNAME(br, prt,
+                      "Received BPDU on BPDU Guarded Port - Port Down");
+        MSTP_OUT_shutdown_port(prt);
+        return;
+    }
 
     if(!br->bridgeEnabled)
     {
@@ -874,6 +886,8 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     assign(status->admin_internal_port_path_cost,
            cist->AdminInternalPortPathCost);
     assign(status->internal_port_path_cost, cist->InternalPortPathCost);
+    status->bpdu_guard_port = prt->BpduGuardPort;
+    status->bpdu_guard_error = prt->BpduGuardError;
 }
 
 /* 12.8.2.2 Read MSTI Port Parameters */
@@ -903,6 +917,7 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
     __u32 new_ExternalPathCost;
     bool new_p2p;
     per_tree_port_t *cist;
+    bridge_t *br = prt->bridge;
 
     /* Firstly, validation */
     if(cfg->set_admin_p2p)
@@ -995,6 +1010,15 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
         {
             prt->restrictedTcn = cfg->restricted_tcn;
             changed = true;
+        }
+    }
+
+    if(cfg->set_bpdu_guard_port)
+    {
+        if(prt->BpduGuardPort != cfg->bpdu_guard_port)
+        {
+            prt->BpduGuardPort = cfg->bpdu_guard_port;
+            INFO_PRTNAME(br, prt,"BpduGuardPort new=%d", prt->BpduGuardPort);
         }
     }
 

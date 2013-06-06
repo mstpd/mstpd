@@ -581,6 +581,12 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
     packet_send(ifc->sysdeps.if_index, iov, 2, sizeof(h) + size);
 }
 
+void MSTP_OUT_shutdown_port(port_t *prt)
+{
+    if(0 > if_shutdown(prt->sysdeps.name))
+        ERROR_PRTNAME(prt->bridge, prt, "Couldn't shutdown port");
+}
+
 /* User interface commands */
 
 #define CTL_CHECK_BRIDGE                                       \
