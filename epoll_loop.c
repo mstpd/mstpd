@@ -94,6 +94,7 @@ static inline int time_diff(struct timeval *second, struct timeval *first)
 static inline void run_timeouts(void)
 {
     bridge_one_second();
+    gettimeofday(&nexttimeout, NULL);
     ++(nexttimeout.tv_sec);
 }
 
@@ -112,7 +113,7 @@ int epoll_main_loop(void)
         struct timeval tv;
         gettimeofday(&tv, NULL);
         timeout = time_diff(&nexttimeout, &tv);
-        if(timeout < 0)
+        if(timeout < 0 || timeout > 1000)
         {
             run_timeouts();
             timeout = 0;
