@@ -474,8 +474,12 @@ typedef struct
     bool AutoEdge; /* 13.22.m */
     bool BpduGuardPort;
     bool BpduGuardError;
+    bool NetworkPort;
+    bool BaInconsistent;
+    bool dontTxmtBpdu;
 
     unsigned int rapidAgeingWhile;
+    unsigned int brAssuRcvdInfoWhile;
 
     /* State machines */
     PRSM_states_t PRSM_state;
@@ -686,6 +690,8 @@ typedef struct
     __u32 internal_port_path_cost; /* not in standard */
     bool bpdu_guard_port;
     bool bpdu_guard_error;
+    bool network_port;
+    bool ba_inconsistent;
 } CIST_PortStatus;
 
 void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status);
@@ -740,6 +746,12 @@ typedef struct
 
     bool bpdu_guard_port;
     bool set_bpdu_guard_port;
+
+    bool network_port;
+    bool set_network_port;
+
+    bool dont_txmt;
+    bool set_dont_txmt;
 } CIST_PortConfig;
 
 int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg);

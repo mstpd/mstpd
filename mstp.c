@@ -50,6 +50,7 @@ static void br_state_machines_begin(bridge_t *br);
 static void prt_state_machines_begin(port_t *prt);
 static void tree_state_machines_begin(tree_t *tree);
 static void br_state_machines_run(bridge_t *br);
+static void updtbrAssuRcvdInfoWhile(port_t *prt);
 
 #define FOREACH_PORT_IN_BRIDGE(port, bridge) \
     list_for_each_entry((port), &(bridge)->ports, br_list)
@@ -62,7 +63,11 @@ static void br_state_machines_run(bridge_t *br);
 
 /* 17.20.11 of 802.1D */
 #define rstpVersion(br) ((br)->ForceProtocolVersion >= protoRSTP)
-
+/* Bridge assurance is operational only when NetworkPort type is configured
+ * and the operation status is pointToPoint and version is RSTP/MSTP
+ */
+#define assurancePort(prt) ((prt)->NetworkPort && (prt)->operPointToPointMAC \
+                            && (prt)->sendRSTP)
 /*
  * Recalculate configuration digest. (13.7)
  */
@@ -246,6 +251,10 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->BpduGuardPort = false;
     prt->BpduGuardError = false;
     assign(prt->rapidAgeingWhile, 0u);
+    assign(prt->brAssuRcvdInfoWhile, 0u);
+    prt->NetworkPort = false;
+    prt->BaInconsistent = false;
+    prt->dontTxmtBpdu = false;
     prt->deleted = false;
 
     /* The following are initialized in BEGIN state:
@@ -415,7 +424,13 @@ void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex)
         {
             prt->portEnabled = true;
             prt->BpduGuardError = false;
+            prt->BaInconsistent = false;
             changed = true;
+            /* When port is enabled, initialize bridge assurance timer,
+             * so that enough time is given before port is put in
+             * inconsistent state.
+             */
+            updtbrAssuRcvdInfoWhile(prt);
         }
     }
     else
@@ -574,6 +589,14 @@ bpdu_validation_failed:
 
     assign(prt->rcvdBpduData, *bpdu);
     prt->rcvdBpdu = true;
+
+    /* Reset bridge assurance on receipt of valid BPDU */
+    if(prt->BaInconsistent)
+    {
+        prt->BaInconsistent = false;
+        INFO_PRTNAME(br, prt, "Clear Bridge assurance inconsistency");
+    }
+    updtbrAssuRcvdInfoWhile(prt);
 
     br_state_machines_run(br);
 }
@@ -888,6 +911,8 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     assign(status->internal_port_path_cost, cist->InternalPortPathCost);
     status->bpdu_guard_port = prt->BpduGuardPort;
     status->bpdu_guard_error = prt->BpduGuardError;
+    status->network_port = prt->NetworkPort;
+    status->ba_inconsistent = prt->BaInconsistent;
 }
 
 /* 12.8.2.2 Read MSTI Port Parameters */
@@ -1019,6 +1044,33 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
         {
             prt->BpduGuardPort = cfg->bpdu_guard_port;
             INFO_PRTNAME(br, prt,"BpduGuardPort new=%d", prt->BpduGuardPort);
+        }
+    }
+
+    if(cfg->set_network_port)
+    {
+        if(prt->NetworkPort != cfg->network_port)
+        {
+            prt->NetworkPort = cfg->network_port;
+            INFO_PRTNAME(br, prt, "NetworkPort new=%d", prt->NetworkPort);
+            /* When Network port config is removed and bridge assurance
+             * inconsistency is set, clear the inconsistency.
+             */
+            if(!prt->NetworkPort && prt->BaInconsistent)
+            {
+                prt->BaInconsistent = false;
+                INFO_PRTNAME(br, prt, "Clear Bridge assurance inconsistency");
+            }
+            changed = true;
+        }
+    }
+
+    if(cfg->set_dont_txmt)
+    {
+        if(prt->dontTxmtBpdu != cfg->dont_txmt)
+        {
+            prt->dontTxmtBpdu = cfg->dont_txmt;
+            INFO_PRTNAME(br, prt, "donttxmt new=%d", prt->dontTxmtBpdu);
         }
     }
 
@@ -2138,7 +2190,7 @@ static void txConfig(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted)
+    if(prt->deleted || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
@@ -2198,7 +2250,7 @@ static void txMstp(port_t *prt)
     per_tree_port_t *ptp;
     msti_configuration_message_t *msti_msg;
 
-    if(prt->deleted)
+    if(prt->deleted || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
@@ -2296,7 +2348,7 @@ static void txTcn(port_t *prt)
 {
     bpdu_t b;
 
-    if(prt->deleted)
+    if(prt->deleted || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
@@ -2330,6 +2382,14 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
         ptp->rcvdInfoWhile = 3 * Hello_Time;
     else
         ptp->rcvdInfoWhile = 0;
+}
+
+static void updtbrAssuRcvdInfoWhile(port_t *prt)
+{
+    per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
+    unsigned int Hello_Time = cist->portTimes.Hello_Time;
+
+    prt->brAssuRcvdInfoWhile = 3 * cist->portTimes.Hello_Time;
 }
 
 /* 13.26.24 updtRolesDisabledTree */
@@ -2608,6 +2668,8 @@ static void PTSM_tick(port_t *prt)
         --(prt->edgeDelayWhile);
     if(prt->txCount)
         --(prt->txCount);
+    if(prt->brAssuRcvdInfoWhile)
+        --(prt->brAssuRcvdInfoWhile);
 
     FOREACH_PTP_IN_PORT(ptp, prt)
     {
@@ -3024,7 +3086,9 @@ static bool PTSM_run(port_t *prt, bool dry_run)
                 return false;
             if(prt->sendRSTP)
             { /* implement MSTP */
-                if(prt->newInfo || (prt->newInfoMsti && !mstiMasterPort))
+                if(prt->newInfo || (prt->newInfoMsti && !mstiMasterPort)
+                   || assurancePort(prt)
+                  )
                 {
                     if(dry_run) /* state change */
                         return true;
@@ -4221,8 +4285,10 @@ static bool PRTSM_runr(per_tree_port_t *ptp, bool recursive_call, bool dry_run)
                 PRTSM_to_DESIGNATED_PROPOSE(ptp);
                 return false;
             }
+            /* Dont transition to learn/forward when BA inconsistent */
             if(((0 == ptp->fdWhile) || ptp->agreed || prt->operEdge)
                && ((0 == ptp->rrWhile) || !ptp->reRoot) && !ptp->sync
+               && !ptp->port->BaInconsistent
               )
             {
                 if(!ptp->learn)
@@ -4240,9 +4306,11 @@ static bool PRTSM_runr(per_tree_port_t *ptp, bool recursive_call, bool dry_run)
                     return false;
                 }
             }
+            /* Transition to discarding when BA inconsistent */
             if(((ptp->sync && !ptp->synced)
                 || (ptp->reRoot && (0 != ptp->rrWhile))
                 || ptp->disputed
+                || ptp->port->BaInconsistent
                )
                && !prt->operEdge && (ptp->learn || ptp->forward)
               )
@@ -4768,6 +4836,20 @@ static bool __br_state_machines_run(bridge_t *br, bool dry_run)
     port_t *prt;
     per_tree_port_t *ptp;
     tree_t *tree;
+
+    /* Check if bridge assurance timer expires */
+    FOREACH_PORT_IN_BRIDGE(prt, br)
+    {
+        if(prt->portEnabled && assurancePort(prt)
+           && (0 == prt->brAssuRcvdInfoWhile) && !prt->BaInconsistent
+          )
+        {
+            if(dry_run) /* state change */
+                return true;
+            prt->BaInconsistent = true;
+            ERROR_PRTNAME(prt->bridge, prt, "Bridge assurance inconsistent");
+        }
+    }
 
     /* 13.28  Port Receive state machine */
     FOREACH_PORT_IN_BRIDGE(prt, br)
