@@ -2899,7 +2899,9 @@ static bool BDSM_run(port_t *prt, bool dry_run)
     switch(prt->BDSM_state)
     {
         case BDSM_EDGE:
-            if((!prt->portEnabled && !prt->AdminEdgePort) || !prt->operEdge)
+            if(((!prt->portEnabled || !prt->AutoEdge) && !prt->AdminEdgePort)
+               || !prt->operEdge
+              )
             {
                 if(dry_run) /* state change */
                     return true;
