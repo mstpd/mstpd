@@ -97,6 +97,66 @@ static __u32 compute_pcost(int speed)
     return MAX_PATH_COST;
 }
 
+static void bridge_default_internal_vars(bridge_t *br)
+{
+    br->uptime = 0;
+}
+
+static void tree_default_internal_vars(tree_t *tree)
+{
+    /* 12.8.1.1.3.(b,c,d) */
+    tree->time_since_topology_change = 0;
+    tree->topology_change_count = 0;
+    tree->topology_change = false; /* since all tcWhile are initialized to 0 */
+
+    /* The following are initialized in BEGIN state:
+     *  - rootPortId, rootPriority, rootTimes: in Port Role Selection SM
+     */
+}
+
+static void port_default_internal_vars(port_t *prt)
+{
+    prt->infoInternal = false;
+    prt->rcvdInternal = false;
+    prt->rcvdTcAck = false;
+    prt->rcvdTcn = false;
+    assign(prt->rapidAgeingWhile, 0u);
+    assign(prt->brAssuRcvdInfoWhile, 0u);
+    prt->BaInconsistent = false;
+
+    /* The following are initialized in BEGIN state:
+     * - mdelayWhile. mcheck, sendRSTP: in Port Protocol Migration SM
+     * - helloWhen, newInfo, newInfoMsti, txCount: in Port Transmit SM
+     * - edgeDelayWhile, rcvdBpdu, rcvdRSTP, rcvdSTP : in Port Receive SM
+     * - operEdge: in Bridge Detection SM
+     * - tcAck: in Topology Change SM
+     */
+}
+
+static void ptp_default_internal_vars(per_tree_port_t *ptp)
+{
+    ptp->rcvdTc = false;
+    ptp->tcProp = false;
+    ptp->updtInfo = false;
+    ptp->master = false; /* 13.24.5 */
+    ptp->disputed = false;
+    assign(ptp->rcvdInfo, (port_info_t)0);
+    ptp->mastered = false;
+    memset(&ptp->msgPriority, 0, sizeof(ptp->msgPriority));
+    memset(&ptp->msgTimes, 0, sizeof(ptp->msgTimes));
+
+    /* The following are initialized in BEGIN state:
+     * - rcvdMsg: in Port Receive SM
+     * - fdWhile, rrWhile, rbWhile, role, learn, forward,
+     *   sync, synced, reRoot: in Port Role Transitions SM
+     * - tcWhile, fdbFlush: Topology Change SM
+     * - rcvdInfoWhile, proposed, proposing, agree, agreed,
+     *   infoIs, reselect, selected: Port Information SM
+     * - forwarding, learning: Port State Transition SM
+     * - selectedRole, designatedPriority, designatedTimes: Port Role Selection SM
+     */
+}
+
 static tree_t * create_tree(bridge_t *br, __u8 *macaddr, __be16 MSTID)
 {
     /* Initialize all fields except anchor */
@@ -123,14 +183,8 @@ static tree_t * create_tree(bridge_t *br, __u8 *macaddr, __be16 MSTID)
     assign(tree->BridgeTimes.Message_Age, (__u8)0);
     assign(tree->BridgeTimes.Hello_Time, br->Hello_Time);
 
-    /* 12.8.1.1.3.(b,c,d) */
-    tree->time_since_topology_change = 0;
-    tree->topology_change_count = 0;
-    tree->topology_change = false; /* since all tcWhile are initialized to 0 */
+    tree_default_internal_vars(tree);
 
-    /* The following are initialized in BEGIN state:
-     *  - rootPortId, rootPriority, rootTimes: in Port Role Selection SM
-     */
     return tree;
 }
 
@@ -148,12 +202,8 @@ static per_tree_port_t * create_ptp(tree_t *tree, port_t *prt)
     ptp->MSTID = tree->MSTID;
 
     ptp->state = BR_STATE_DISABLED;
-    ptp->rcvdTc = false;
-    ptp->tcProp = false;
-    ptp->updtInfo = false;
     /* 0x80 = default port priority (17.14 of 802.1D) */
     ptp->portId = __constant_cpu_to_be16(0x8000) | prt->port_number;
-    ptp->master = false; /* 13.24.5 */
     assign(ptp->AdminInternalPortPathCost, 0u);
     assign(ptp->InternalPortPathCost, compute_pcost(GET_PORT_SPEED(prt)));
     /* 802.1Q leaves portPriority and portTimes uninitialized */
@@ -162,24 +212,8 @@ static per_tree_port_t * create_ptp(tree_t *tree, port_t *prt)
 
     ptp->calledFromFlushRoutine = false;
 
-    /* The following are initialized in BEGIN state:
-     * - rcvdMsg: in Port Receive SM
-     * - fdWhile, rrWhile, rbWhile, role, learn, forward,
-     *   sync, synced, reRoot: in Port Role Transitions SM
-     * - tcWhile, fdbFlush: Topology Change SM
-     * - rcvdInfoWhile, proposed, proposing, agree, agreed,
-     *   infoIs, reselect, selected: Port Information SM
-     * - forwarding, learning: Port State Transition SM
-     * - selectedRole, designatedPriority, designatedTimes: Port Role Selection SM
-     */
+    ptp_default_internal_vars(ptp);
 
-    /* The following are not initialized (set to zero thanks to calloc):
-     * - disputed
-     * - rcvdInfo
-     * - mastered
-     * - msgPriority
-     * - msgTimes
-     */
     return ptp;
 }
 
@@ -211,7 +245,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     assign(br->Ageing_Time, 300u);/* 8.8.3 Table 8-3 */
     assign(br->Hello_Time, (__u8)2);     /* 17.14 of 802.1D */
 
-    br->uptime = 0;
+    bridge_default_internal_vars(br);
 
     /* Create CIST */
     if(!(cist = create_tree(br, macaddr, 0)))
@@ -239,10 +273,6 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->AdminP2P = p2pAuto;
     prt->operPointToPointMAC = false;
     prt->portEnabled = false;
-    prt->infoInternal = false;
-    prt->rcvdInternal = false;
-    prt->rcvdTcAck = false;
-    prt->rcvdTcn = false;
     prt->restrictedRole = false; /* 13.25.14 */
     prt->restrictedTcn = false; /* 13.25.15 */
     assign(prt->ExternalPortPathCost, MAX_PATH_COST); /* 13.37.1 */
@@ -250,20 +280,11 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->AutoEdge = true;       /* 13.25 */
     prt->BpduGuardPort = false;
     prt->BpduGuardError = false;
-    assign(prt->rapidAgeingWhile, 0u);
-    assign(prt->brAssuRcvdInfoWhile, 0u);
     prt->NetworkPort = false;
-    prt->BaInconsistent = false;
     prt->dontTxmtBpdu = false;
     prt->deleted = false;
 
-    /* The following are initialized in BEGIN state:
-     * - mdelayWhile. mcheck, sendRSTP: in Port Protocol Migration SM
-     * - helloWhen, newInfo, newInfoMsti, txCount: in Port Transmit SM
-     * - edgeDelayWhile, rcvdBpdu, rcvdRSTP, rcvdSTP : in Port Receive SM
-     * - operEdge: in Bridge Detection SM
-     * - tcAck: in Topology Change SM
-     */
+    port_default_internal_vars(prt);
 
     /* Create PerTreePort structures for all existing trees */
     FOREACH_TREE_IN_BRIDGE(tree, br)
@@ -365,9 +386,41 @@ void MSTP_IN_set_bridge_address(bridge_t *br, __u8 *macaddr)
 
 void MSTP_IN_set_bridge_enable(bridge_t *br, bool up)
 {
+    port_t *prt;
+    per_tree_port_t *ptp;
+    tree_t *tree;
+
     if(br->bridgeEnabled == up)
         return;
     br->bridgeEnabled = up;
+
+    /* Reset all internal states and variables,
+     * except those which are user-configurable */
+    bridge_default_internal_vars(br);
+    FOREACH_TREE_IN_BRIDGE(tree, br)
+    {
+        tree_default_internal_vars(tree);
+    }
+    FOREACH_PORT_IN_BRIDGE(prt, br)
+    {
+        /* NOTE: Don't check prt->deleted here, as it is imposible condition */
+        /* NOTE: In the port_default_internal_vars() rapidAgeingWhile will be
+         *  reset, so we should stop rapid ageing procedure here.
+         */
+        if(prt->rapidAgeingWhile)
+        {
+            MSTP_OUT_set_ageing_time(prt, br->Ageing_Time);
+        }
+        port_default_internal_vars(prt);
+        FOREACH_PTP_IN_PORT(ptp, prt)
+        {
+            if(BR_STATE_DISABLED != ptp->state)
+            {
+                MSTP_OUT_set_state(ptp, BR_STATE_DISABLED);
+            }
+            ptp_default_internal_vars(ptp);
+        }
+    }
     br_state_machines_begin(br);
 }
 
