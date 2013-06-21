@@ -2243,7 +2243,7 @@ static void txConfig(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
@@ -2303,7 +2303,7 @@ static void txMstp(port_t *prt)
     per_tree_port_t *ptp;
     msti_configuration_message_t *msti_msg;
 
-    if(prt->deleted || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
@@ -2400,8 +2400,9 @@ static void txMstp(port_t *prt)
 static void txTcn(port_t *prt)
 {
     bpdu_t b;
+    per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
         return;
 
     b.protocolIdentifier = 0;
