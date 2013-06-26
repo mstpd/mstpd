@@ -35,6 +35,15 @@ install: all
 	install -m 755 mstpd $(DESTDIR)/sbin/mstpd
 	install -m 755 mstpctl $(DESTDIR)/sbin/mstpctl
 	install -m 755 bridge-stp /sbin/bridge-stp
+	-mkdir -pv $(DESTDIR)/lib/mstpctl-utils/
+	cp -rv lib/* $(DESTDIR)/lib/mstpctl-utils/
+	gzip -f $(DESTDIR)/lib/mstpctl-utils/mstpctl.8
+	gzip -f $(DESTDIR)/lib/mstpctl-utils/mstpctl-utils-interfaces.5
+	if [ -d $(DESTDIR)/etc/network/if-pre-up.d ] ; then ln -sf /lib/mstpctl-utils/ifupdown.sh $(DESTDIR)/etc/network/if-pre-up.d/mstpctl ; fi
+	if [ -d $(DESTDIR)/etc/network/if-pre-up.d ] ; then ln -sf /lib/mstpctl-utils/ifupdown.sh $(DESTDIR)/etc/network/if-post-down.d/mstpctl ; fi
+	if [ -d $(DESTDIR)/etc/bash_completion.d ] ; then ln -sf /lib/mstpctl-utils/bash_completion $(DESTDIR)/etc/bash_completion.d/mstpctl ; fi
+	ln -sf /lib/mstpctl-utils/mstpctl.8.gz $(DESTDIR)/usr/share/man/man8/mstpctl.8.gz
+	ln -sf /lib/mstpctl-utils/mstpctl-utils-interfaces.5.gz $(DESTDIR)/usr/share/man/man5/mstpctl-utils-interfaces.5.gz
 
 romfs: all
 	$(ROMFSINST) /sbin/mstpd
