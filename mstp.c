@@ -108,6 +108,8 @@ static void tree_default_internal_vars(tree_t *tree)
     tree->time_since_topology_change = 0;
     tree->topology_change_count = 0;
     tree->topology_change = false; /* since all tcWhile are initialized to 0 */
+    strncpy(tree->topology_change_port, "None", IFNAMSIZ);
+    strncpy(tree->last_topology_change_port, "None", IFNAMSIZ);
 
     /* The following are initialized in BEGIN state:
      *  - rootPortId, rootPriority, rootTimes: in Port Role Selection SM
@@ -123,6 +125,12 @@ static void port_default_internal_vars(port_t *prt)
     assign(prt->rapidAgeingWhile, 0u);
     assign(prt->brAssuRcvdInfoWhile, 0u);
     prt->BaInconsistent = false;
+    prt->num_rx_bpdu = 0;
+    prt->num_rx_tcn = 0;
+    prt->num_tx_bpdu = 0;
+    prt->num_tx_tcn = 0;
+    prt->num_trans_fwd = 0;
+    prt->num_trans_blk = 0;
 
     /* The following are initialized in BEGIN state:
      * - mdelayWhile. mcheck, sendRSTP: in Port Protocol Migration SM
@@ -478,6 +486,10 @@ void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex)
             prt->portEnabled = true;
             prt->BpduGuardError = false;
             prt->BaInconsistent = false;
+            prt->num_rx_bpdu = 0;
+            prt->num_rx_tcn = 0;
+            prt->num_tx_bpdu = 0;
+            prt->num_tx_tcn = 0;
             changed = true;
             /* When port is enabled, initialize bridge assurance timer,
              * so that enough time is given before port is put in
@@ -551,6 +563,12 @@ void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size)
     int mstis_size;
     bridge_t *br = prt->bridge;
 
+    ++(prt->num_rx_bpdu);
+    if(bpdu->flags & (1 << offsetTc))
+        ++(prt->num_rx_tcn);
+    if(bpdu->bpduType == bpduTypeTCN)
+        ++(prt->num_rx_tcn);
+
     if(prt->BpduGuardPort)
     {
         prt->BpduGuardError = true;
@@ -593,7 +611,9 @@ bpdu_validation_failed:
                 goto bpdu_validation_failed;
             /* Valid Config BPDU */
             bpdu->protocolVersion = protoSTP;
-            LOG_PRTNAME(br, prt, "received Config BPDU");
+            LOG_PRTNAME(br, prt, "received Config BPDU%s",
+                        (bpdu->flags & (1 << offsetTc)) ? ", tcFlag" : ""
+                       );
             break;
         case bpduTypeRST:
             if(protoRSTP == bpdu->protocolVersion)
@@ -602,7 +622,9 @@ bpdu_validation_failed:
                     goto bpdu_validation_failed;
                 /* Valid RST BPDU */
                 /* bpdu->protocolVersion = protoRSTP; */
-                LOG_PRTNAME(br, prt, "received RST BPDU");
+                LOG_PRTNAME(br, prt, "received RST BPDU%s",
+                            (bpdu->flags & (1 << offsetTc)) ? ", tcFlag" : ""
+                           );
                 break;
             }
             if(protoMSTP > bpdu->protocolVersion)
@@ -633,8 +655,10 @@ bpdu_validation_failed:
             bpdu->protocolVersion = protoMSTP;
             prt->rcvdBpduNumOfMstis = mstis_size
                                       / sizeof(msti_configuration_message_t);
-            LOG_PRTNAME(br, prt, "received MST BPDU with %d MSTIs",
-                        prt->rcvdBpduNumOfMstis);
+            LOG_PRTNAME(br, prt, "received MST BPDU%s with %d MSTIs",
+                        (bpdu->flags & (1 << offsetTc)) ? ", tcFlag" : "",
+                        prt->rcvdBpduNumOfMstis
+                       );
             break;
         default:
             goto bpdu_validation_failed;
@@ -663,6 +687,10 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
            cist->time_since_topology_change);
     assign(status->topology_change_count, cist->topology_change_count);
     status->topology_change = cist->topology_change;
+    strncpy(status->topology_change_port, cist->topology_change_port,
+            IFNAMSIZ);
+    strncpy(status->last_topology_change_port, cist->last_topology_change_port,
+            IFNAMSIZ);
     assign(status->designated_root, cist->rootPriority.RootID);
     assign(status->root_path_cost,
            __be32_to_cpu(cist->rootPriority.ExtRootPathCost));
@@ -690,6 +718,10 @@ void MSTP_IN_get_msti_bridge_status(tree_t *tree, MSTI_BridgeStatus *status)
            tree->time_since_topology_change);
     assign(status->topology_change_count, tree->topology_change_count);
     status->topology_change = tree->topology_change;
+    strncpy(status->topology_change_port, tree->topology_change_port,
+            IFNAMSIZ);
+    strncpy(status->last_topology_change_port, tree->last_topology_change_port,
+            IFNAMSIZ);
     assign(status->regional_root, tree->rootPriority.RRootID);
     assign(status->internal_path_cost,
            __be32_to_cpu(tree->rootPriority.IntRootPathCost));
@@ -966,6 +998,12 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     status->bpdu_guard_error = prt->BpduGuardError;
     status->network_port = prt->NetworkPort;
     status->ba_inconsistent = prt->BaInconsistent;
+    status->num_rx_bpdu = prt->num_rx_bpdu;
+    status->num_rx_tcn = prt->num_rx_tcn;
+    status->num_tx_bpdu = prt->num_tx_bpdu;
+    status->num_tx_tcn = prt->num_tx_tcn;
+    status->num_trans_fwd = prt->num_trans_fwd;
+    status->num_trans_blk = prt->num_trans_blk;
 }
 
 /* 12.8.2.2 Read MSTI Port Parameters */
@@ -1531,7 +1569,7 @@ void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
  * If hint_SetToYes == false, some tcWhile in this tree has just became zero,
  *  so we should check all other tcWhile's in this tree.
  */
-static void set_TopologyChange(tree_t *tree, bool hint_SetToYes)
+static void set_TopologyChange(tree_t *tree, bool hint_SetToYes, port_t *port)
 {
     per_tree_port_t *ptp;
     bool prev_tc_not_set = !tree->topology_change;
@@ -1542,6 +1580,9 @@ static void set_TopologyChange(tree_t *tree, bool hint_SetToYes)
         tree->time_since_topology_change = 0;
         if(prev_tc_not_set)
             ++(tree->topology_change_count);
+        strncpy(tree->topology_change_port, tree->last_topology_change_port,
+                IFNAMSIZ);
+        strncpy(tree->last_topology_change_port, port->sysdeps.name, IFNAMSIZ);
         return;
     }
 
@@ -1717,7 +1758,7 @@ static void newTcWhile(per_tree_port_t *ptp)
         per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
         ptp->tcWhile = cist->portTimes.Hello_Time + 1;
-        set_TopologyChange(tree, true);
+        set_TopologyChange(tree, true, prt);
 
         if(0 == ptp->MSTID)
             prt->newInfo = true;
@@ -1729,7 +1770,7 @@ static void newTcWhile(per_tree_port_t *ptp)
     times_t *times = &tree->rootTimes;
 
     ptp->tcWhile = times->Max_Age + times->Forward_Delay;
-    set_TopologyChange(tree, true);
+    set_TopologyChange(tree, true, prt);
 }
 
 /* 13.26.6 rcvInfo */
@@ -2736,7 +2777,7 @@ static void PTSM_tick(port_t *prt)
         if(ptp->tcWhile)
         {
             if(0 == --(ptp->tcWhile))
-                set_TopologyChange(ptp->tree, false);
+                set_TopologyChange(ptp->tree, false, prt);
         }
         if(ptp->rcvdInfoWhile)
             --(ptp->rcvdInfoWhile);
@@ -4540,7 +4581,7 @@ static void TCSM_to_INACTIVE(per_tree_port_t *ptp, bool begin)
 
     set_fdbFlush(ptp);
     assign(ptp->tcWhile, 0u);
-    set_TopologyChange(ptp->tree, false);
+    set_TopologyChange(ptp->tree, false, ptp->port);
     if(0 == ptp->MSTID) /* CIST */
         ptp->port->tcAck = false;
 
@@ -4636,7 +4677,7 @@ static void TCSM_to_ACKNOWLEDGED(per_tree_port_t *ptp)
     ptp->TCSM_state = TCSM_ACKNOWLEDGED;
 
     assign(ptp->tcWhile, 0u);
-    set_TopologyChange(ptp->tree, false);
+    set_TopologyChange(ptp->tree, false, ptp->port);
     ptp->port->rcvdTcAck = false;
 
     TCSM_run(ptp, false /* actual run */);

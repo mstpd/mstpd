@@ -210,6 +210,10 @@ static int do_showbridge(const char *br_name, param_id_t param_id)
                    s.topology_change_count);
             printf("  topology change            %s\n",
                    BOOL_STR(s.topology_change));
+            printf("  topology change port       %s\n",
+                   s.topology_change_port);
+            printf("  last topology change port  %s\n",
+                   s.last_topology_change_port);
             break;
         case PARAM_ENABLED:
             printf("%s\n", BOOL_STR(s.enabled));
@@ -379,6 +383,8 @@ static int cmd_showtree(int argc, char *const *argv)
     printf("  time since topology change %u\n", s.time_since_topology_change);
     printf("  topology change count      %u\n", s.topology_change_count);
     printf("  topology change            %s\n", BOOL_STR(s.topology_change));
+    printf("  topology change port       %s\n", s.topology_change_port);
+    printf("  last topology change port  %s\n", s.last_topology_change_port);
 
     return 0;
 }
@@ -562,6 +568,12 @@ static int do_showport(int br_index, const char *bridge_name,
                        BOOL_STR(s.network_port));
                 printf("BA inconsistent      %s\n",
                        BOOL_STR(s.ba_inconsistent));
+                printf("  Num TX BPDU        %-23u ", s.num_tx_bpdu);
+                printf("Num TX TCN           %u\n", s.num_tx_tcn);
+                printf("  Num RX BPDU        %-23u ", s.num_rx_bpdu);
+                printf("Num RX TCN           %u\n", s.num_rx_tcn);
+                printf("  Num Transition FWD %-23u ", s.num_trans_fwd);
+                printf("Num Transition BLK   %u\n", s.num_trans_blk);
             }
             else
             {

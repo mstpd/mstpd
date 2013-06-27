@@ -470,9 +470,11 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
             break;
         case BR_STATE_FORWARDING:
             state_name = "forwarding";
+            ++(ifc->num_trans_fwd);
             break;
         case BR_STATE_BLOCKING:
             state_name = "blocking";
+            ++(ifc->num_trans_blk);
             break;
         default:
         case BR_STATE_DISABLED:
@@ -548,6 +550,7 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
                     break;
                 case bpduTypeTCN:
                     bpdu_type = "STP-TCN";
+                    ++(ifc->num_tx_tcn);
                     break;
                 default:
                     bpdu_type = "STP-UnknownType";
@@ -563,7 +566,8 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
             bpdu_type = "UnknownProto";
     }
 
-    LOG_PRTNAME(br, ifc, "sending %s BPDU", bpdu_type);
+    LOG_PRTNAME(br, ifc, "sending %s BPDU%s", bpdu_type,
+        (bpdu->flags & (1 << offsetTc)) ? ", tcFlag" : "");
 
     struct llc_header h;
     memcpy(h.dest_addr, bridge_group_address, ETH_ALEN);
@@ -577,7 +581,9 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
         { .iov_base = &h, .iov_len = sizeof(h) },
         { .iov_base = bpdu, .iov_len = size }
     };
-
+    ++(ifc->num_tx_bpdu);
+    if(bpdu->flags & (1 << offsetTc))
+        ++(ifc->num_tx_tcn);
     packet_send(ifc->sysdeps.if_index, iov, 2, sizeof(h) + size);
 }
 

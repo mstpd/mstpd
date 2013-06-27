@@ -434,6 +434,8 @@ typedef struct
     unsigned int time_since_topology_change;
     unsigned int topology_change_count;
     bool topology_change;
+    char topology_change_port[IFNAMSIZ];
+    char last_topology_change_port[IFNAMSIZ];
 
     /* State machines */
     PRSSM_states_t PRSSM_state;
@@ -494,6 +496,12 @@ typedef struct
     bool deleted;
 
     sysdep_if_data_t sysdeps;
+    unsigned int num_rx_bpdu;
+    unsigned int num_rx_tcn;
+    unsigned int num_tx_bpdu;
+    unsigned int num_tx_tcn;
+    unsigned int num_trans_fwd;
+    unsigned int num_trans_blk;
 } port_t;
 
 typedef struct
@@ -589,6 +597,8 @@ typedef struct
     unsigned int time_since_topology_change;
     unsigned int topology_change_count;
     bool topology_change;
+    char topology_change_port[IFNAMSIZ];
+    char last_topology_change_port[IFNAMSIZ];
     bridge_identifier_t designated_root;
     unsigned int root_path_cost;
     port_identifier_t root_port_id;
@@ -615,6 +625,8 @@ typedef struct
     unsigned int time_since_topology_change;
     unsigned int topology_change_count;
     bool topology_change;
+    char topology_change_port[IFNAMSIZ];
+    char last_topology_change_port[IFNAMSIZ];
     bridge_identifier_t regional_root;
     unsigned int internal_path_cost;
     port_identifier_t root_port_id;
@@ -692,6 +704,12 @@ typedef struct
     bool bpdu_guard_error;
     bool network_port;
     bool ba_inconsistent;
+    unsigned int num_rx_bpdu;
+    unsigned int num_rx_tcn;
+    unsigned int num_tx_bpdu;
+    unsigned int num_tx_tcn;
+    unsigned int num_trans_fwd;
+    unsigned int num_trans_blk;
 } CIST_PortStatus;
 
 void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status);
