@@ -564,10 +564,6 @@ void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size)
     bridge_t *br = prt->bridge;
 
     ++(prt->num_rx_bpdu);
-    if(bpdu->flags & (1 << offsetTc))
-        ++(prt->num_rx_tcn);
-    if(bpdu->bpduType == bpduTypeTCN)
-        ++(prt->num_rx_tcn);
 
     if(prt->BpduGuardPort)
     {
@@ -662,6 +658,16 @@ bpdu_validation_failed:
             break;
         default:
             goto bpdu_validation_failed;
+    }
+
+    if((protoSTP == bpdu->protocolVersion) && (bpduTypeTCN == bpdu->bpduType))
+    {
+        ++(prt->num_rx_tcn);
+    }
+    else
+    {
+        if(bpdu->flags & (1 << offsetTc))
+            ++(prt->num_rx_tcn);
     }
 
     assign(prt->rcvdBpduData, *bpdu);

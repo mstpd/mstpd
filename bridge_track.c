@@ -537,7 +537,7 @@ void MSTP_OUT_set_ageing_time(port_t *prt, unsigned int ageingTime)
 
 void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
 {
-    char *bpdu_type;
+    char *bpdu_type, *tcflag;
     bridge_t *br = ifc->bridge;
 
     switch(bpdu->protocolVersion)
@@ -550,7 +550,6 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
                     break;
                 case bpduTypeTCN:
                     bpdu_type = "STP-TCN";
-                    ++(ifc->num_tx_tcn);
                     break;
                 default:
                     bpdu_type = "STP-UnknownType";
@@ -566,8 +565,22 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
             bpdu_type = "UnknownProto";
     }
 
-    LOG_PRTNAME(br, ifc, "sending %s BPDU%s", bpdu_type,
-        (bpdu->flags & (1 << offsetTc)) ? ", tcFlag" : "");
+    ++(ifc->num_tx_bpdu);
+    if((protoSTP == bpdu->protocolVersion) && (bpduTypeTCN == bpdu->bpduType))
+    {
+        ++(ifc->num_tx_tcn);
+        LOG_PRTNAME(br, ifc, "sending %s BPDU", bpdu_type);
+    }
+    else
+    {
+        tcflag = "";
+        if(bpdu->flags & (1 << offsetTc))
+        {
+            ++(ifc->num_tx_tcn);
+            tcflag = ", tcFlag";
+        }
+        LOG_PRTNAME(br, ifc, "sending %s BPDU%s", bpdu_type, tcflag);
+    }
 
     struct llc_header h;
     memcpy(h.dest_addr, bridge_group_address, ETH_ALEN);
@@ -581,9 +594,7 @@ void MSTP_OUT_tx_bpdu(port_t * ifc, bpdu_t * bpdu, int size)
         { .iov_base = &h, .iov_len = sizeof(h) },
         { .iov_base = bpdu, .iov_len = size }
     };
-    ++(ifc->num_tx_bpdu);
-    if(bpdu->flags & (1 << offsetTc))
-        ++(ifc->num_tx_tcn);
+
     packet_send(ifc->sysdeps.if_index, iov, 2, sizeof(h) + size);
 }
 
