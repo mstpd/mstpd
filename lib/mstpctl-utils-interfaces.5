@@ -29,7 +29,8 @@ file format.
 .P
 The main extension is the mstpctl_ports option, with it you describe that the
 interface is a bridge and what ports does it have. Spanning Tree protocol
-paramaters can also be specified.
+parameters can also be specified.
+Currently multiple spanning trees are not supported by this extension (although mstpd/mstpctl supports MSTP without restrictions). This means that all settings here are applied to the CIST tree.
 .P
 We'll see this with an example:
 .EX
@@ -81,67 +82,59 @@ is reached.
 .SS
 .TP
 .BI mstpctl_maxage " time"
-set max message age to \fItime\fP seconds, default is 20, can have a
-fractional part.
+set max message age to \fItime\fP seconds, default is 20.
 .TP
 .BI mstpctl_fdelay " time"
 set bridge forward delay to \fItime\fP seconds, default is 15.
 .TP
 .BI mstpctl_maxhops " max_hops"
-set bridge maximum hops to \fImax_hops\fP, default is 15.
+set bridge maximum hops to \fImax_hops\fP, default is 20.
 .TP
 .BI mstpctl_forcevers " mstp|rstp|stp"
-sets the bridge's force STP version to either rstp/stp. mstp is
-not supported currently, default is rstp.
+forces the bridge to use specific STP protocol version. mstp is the default.
 .TP
 .BI mstpctl_txholdcount " tx_hold_count"
 set bridge transmit hold count to \fItx_hold_count\fP, default is 6.
 .TP
 .BI mstpctl_treeprio " priority"
-set bridge tree priority, \fIpriority\fP is between 0 and 65535,
-is a multiple of 4096 and default is 32768. Bridge priority affects
-bridge id, lowest priority bridge will be the root.
+set bridge tree priority, \fIpriority\fP is between 0 and 15. Bridge priority affects bridge id, lowest priority bridge will be the root. Note that traditionally bridge priority is a multiple of 4096 and ranges from 0 to 15*4096 = 61440. mstpd is different - it throws out that useless "multiple of 4096" rule and expresses bridge priority in natural units (0-15). Default is 8.
 .TP
 .BI mstpctl_portpathcost " port cost"
-set path cost for a port, default is 0, \fIport\fP is the name of
+set path cost for a port, default is 0 (= auto), \fIport\fP is the name of
 the interface to which this setting applies.
 .TP
 .BI mstpctl_portadminedge " port yes|no"
-Enables/disables the initial edge state of the port <port>, default is no.
+Enables/disables the admin edge state of the \fIport\fP, default is no.
 .TP
 .BI mstpctl_portautoedge " port yes|no"
-Enables/disables the auto transition to/from edge state of the port <port>,
+Enables/disables the auto transition to/from edge state of the \fIport\fP,
 default is no.
 .TP
-.BI mstpctl_portp2p " port yes|no"
-Enables/disables the point2point detection mode of the port <port>,
-default is no.
+.BI mstpctl_portp2p " port yes|no|auto"
+Enables/disables the point2point detection mode of the \fIport\fP,
+default is auto.
 .TP
 .BI mstpctl_portrestrrole " port yes|no"
-Enables/disables the port ability to take root role of the port <port>,
-default is no.
+Enables/disables the restrictions on the \fIport\fP's ability to take root role,
+default is no (i.e. no restrictions on the port's role).
 .TP
 .BI mstpctl_portrestrtcn " port yes|no"
-Enables/disables the port ability to propagate received topology change
-notification of the port <port>, default is no.
+Enables/disables the restrictions on the \fIport\fP's ability to propagate received topology change notification, default is no (i.e. no restrictions on the TCN propagation).
 .TP
 .BI mstpctl_bpduguard " port yes|no"
-Enables/disables the bpduguard configuration of the port, default is no.
+Enables/disables the bpduguard configuration of the \fIport\fP, default is no.
 .TP
 .BI mstpctl_treeportprio " port priority"
-sets the port <port>'s priority to <priority> for the MSTI instance.
-The priority value is a number between 0 and 240, is a multiple of 16,
-default is 128. Only MSTI 0 is supported currently.
+sets the \fIport\fP's priority to \fIpriority\fP. The priority value is a number between 0 and 15. Note that traditionally port priority is a multiple of 16 and ranges from 0 to 15*16 = 240. mstpd is different - it throws out that useless "multiple of 16" rule and expresses port priority in natural units (0-15). Default is 8.
 .TP
 .BI mstpctl_hello " time"
 set hello time to \fItime\fP seconds, default is 2.
 .TP
 .BI mstpctl_ageing " time"
-sets the ethernet (MAC) address ageing time, in seconds for the bridge
-when the running version is STP, but not RSTP/MSTP, default is 300s.
+sets the ethernet (MAC) address ageing \fItime\fP, in seconds. Used only when protocol version is forced to STP, default is 300s. Note that this parameter differs from the other ones: it is only informational parameter. By setting it in the mstpd one do not change the real bridge's Ageing Time; it is supposed to be set as information to the mstpd that real Ageing Time in the real bridge was changed.
 .TP
 .BI mstpctl_portnetwork " port yes|no"
-Enables/disables the bridge assurance capability for a network port <port>,
+Enables/disables the bridge assurance capability for a \fIport\fP,
 default is no.
 .TP
 .BI mstpctl_stp " state"

@@ -16,7 +16,7 @@ _mstpctl()
                 setportautoedge setportp2p setportrestrrole setportrestrtcn \
                 setbpduguard settreeportprio settreeportcost showbridge \
                 showmstilist showmstconfid showvid2fid showfid2mstid showport \
-                showportdetail showtree showtreeport showall \
+                showportdetail showtree showtreeport \
                 sethello setageing setportnetwork" -- "$cur" ) )
             ;;
         2)

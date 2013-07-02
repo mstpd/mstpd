@@ -16,104 +16,87 @@
 .\"
 .TH MSTPCTL 8 "April 29, 2013" "" ""
 .SH NAME
-mstpctl \- STP/RSTP/MSTP configuration
+mstpctl \- mstpd configuration
 .SH SYNOPSIS
 .BR "mstpctl [command]"
 .SH DESCRIPTION
 .B mstpctl
-is used to configure Spanning Tree and Rapid Spanning Tree
-configuration. Multiple Spanning Tree configuration is not supported
-currently. MSTPCTL is used for configuring STP parameters on bridges
-which have STP enabled. Currently, STP is disabled by default on the bridge.
-To enable STP, configure "brctl stp <bridge> on".
+is used to configure Multiple Spanning Tree daemon (mstpd). MSTPCTL is used for configuring STP parameters on bridges which have user-space STP enabled. Currently, STP is disabled by default on the bridge. To enable user-space STP, configure "brctl stp <bridge> on" while ensuring that /sbin/bridge-stp kernel helper script will return success (0) for this operation.
 
 .SH SPANNING TREE PROTOCOL CONFIGURATION
 
 .IR mstpctl(8)
 can be used for configuring certain spanning tree protocol
 parameters. For an explanation of these parameters, see the IEEE
-802.1D and 802.1Q specification .
+802.1D-2004 and 802.1Q-2005(-2011) standards.
 
 .B mstpctl setmaxage <bridge> <max_age>
-sets the bridge's 'maximum age' to <time> seconds.
+sets the <bridge>'s 'maximum age' to <max_age> seconds, default is 20.
 
 .B mstpctl setfdelay <bridge> <time>
-sets the bridge's 'bridge forward delay' to <time> seconds.
+sets the <bridge>'s 'forward delay' to <time> seconds, default is 15.
 
 .B mstpctl setmaxhops <bridge> <max_hops>
-sets the bridge's 'maximum hops' to <max_hops>.
+sets the <bridge>'s 'maximum hops' to <max_hops>, default is 20.
 
 .B mstpctl setforcevers <bridge> {mstp|rstp|stp}
-sets the bridge's force STP version to either rstp/stp. mstp is
-not supported currently.
+forces the <bridge> to use specific STP protocol version. mstp is the default.
 
 .B mstpctl settxholdcount <bridge> <tx_hold_count>
-sets the bridge's 'bridge transmit hold count' to <tx_hold_count>.
+sets the <bridge>'s 'transmit hold count' to <tx_hold_count>.
 
 .B mstpctl settreeprio <bridge> <mstid> <priority>
-sets the bridge tree priority to <priority> for an MSTI instance.
-Only mstid value 0 is supported currently. The priority value is a number
-between 0 and 65535 and is a multiple of 4096. The bridge with the lowest
-priority will be elected 'root bridge'.
+set <bridge>'s priority for the tree with id = <mstid>, <priority> is between 0 and 15. Bridge priority affects bridge id, lowest priority bridge will be the (regional) root. Note that traditionally bridge priority is a multiple of 4096 and ranges from 0 to 15*4096 = 61440. mstpd is different - it throws out that useless "multiple of 4096" rule and expresses bridge priority in natural units (0-15). Default is 8.
 
 .B mstpctl setportpathcost <bridge> <port> <cost>
-sets the port cost of the port <port> in bridge <bridge> to <cost>.
+sets the port cost of the <port> in <bridge> to <cost>. Default is 0 (= auto).
 
 .B mstpctl setportadminedge <bridge> <port> {yes|no}
-Enables/disables the initial edge state of the port <port> in bridge <bridge>.
+Enables/disables the admin edge state of the <port> in <bridge>, default is no.
 
 .B mstpctl setportautoedge <bridge> <port> {yes|no}
-Enables/disables the auto transition to/from edge state of the port <port> in
-bridge <bridge>.
+Enables/disables the auto transition to/from edge state of the <port> in <bridge>, default is no.
 
 .B mstpctl setportp2p <bridge> <port> {yes|no|auto}
-Enables/disables the point2point detection mode of the port <port> in
-bridge <bridge>.
+Enables/disables the point2point detection mode of the <port> in <bridge>, default is auto.
 
 .B mstpctl setportrestrrole <bridge> <port> {yes|no}
-Enables/disables the port ability to take root role of the port <port> in
-bridge <bridge>.
+Enables/disables the restrictions on the <port>'s ability to take root role in <bridge>, default is no (i.e. no restrictions on the port's role).
 
 .B mstpctl setportrestrtcn <bridge> <port> {yes|no}
-Enables/disables the port ability to propagate received topology change
-notification of the port <port> in bridge <bridge>.
+Enables/disables the restrictions on the <port>'s ability to propagate received topology change notification in <bridge>, default is no (i.e. no restrictions on the TCN propagation).
 
 .B mstpctl setbpduguard <bridge> <port> {yes|no}
-Enables/disables the bpduguard configuration of the port in bridge <bridge>.
+Enables/disables the bpduguard configuration of the <port> in <bridge>, default is no.
 
 .B mstpctl settreeportprio <bridge> <port> <mstid> <priority>
-sets the port <port>'s priority to <priority> for the MSTI instance.
-The priority value is a number between 0 and 240 and is a multiple of 16.
+sets the <port>'s priority in <bridge> to <priority> for the MSTI with id = <mstid>. The priority value is a number between 0 and 15. Note that traditionally port priority is a multiple of 16 and ranges from 0 to 15*16 = 240. mstpd is different - it throws out that useless "multiple of 16" rule and expresses port priority in natural units (0-15). Default is 8.
 
 .B mstpctl sethello <bridge> <time>
-sets the bridge's 'bridge hello time' to <time> seconds.
+sets the <bridge>'s 'hello time' to <time> seconds, default is 2.
 
-.B mstpctl setageing <brname> <time>
-sets the ethernet (MAC) address ageing time, in seconds for the bridge
-when the running version is STP, but not RSTP/MSTP.
+.B mstpctl setageing <bridge> <time>
+sets the ethernet (MAC) address ageing <time>, in seconds, for the <bridge>. Used only when protocol version is forced to STP, default is 300s. Note that this parameter differs from the other ones: it is only informational parameter. By setting it in the mstpd one do not change the real bridge's Ageing Time; it is supposed to be set as information to the mstpd that real Ageing Time in the real bridge was changed.
 
 .B mstpctl setportnetwork <bridge> <port> {yes|no}
-Enables/disables the bridge assurance capability for a network port <port> in
-bridge <bridge>.
+Enables/disables the bridge assurance capability for a <port> in <bridge>,
+default is no.
 
 .SH SPANNING TREE PROTOCOL SHOW COMMANDS
-.B mstpctl showbridge <brname>
-will show information of the bridge.
+.B mstpctl showbridge [<bridge>]
+will show information of the <bridge>'s CIST instance. If <bridge> parameter is omitted - shows info for all bridges.
 
-.B mstpctl showport <brname>
-will show information of the bridge ports.
+.B mstpctl showport <bridge> [<port>]
+will show short (one-line) information about the <port> of the <bridge>'s CIST instance. If <port> parameters is omitted - shows info for all ports.
 
-.B mstpctl showportdetail <brname>
-will show detailed information of the bridge ports.
+.B mstpctl showportdetail <bridge> [<port>]
+will show detailed information about the <port> of the <bridge>'s CIST instance. If <port> parameters is omitted - shows info for all ports.
 
-.B mstpctl showtree <brname> <mstid>
-will show tree information of the bridge in MSTI instance.
+.B mstpctl showtree <bridge> <mstid>
+will show information of the <bridge>'s MST instance with id = <mstid>.
 
-.B mstpctl showtreeport <brname> <port> <mstid>
-will show per tree port information of the bridge port in MSTI instance.
-
-.B mstpctl showall
-will show detailed information of the bridge.
+.B mstpctl showtreeport <bridge> <port> <mstid>
+will show detailed information about the <port> of the <bridge>'s MST instance with id = <mstid>.
 
 .SH SEE ALSO
 .BR brctl(8)
