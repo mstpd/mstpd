@@ -2003,15 +2003,14 @@ static void recordDispute(per_tree_port_t *ptp)
     if(0 == ptp->MSTID)
     { /* CIST */
         prt = ptp->port;
-        /* 802.1Q-2005 is somewhat unclear for the case (!prt->rcvdInternal):
-         *  if we should record dispute for all MSTIs unconditionally
-         *   or only when CIST Learning flag is set in BPDU.
+        /* 802.1Q-2005(-2011) is somewhat unclear for the case
+         *  (!prt->rcvdInternal): if we should record dispute for all MSTIs
+         *  unconditionally or only when CIST Learning flag is set in BPDU.
          * I guess that in this case MSTIs should be in sync with CIST
          * so record dispute for the MSTIs only when the same is done for CIST.
          * Additional supporting argument to this guess is that in
          *  setTcFlags() we do the same.
          * But that is only a guess and I could be wrong here ;)
-         * Maybe 802.1Q-2011 clarifies this, but I don't have the text.
          */
         if(prt->rcvdBpduData.flags & (1 << offsetLearnig))
         {
@@ -2299,7 +2298,6 @@ static void txConfig(port_t *prt)
     /* Standard says "tcWhile ... for the Port". Which one tcWhile?
      * I guess that this means tcWhile for the CIST.
      * But that is only a guess and I could be wrong here ;)
-     * Maybe 802.1Q-2011 clarifies this, but I don't have the text.
      */
     b.flags = (0 != cist->tcWhile) ? (1 << offsetTc) : 0;
     if(prt->tcAck)
@@ -2355,11 +2353,10 @@ static void txMstp(port_t *prt)
 
     b.protocolIdentifier = 0;
     b.bpduType = bpduTypeRST;
-    /* Standard says "{tcWhile, agree, proposing, role} ... for the Port".
-     * Which one {tcWhile, agree, proposing, role}?
+    /* Standard says "{tcWhile, agree, proposing} ... for the Port".
+     * Which one {tcWhile, agree, proposing}?
      * I guess that this means {tcWhile, agree, proposing, role} for the CIST.
      * But that is only a guess and I could be wrong here ;)
-     * Maybe 802.1Q-2011 clarifies this, but I don't have the text.
      */
     b.flags = BPDU_FLAGS_ROLE_SET(message_role_from_port_role(cist));
     if(0 != cist->tcWhile)
@@ -2478,7 +2475,7 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
     unsigned int Hello_Time = cist->portTimes.Hello_Time;
 
     /* NOTE: 802.1Q-2005(-2011) says that we should use
-     *  "remainingHops ... from the CIST’s portTimes parameter"
+     *  "remainingHops ... from the CIST's portTimes parameter"
      *  As for me this is clear oversight in the standard,
      *  the remainingHops should be taken form the port's own portTimes,
      *  not from CIST's. After all, if we don't use port's own
@@ -3035,10 +3032,9 @@ static bool BDSM_run(port_t *prt, bool dry_run)
             return false;
         case BDSM_NOT_EDGE:
              cist = GET_CIST_PTP_FROM_PORT(prt);
-            /* NOTE: 802.1Q-2005 is not clear, which of the per-tree
+            /* NOTE: 802.1Q-2005(-2011) is not clear, which of the per-tree
              *  "proposing" flags to use here, or one should combine
-             *  them all for all trees? Maybe 802.1Q-2011 clarifies
-             *  this, but I don't have the text.
+             *  them all for all trees?
              * So, I decide that it will be the "proposing" flag
              *  from CIST tree - it seems like a good bet.
              */
