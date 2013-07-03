@@ -2477,8 +2477,32 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
     unsigned int Max_Age = cist->portTimes.Max_Age;
     unsigned int Hello_Time = cist->portTimes.Hello_Time;
 
+    /* NOTE: 802.1Q-2005(-2011) says that we should use
+     *  "remainingHops ... from the CIST’s portTimes parameter"
+     *  As for me this is clear oversight in the standard,
+     *  the remainingHops should be taken form the port's own portTimes,
+     *  not from CIST's. After all, if we don't use port's own
+     *  remainingHops here, they aren't used anywhere at all.
+     *  Besides, there is a scenario which breaks if we use CIST's
+     *  remainingHops here:
+     *   1) Connect two switches (SW1,SW2) with two ports, thus forming a loop
+     *   2) Configure them to be in the same region, with two trees:
+     *      0 (CIST) and 1.
+     *   3) at SW1# mstpctl settreeprio br0 1 4
+     *      SW1 becomes regional root in tree 1
+     *   4) at SW2# mstpctl settreeprio br0 1 14
+     *   5) at SW1# mstpctl settreeprio br0 1 9
+     *
+     *  And now we have the classic "count-to-infinity" problem when the old
+     *  info ("Regional Root is SW1 with priority 4") circulates in the loop,
+     *  because it is better than current info ("Regional Root is SW1 with
+     *  priority 9"). The only way to get rid of that old info is
+     *  to age it out by the means of remainingHops counter.
+     *  In this situation we certainly must use counter from tree 1,
+     *  not CIST's.
+     */
     if((!prt->rcvdInternal && ((Message_Age + 1) <= Max_Age))
-       || (prt->rcvdInternal && (cist->portTimes.remainingHops > 1))
+       || (prt->rcvdInternal && (ptp->portTimes.remainingHops > 1))
       )
         ptp->rcvdInfoWhile = 3 * Hello_Time;
     else
