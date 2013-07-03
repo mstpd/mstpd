@@ -2338,7 +2338,9 @@ static inline __u8 message_role_from_port_role(per_tree_port_t *ptp)
     }
 }
 
-/* 13.26.20 txMstp */
+/* 802.1Q-2005: 13.26.20 txMstp
+ * 802.1Q-2011: 13.27.27 txRstp
+ */
 static void txMstp(port_t *prt)
 {
     bpdu_t b;
@@ -2355,7 +2357,7 @@ static void txMstp(port_t *prt)
     b.bpduType = bpduTypeRST;
     /* Standard says "{tcWhile, agree, proposing} ... for the Port".
      * Which one {tcWhile, agree, proposing}?
-     * I guess that this means {tcWhile, agree, proposing, role} for the CIST.
+     * I guess that this means {tcWhile, agree, proposing} for the CIST.
      * But that is only a guess and I could be wrong here ;)
      */
     b.flags = BPDU_FLAGS_ROLE_SET(message_role_from_port_role(cist));
