@@ -106,9 +106,6 @@ typedef struct
     __be32 ExtRootPathCost;
 } port_priority_vector_t;
 
-/* 17.14 of 802.1D, Table 17-1 */
-#define MIN_COMPAT_HELLO_TIME   1
-
 typedef struct
 {
     __u8 remainingHops;

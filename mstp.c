@@ -920,6 +920,11 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
             {
                 ptp->selected = false;
                 ptp->reselect = true;
+                /* TODO: change this when Hello_Time will be configurable
+                 *   per-port. For now, copy Bridge's Hello_Time
+                 *   to the port's Hello_Time.
+                 */
+                assign(ptp->portTimes.Hello_Time, br->Hello_Time);
             }
         }
     }
@@ -2090,10 +2095,18 @@ static void recordProposal(per_tree_port_t *ptp)
 /* 13.26.11 recordTimes */
 static void recordTimes(per_tree_port_t *ptp)
 {
+    /* 802.1Q-2005 and 802.1D-2004 both say that we have to copy
+     *   Hello_Time from msgTimes to portTimes.
+     * 802.1Q-2011, on the other hand, says that Hello_Time should be set
+     *   to the default here.
+     * As we have configurable Hello_Time, I choose the third option:
+     *   preserve the configured Hello_Time, It is in accordance with the
+     *   spirit of 802.1Q-2011, if we allow Hello_Time to be configurable.
+     */
+    __u8 prev_Hello_Time;
+    assign(prev_Hello_Time, ptp->portTimes.Hello_Time);
     assign(ptp->portTimes, ptp->msgTimes);
-
-    if(MIN_COMPAT_HELLO_TIME > ptp->portTimes.Hello_Time)
-        ptp->portTimes.Hello_Time = MIN_COMPAT_HELLO_TIME;
+    assign(ptp->portTimes.Hello_Time, prev_Hello_Time);
 }
 
 /* 13.24.s) + 17.19.7 of 802.1D : fdbFlush */
@@ -2643,6 +2656,13 @@ static void updtRolesTree(tree_t *tree)
 
         /* e) Set new designatedTimes */
         assign(ptp->designatedTimes, tree->rootTimes);
+        /* Keep the configured Hello_Time for the port.
+         * NOTE: this is in accordance with the spirit of 802.1D-2004.
+         *    Also, this does not contradict 802.1Q-2005(-2011), as in these
+         *    standards both designatedTimes and rootTimes structures
+         *    don't have Hello_Time member.
+         */
+        assign(ptp->designatedTimes.Hello_Time, ptp->portTimes.Hello_Time);
     }
 
     /* syncMaster */
