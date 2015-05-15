@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <linux/param.h>
+#include <netinet/in.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
 
