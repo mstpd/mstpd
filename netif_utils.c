@@ -38,6 +38,10 @@
 
 #include "log.h"
 
+#ifndef SYSFS_CLASS_NET
+#define SYSFS_CLASS_NET "/sys/class/net"
+#endif
+
 static int netsock = -1;
 
 int netsock_init(void)
@@ -124,14 +128,14 @@ int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex)
 bool is_bridge(char *if_name)
 {
     char path[32 + IFNAMSIZ];
-    sprintf(path, "/sys/class/net/%s/bridge", if_name);
+    sprintf(path, SYSFS_CLASS_NET "/%s/bridge", if_name);
     return (0 == access(path, R_OK));
 }
 
 int get_bridge_portno(char *if_name)
 {
     char path[32 + IFNAMSIZ];
-    sprintf(path, "/sys/class/net/%s/brport/port_no", if_name);
+    sprintf(path, SYSFS_CLASS_NET "/%s/brport/port_no", if_name);
     char buf[128];
     int fd;
     long res = -1;

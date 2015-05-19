@@ -283,7 +283,9 @@ static int do_showbridge(const char *br_name, param_id_t param_id)
 }
 
 #define SYSFS_PATH_MAX 256
+#ifndef SYSFS_CLASS_NET
 #define SYSFS_CLASS_NET "/sys/class/net"
+#endif
 
 static int isbridge(const struct dirent *entry)
 {

@@ -41,6 +41,10 @@
 #include "driver.h"
 #include "libnetlink.h"
 
+#ifndef SYSFS_CLASS_NET
+#define SYSFS_CLASS_NET "/sys/class/net"
+#endif
+
 static LIST_HEAD(bridges);
 
 static bridge_t * create_br(int if_index)
@@ -426,7 +430,7 @@ static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
 static int br_flush_port(char *ifname)
 {
     char fname[128];
-    snprintf(fname, sizeof(fname), "/sys/class/net/%s/brport/flush", ifname);
+    snprintf(fname, sizeof(fname), SYSFS_CLASS_NET "/%s/brport/flush", ifname);
     int fd = open(fname, O_WRONLY);
     TSTM(0 <= fd, -1, "Couldn't open flush file %s for write: %m", fname);
     int write_result = write(fd, "1", 1);
@@ -438,7 +442,7 @@ static int br_flush_port(char *ifname)
 static int br_set_ageing_time(char *brname, unsigned int ageing_time)
 {
     char fname[128], str_time[32];
-    snprintf(fname, sizeof(fname), "/sys/class/net/%s/bridge/ageing_time",
+    snprintf(fname, sizeof(fname), SYSFS_CLASS_NET "/%s/bridge/ageing_time",
              brname);
     int fd = open(fname, O_WRONLY);
     TSTM(0 <= fd, -1, "Couldn't open file %s for write: %m", fname);
