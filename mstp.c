@@ -2914,6 +2914,7 @@ static bool PRSM_run(port_t *prt, bool dry_run)
                     return true;
                 PRSM_to_RECEIVE(prt);
             }
+        default:
             return false;
     }
 }
@@ -3072,6 +3073,7 @@ static bool BDSM_run(port_t *prt, bool dry_run)
                     return true;
                 BDSM_to_EDGE(prt);
             }
+        default:
             return false;
     }
 }
