@@ -19,5 +19,9 @@ bool driver_create_msti(bridge_t *br, __u16 mstid);
 bool driver_delete_msti(bridge_t *br, __u16 mstid);
 int driver_mstp_init();
 void driver_mstp_fini();
+bool driver_create_bridge(bridge_t *br, __u8 *macaddr);
+bool driver_create_port(port_t *prt, __u16 portno);
+void driver_delete_bridge(bridge_t *br);
+void driver_delete_port(port_t *prt);
 
 #endif /* _MSTP_DRIVER_H */
