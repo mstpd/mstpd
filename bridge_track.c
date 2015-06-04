@@ -54,7 +54,7 @@ static bridge_t * create_br(int if_index)
 
     /* Init system dependent info */
     br->sysdeps.if_index = if_index;
-    if_indextoname(if_index, br->sysdeps.name);
+    index_to_name(if_index, br->sysdeps.name);
     get_hwaddr(br->sysdeps.name, br->sysdeps.macaddr);
 
     INFO("Add bridge %s", br->sysdeps.name);
