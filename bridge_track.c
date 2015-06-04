@@ -88,33 +88,33 @@ static port_t * create_if(bridge_t * br, int if_index)
 
     /* Init system dependent info */
     prt->sysdeps.if_index = if_index;
-    if_indextoname(if_index, prt->sysdeps.name);
-    get_hwaddr(prt->sysdeps.name, prt->sysdeps.macaddr);
+    if (!index_to_name(if_index, prt->sysdeps.name))
+        goto err;
+    if (get_hwaddr(prt->sysdeps.name, prt->sysdeps.macaddr))
+        goto err;
 
     int portno;
     if(0 > (portno = get_bridge_portno(prt->sysdeps.name)))
     {
         ERROR("Couldn't get port number for %s", prt->sysdeps.name);
-        free(prt);
-        return NULL;
+        goto err;
     }
     if((0 == portno) || (portno > MAX_PORT_NUMBER))
     {
         ERROR("Port number for %s is invalid (%d)", prt->sysdeps.name, portno);
-        free(prt);
-        return NULL;
+        goto err;
     }
 
     INFO("Add iface %s as port#%d to bridge %s", prt->sysdeps.name,
          portno, br->sysdeps.name);
     prt->bridge = br;
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
-    {
-        free(prt);
-        return NULL;
-    }
+        goto err;
 
     return prt;
+err:
+    free(prt);
+    return NULL;
 }
 
 static port_t * find_if(bridge_t * br, int if_index)
