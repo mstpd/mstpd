@@ -127,6 +127,11 @@ char *index_to_name(int index, char *name)
     return if_indextoname(index, name);
 }
 
+char *index_to_port_name(int index, char *name)
+{
+    return if_indextoname(index, name);
+}
+
 /********* Sysfs based utility functions *************/
 
 /* This sysfs stuff might break with interface renames */

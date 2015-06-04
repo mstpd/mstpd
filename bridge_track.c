@@ -88,7 +88,7 @@ static port_t * create_if(bridge_t * br, int if_index)
 
     /* Init system dependent info */
     prt->sysdeps.if_index = if_index;
-    if (!index_to_name(if_index, prt->sysdeps.name))
+    if (!index_to_port_name(if_index, prt->sysdeps.name))
         goto err;
     if (get_hwaddr(prt->sysdeps.name, prt->sysdeps.macaddr))
         goto err;
