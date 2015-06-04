@@ -17,6 +17,18 @@
 #include "log.h"
 #include "mstp.h"
 
+/* Initialize driver objects & states */
+int driver_mstp_init()
+{
+    return 0;
+}
+
+/* Cleanup driver objects & states */
+void driver_mstp_fini()
+{
+
+}
+
 /*
  * Set new state (BR_STATE_xxx) for the given port and MSTI.
  * Return new actual state (BR_STATE_xxx) from driver.

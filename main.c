@@ -116,13 +116,17 @@ int main(int argc, char *argv[])
         fclose(f);
     }
 
+    TST(driver_mstp_init() == 0, -1);
     TST(init_epoll() == 0, -1);
     TST(ctl_socket_init() == 0, -1);
     TST(packet_sock_init() == 0, -1);
     TST(netsock_init() == 0, -1);
     TST(init_bridge_ops() == 0, -1);
 
-    return epoll_main_loop();
+    c = epoll_main_loop();
+    driver_mstp_fini();
+
+    return c;
 }
 
 /*********************** Logging *********************/
