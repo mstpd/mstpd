@@ -54,18 +54,20 @@ static bridge_t * create_br(int if_index)
 
     /* Init system dependent info */
     br->sysdeps.if_index = if_index;
-    index_to_name(if_index, br->sysdeps.name);
-    get_hwaddr(br->sysdeps.name, br->sysdeps.macaddr);
+    if (!index_to_name(if_index, br->sysdeps.name))
+        goto err;
+    if (get_hwaddr(br->sysdeps.name, br->sysdeps.macaddr))
+        goto err;
 
     INFO("Add bridge %s", br->sysdeps.name);
     if(!MSTP_IN_bridge_create(br, br->sysdeps.macaddr))
-    {
-        free(br);
-        return NULL;
-    }
+        goto err;
 
     list_add_tail(&br->list, &bridges);
     return br;
+err:
+    free(br);
+    return NULL;
 }
 
 static bridge_t * find_br(int if_index)
