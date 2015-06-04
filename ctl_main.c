@@ -302,6 +302,11 @@ static int isbridge(const struct dirent *entry)
     return result;
 }
 
+static inline int get_bridge_list(struct dirent ***namelist)
+{
+    return scandir(SYSFS_CLASS_NET, namelist, isbridge, sorting_func);
+}
+
 static int cmd_showbridge(int argc, char *const *argv)
 {
     int i, count = 0;
@@ -327,7 +332,7 @@ static int cmd_showbridge(int argc, char *const *argv)
     }
     else
     {
-        count = scandir(SYSFS_CLASS_NET, &namelist, isbridge, sorting_func);
+        count = get_bridge_list(&namelist);
         if(0 > count)
         {
             fprintf(stderr, "Error getting list of all bridges\n");
