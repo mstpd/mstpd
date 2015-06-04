@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "log.h"
 #include "epoll_loop.h"
 #include "bridge_ctl.h"
 
@@ -39,7 +40,7 @@ int init_epoll(void)
     int r = epoll_create(128);
     if(r < 0)
     {
-        fprintf(stderr, "epoll_create failed: %m\n");
+        ERROR("epoll_create failed: %m\n");
         return -1;
     }
     epoll_fd = r;
@@ -57,7 +58,7 @@ int add_epoll(struct epoll_event_handler *h)
     int r = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, h->fd, &ev);
     if(r < 0)
     {
-        fprintf(stderr, "epoll_ctl_add: %m\n");
+        ERROR("epoll_ctl_add: %m\n");
         return -1;
     }
     return 0;
@@ -68,7 +69,7 @@ int remove_epoll(struct epoll_event_handler *h)
     int r = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, h->fd, NULL);
     if(r < 0)
     {
-        fprintf(stderr, "epoll_ctl_del: %m\n");
+        ERROR("epoll_ctl_del: %m\n");
         return -1;
     }
     if(h->ref_ev && h->ref_ev->data.ptr == h)
@@ -137,7 +138,7 @@ int epoll_main_loop(void)
         r = epoll_wait(epoll_fd, ev, EV_SIZE, timeout);
         if(r < 0 && errno != EINTR)
         {
-            fprintf(stderr, "epoll_wait: %m\n");
+            ERROR("epoll_wait: %m\n");
             return -1;
         }
         for(i = 0; i < r; ++i)
