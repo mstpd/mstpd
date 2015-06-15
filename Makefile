@@ -10,11 +10,11 @@ CTLSOURCES = ctl_main.c ctl_socket_client.c
 
 CTLOBJECTS = $(CTLSOURCES:.c=.o)
 
-CFLAGS += -O2 -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I. \
+CFLAGS += -Os -Wall -Werror -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I. \
           -D_GNU_SOURCE -D__LIBC_HAS_VERSIONSORT__
 
 ifeq ($(MODE),devel)
-CFLAGS += -Werror
+CFLAGS += -g3 -O0
 endif
 
 all: mstpd mstpctl
