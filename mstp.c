@@ -2538,7 +2538,6 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
 static void updtbrAssuRcvdInfoWhile(port_t *prt)
 {
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-    unsigned int Hello_Time = cist->portTimes.Hello_Time;
 
     prt->brAssuRcvdInfoWhile = 3 * cist->portTimes.Hello_Time;
 }
