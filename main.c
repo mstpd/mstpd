@@ -36,6 +36,7 @@
 #include "log.h"
 #include "mstp.h"
 #include "ctl_socket_server.h"
+#include "driver.h"
 
 #define APP_NAME    "mstpd"
 
