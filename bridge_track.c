@@ -493,12 +493,9 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
     /* Translate new CIST state to the kernel bridge code */
     if(0 == ptp->MSTID)
     { /* CIST */
-        if(prt->sysdeps.up)
-        {
-            if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
-                ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
-                              state_name);
-        }
+        if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
+            ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
+                          state_name);
     }
 }
 
