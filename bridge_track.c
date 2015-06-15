@@ -788,7 +788,7 @@ int CTL_get_mstconfid(int br_index, mst_configuration_identifier_t *cfg)
     return 0;
 }
 
-int CTL_set_mstconfid(int br_index, __u16 revision, char *name)
+int CTL_set_mstconfid(int br_index, __u16 revision, __u8 *name)
 {
     CTL_CHECK_BRIDGE;
     MSTP_IN_set_mst_config_id(br, revision, name);

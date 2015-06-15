@@ -84,7 +84,7 @@ static void RecalcConfigDigest(bridge_t *br)
         vid2mstid[vid] = br->fid2mstid[br->vid2fid[vid]];
 
     hmac_md5((void *)vid2mstid, sizeof(vid2mstid), mstp_key, sizeof(mstp_key),
-             br->MstConfigId.s.configuration_digest);
+             (caddr_t)br->MstConfigId.s.configuration_digest);
 }
 
 /*
@@ -243,7 +243,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     memset(br->vid2fid, 0, sizeof(br->vid2fid));
     memset(br->fid2mstid, 0, sizeof(br->fid2mstid));
     assign(br->MstConfigId.s.selector, (__u8)0);
-    sprintf(br->MstConfigId.s.configuration_name,
+    sprintf((char *)br->MstConfigId.s.configuration_name,
             "%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX",
             macaddr[0], macaddr[1], macaddr[2],
             macaddr[3], macaddr[4], macaddr[5]);
@@ -1573,7 +1573,7 @@ bool MSTP_IN_delete_msti(bridge_t *br, __u16 mstid)
 void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
 {
     __be16 valueRevision = __cpu_to_be16(revision);
-    bool changed = (0 != strncmp(name, br->MstConfigId.s.configuration_name,
+    bool changed = (0 != strncmp((char *)name, (char *)br->MstConfigId.s.configuration_name,
                                  sizeof(br->MstConfigId.s.configuration_name))
                    )
                    || (valueRevision != br->MstConfigId.s.revision_level);
@@ -1583,7 +1583,7 @@ void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
         assign(br->MstConfigId.s.revision_level, valueRevision);
         memset(br->MstConfigId.s.configuration_name, 0,
                sizeof(br->MstConfigId.s.configuration_name));
-        strncpy(br->MstConfigId.s.configuration_name, name,
+        strncpy((char *)br->MstConfigId.s.configuration_name, (char *)name,
                 sizeof(br->MstConfigId.s.configuration_name));
         br_state_machines_begin(br);
     }
