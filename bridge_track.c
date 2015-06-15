@@ -493,12 +493,9 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
     /* Translate new CIST state to the kernel bridge code */
     if(0 == ptp->MSTID)
     { /* CIST */
-        if(prt->sysdeps.up)
-        {
-            if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
-                ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
-                              state_name);
-        }
+        if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
+            ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
+                          state_name);
     }
 }
 
@@ -788,7 +785,7 @@ int CTL_get_mstconfid(int br_index, mst_configuration_identifier_t *cfg)
     return 0;
 }
 
-int CTL_set_mstconfid(int br_index, __u16 revision, char *name)
+int CTL_set_mstconfid(int br_index, __u16 revision, __u8 *name)
 {
     CTL_CHECK_BRIDGE;
     MSTP_IN_set_mst_config_id(br, revision, name);

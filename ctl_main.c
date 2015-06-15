@@ -934,7 +934,7 @@ static int cmd_setmstconfid(int argc, char *const *argv)
         fprintf(stderr, "Bad revision %s\n", argv[2]);
         return -1;
     }
-    return CTL_set_mstconfid(br_index, revision, argv[3]);
+    return CTL_set_mstconfid(br_index, revision, (__u8 *)argv[3]);
 }
 
 #define set_bridge_cfg(field, value)                       \

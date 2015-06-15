@@ -43,6 +43,7 @@
 
 #include "mstp.h"
 #include "log.h"
+#include "driver.h"
 
 static void PTSM_tick(port_t *prt);
 static bool TCSM_run(per_tree_port_t *ptp, bool dry_run);
@@ -83,7 +84,7 @@ static void RecalcConfigDigest(bridge_t *br)
         vid2mstid[vid] = br->fid2mstid[br->vid2fid[vid]];
 
     hmac_md5((void *)vid2mstid, sizeof(vid2mstid), mstp_key, sizeof(mstp_key),
-             br->MstConfigId.s.configuration_digest);
+             (caddr_t)br->MstConfigId.s.configuration_digest);
 }
 
 /*
@@ -242,7 +243,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     memset(br->vid2fid, 0, sizeof(br->vid2fid));
     memset(br->fid2mstid, 0, sizeof(br->fid2mstid));
     assign(br->MstConfigId.s.selector, (__u8)0);
-    sprintf(br->MstConfigId.s.configuration_name,
+    sprintf((char *)br->MstConfigId.s.configuration_name,
             "%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX",
             macaddr[0], macaddr[1], macaddr[2],
             macaddr[3], macaddr[4], macaddr[5]);
@@ -1572,7 +1573,7 @@ bool MSTP_IN_delete_msti(bridge_t *br, __u16 mstid)
 void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
 {
     __be16 valueRevision = __cpu_to_be16(revision);
-    bool changed = (0 != strncmp(name, br->MstConfigId.s.configuration_name,
+    bool changed = (0 != strncmp((char *)name, (char *)br->MstConfigId.s.configuration_name,
                                  sizeof(br->MstConfigId.s.configuration_name))
                    )
                    || (valueRevision != br->MstConfigId.s.revision_level);
@@ -1582,7 +1583,7 @@ void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
         assign(br->MstConfigId.s.revision_level, valueRevision);
         memset(br->MstConfigId.s.configuration_name, 0,
                sizeof(br->MstConfigId.s.configuration_name));
-        strncpy(br->MstConfigId.s.configuration_name, name,
+        strncpy((char *)br->MstConfigId.s.configuration_name, (char *)name,
                 sizeof(br->MstConfigId.s.configuration_name));
         br_state_machines_begin(br);
     }
@@ -2116,7 +2117,7 @@ static void recordTimes(per_tree_port_t *ptp)
      *   preserve the configured Hello_Time, It is in accordance with the
      *   spirit of 802.1Q-2011, if we allow Hello_Time to be configurable.
      */
-    __u8 prev_Hello_Time;
+    __u8 prev_Hello_Time = 0;
     assign(prev_Hello_Time, ptp->portTimes.Hello_Time);
     assign(ptp->portTimes, ptp->msgTimes);
     assign(ptp->portTimes.Hello_Time, prev_Hello_Time);
@@ -2537,7 +2538,6 @@ static void updtRcvdInfoWhile(per_tree_port_t *ptp)
 static void updtbrAssuRcvdInfoWhile(port_t *prt)
 {
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
-    unsigned int Hello_Time = cist->portTimes.Hello_Time;
 
     prt->brAssuRcvdInfoWhile = 3 * cist->portTimes.Hello_Time;
 }

@@ -331,7 +331,7 @@ CTL_DECLARE(get_mstconfid);
 
 /* set_mstconfid */
 #define CMD_CODE_set_mstconfid  115
-#define set_mstconfid_ARGS (int br_index, __u16 revision, char *name)
+#define set_mstconfid_ARGS (int br_index, __u16 revision, __u8 *name)
 struct set_mstconfid_IN
 {
     int br_index;
@@ -342,7 +342,7 @@ struct set_mstconfid_OUT
 {
 };
 #define set_mstconfid_COPY_IN  ({ in->br_index = br_index; \
-    in->revision = revision; strncpy(in->name, name, sizeof(in->name)); })
+    in->revision = revision; strncpy((char *)in->name, (char *)name, sizeof(in->name)); })
 #define set_mstconfid_COPY_OUT ({ (void)0; })
 #define set_mstconfid_CALL (in->br_index, in->revision, in->name)
 CTL_DECLARE(set_mstconfid);

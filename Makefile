@@ -1,5 +1,5 @@
 MODE = devel
-version := 0.03
+version := 0.04
 
 DSOURCES = main.c epoll_loop.c brmon.c bridge_track.c libnetlink.c mstp.c \
            packet.c netif_utils.c ctl_socket_server.c hmac_md5.c driver_deps.c
@@ -10,11 +10,11 @@ CTLSOURCES = ctl_main.c ctl_socket_client.c
 
 CTLOBJECTS = $(CTLSOURCES:.c=.o)
 
-CFLAGS += -O2 -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I. \
+CFLAGS += -Os -Wall -Werror -D_REENTRANT -D__LINUX__ -DVERSION=$(version) -I. \
           -D_GNU_SOURCE -D__LIBC_HAS_VERSIONSORT__
 
 ifeq ($(MODE),devel)
-CFLAGS += -Werror
+CFLAGS += -g3 -O0
 endif
 
 all: mstpd mstpctl
