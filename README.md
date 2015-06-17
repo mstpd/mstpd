@@ -23,8 +23,7 @@ The work seems to be based on [**rstpd**](https://github.com/shemminger/RSTP).
 This repo tries to converge the original works of rstpd/mstpd and the works of
 others (e.g. Cumulus Linux).
 
-There are 3 main branches:
+There are 2 main branches:
 - **upstream** - which is a git-svn clone from SourceForge
 - **master** - generic updates (on top of uptream)
-- **openwrt** - specific changes for OpenWRT
 
