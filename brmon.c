@@ -19,6 +19,7 @@
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
 
+#include "log.h"
 #include "libnetlink.h"
 #include "bridge_ctl.h"
 #include "netif_utils.h"
@@ -60,7 +61,6 @@ struct rtnl_handle rth_state;
 static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
                     void *arg)
 {
-    FILE *fp = arg;
     struct ifinfomsg *ifi = NLMSG_DATA(n);
     struct rtattr * tb[IFLA_MAX + 1];
     int len = n->nlmsg_len;
@@ -92,14 +92,14 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
 
     if(tb[IFLA_IFNAME] == NULL)
     {
-        fprintf(stderr, "BUG: nil ifname\n");
+        ERROR("BUG: nil ifname\n");
         return -1;
     }
 
     if(n->nlmsg_type == RTM_DELLINK)
-        fprintf(fp, "Deleted ");
+        INFO("Deleted ");
 
-    fprintf(fp, "%d: %s ", ifi->ifi_index, (char*)RTA_DATA(tb[IFLA_IFNAME]));
+    INFO("%d: %s ", ifi->ifi_index, (char*)RTA_DATA(tb[IFLA_IFNAME]));
 
     if(tb[IFLA_OPERSTATE])
     {
@@ -107,37 +107,37 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
         switch (state)
         {
             case IF_OPER_UNKNOWN:
-                fprintf(fp, "Unknown ");
+                INFO("Unknown ");
                 break;
             case IF_OPER_NOTPRESENT:
-                fprintf(fp, "Not Present ");
+                INFO("Not Present ");
                 break;
             case IF_OPER_DOWN:
-                fprintf(fp, "Down ");
+                INFO("Down ");
                 break;
             case IF_OPER_LOWERLAYERDOWN:
-                fprintf(fp, "Lowerlayerdown ");
+                INFO("Lowerlayerdown ");
                 break;
             case IF_OPER_TESTING:
-                fprintf(fp, "Testing ");
+                INFO("Testing ");
                 break;
             case IF_OPER_DORMANT:
-                fprintf(fp, "Dormant ");
+                INFO("Dormant ");
                 break;
             case IF_OPER_UP:
-                fprintf(fp, "Up ");
+                INFO("Up ");
                 break;
             default:
-                fprintf(fp, "State(%d) ", state);
+                INFO("State(%d) ", state);
         }
     }
 
     if(tb[IFLA_MTU])
-        fprintf(fp, "mtu %u ", *(int*)RTA_DATA(tb[IFLA_MTU]));
+        INFO("mtu %u ", *(int*)RTA_DATA(tb[IFLA_MTU]));
 
     if(tb[IFLA_MASTER])
     {
-        fprintf(fp, "master %s ",
+        INFO("master %s ",
                 if_indextoname(*(int*)RTA_DATA(tb[IFLA_MASTER]), b1));
     }
 
@@ -145,13 +145,10 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     {
         uint8_t state = *(uint8_t *)RTA_DATA(tb[IFLA_PROTINFO]);
         if(state <= BR_STATE_BLOCKING)
-            fprintf(fp, "state %s", port_states[state]);
+            INFO("state %s", port_states[state]);
         else
-            fprintf(fp, "state (%d)", state);
+            INFO("state (%d)", state);
     }
-
-    fprintf(fp, "\n");
-    fflush(fp);
 
     newlink = (n->nlmsg_type == RTM_NEWLINK);
 
@@ -171,7 +168,7 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
 {
     if(rtnl_listen(&rth, dump_msg, stdout) < 0)
     {
-        fprintf(stderr, "Error on bridge monitoring socket\n");
+        ERROR("Error on bridge monitoring socket\n");
         exit(-1);
     }
 }
@@ -180,31 +177,31 @@ int init_bridge_ops(void)
 {
     if(rtnl_open(&rth, RTMGRP_LINK) < 0)
     {
-        fprintf(stderr, "Couldn't open rtnl socket for monitoring\n");
+        ERROR("Couldn't open rtnl socket for monitoring\n");
         return -1;
     }
 
     if(rtnl_open(&rth_state, 0) < 0)
     {
-        fprintf(stderr, "Couldn't open rtnl socket for setting state\n");
+        ERROR("Couldn't open rtnl socket for setting state\n");
         return -1;
     }
 
     if(rtnl_wilddump_request(&rth, PF_BRIDGE, RTM_GETLINK) < 0)
     {
-        fprintf(stderr, "Cannot send dump request: %m\n");
+        ERROR("Cannot send dump request: %m\n");
         return -1;
     }
 
     if(rtnl_dump_filter(&rth, dump_msg, stdout, NULL, NULL) < 0)
     {
-        fprintf(stderr, "Dump terminated\n");
+        ERROR("Dump terminated\n");
         return -1;
     }
 
     if(fcntl(rth.fd, F_SETFL, O_NONBLOCK) < 0)
     {
-        fprintf(stderr, "Error setting O_NONBLOCK: %m\n");
+        ERROR("Error setting O_NONBLOCK: %m\n");
         return -1;
     }
 
