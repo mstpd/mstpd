@@ -42,19 +42,19 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 
 	rth->fd = socket(AF_NETLINK, SOCK_RAW, protocol);
 	if (rth->fd < 0) {
-		perror("Cannot open netlink socket");
+		ERROR("Cannot open netlink socket");
 		return -1;
 	}
 
 	if (setsockopt(rth->fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf))
 	    < 0) {
-		perror("SO_SNDBUF");
+		ERROR("SO_SNDBUF");
 		return -1;
 	}
 
 	if (setsockopt(rth->fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf))
 	    < 0) {
-		perror("SO_RCVBUF");
+		ERROR("SO_RCVBUF");
 		return -1;
 	}
 
@@ -64,12 +64,12 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 
 	if (bind(rth->fd, (struct sockaddr *)&rth->local, sizeof(rth->local)) <
 	    0) {
-		perror("Cannot bind netlink socket");
+		ERROR("Cannot bind netlink socket");
 		return -1;
 	}
 	addr_len = sizeof(rth->local);
 	if (getsockname(rth->fd, (struct sockaddr *)&rth->local, &addr_len) < 0) {
-		perror("Cannot getsockname");
+		ERROR("Cannot getsockname");
 		return -1;
 	}
 	if (addr_len != sizeof(rth->local)) {
@@ -177,7 +177,7 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("OVERRUN");
+			ERROR("OVERRUN");
 			continue;
 		}
 
@@ -211,7 +211,7 @@ int rtnl_dump_filter(struct rtnl_handle *rth,
 					ERROR("ERROR truncated\n");
 				} else {
 					errno = -err->error;
-					perror("RTNETLINK answers");
+					ERROR("RTNETLINK answers");
 				}
 				return -1;
 			}
@@ -266,7 +266,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 	status = sendmsg(rtnl->fd, &msg, 0);
 
 	if (status < 0) {
-		perror("Cannot talk to rtnetlink");
+		ERROR("Cannot talk to rtnetlink");
 		return -1;
 	}
 
@@ -281,7 +281,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("OVERRUN");
+			ERROR("OVERRUN");
 			continue;
 		}
 		if (status == 0) {
@@ -336,7 +336,7 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 							       h->nlmsg_len);
 						return 0;
 					}
-					perror("RTNETLINK answers");
+					ERROR("RTNETLINK answers");
 				}
 				return -1;
 			}
@@ -390,8 +390,7 @@ int rtnl_listen(struct rtnl_handle *rtnl, rtnl_filter_t handler, void *jarg)
 				continue;
 			if (errno == EAGAIN)
 				return 0;
-			ERROR("recvmsg(): error %d : %s\n", errno, strerror(errno));
-			perror("OVERRUN");
+			ERROR("OVERRUN: recvmsg(): error %d : %s\n", errno, strerror(errno));
 			return -1;
 		}
 		if (status == 0) {
@@ -459,7 +458,7 @@ int rtnl_from_file(FILE * rtnl, rtnl_filter_t handler, void *jarg)
 		if (status < 0) {
 			if (errno == EINTR)
 				continue;
-			perror("rtnl_from_file: fread");
+			ERROR("rtnl_from_file: fread");
 			return -1;
 		}
 		if (status == 0)
@@ -478,7 +477,7 @@ int rtnl_from_file(FILE * rtnl, rtnl_filter_t handler, void *jarg)
 		status = fread(NLMSG_DATA(h), 1, NLMSG_ALIGN(l), rtnl);
 
 		if (status < 0) {
-			perror("rtnl_from_file: fread");
+			ERROR("rtnl_from_file: fread");
 			return -1;
 		}
 		if (status < l) {
