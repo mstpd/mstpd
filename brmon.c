@@ -169,7 +169,6 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
     if(rtnl_listen(&rth, dump_msg, stdout) < 0)
     {
         ERROR("Error on bridge monitoring socket\n");
-        exit(-1);
     }
 }
 
