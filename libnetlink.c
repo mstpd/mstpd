@@ -26,6 +26,17 @@
 #include "log.h"
 #include "libnetlink.h"
 
+#ifndef DEFAULT_RTNL_BUFSIZE
+#define DEFAULT_RTNL_BUFSIZE	256 * 1024
+#endif
+
+#ifndef RTNL_SND_BUFSIZE
+#define RTNL_SND_BUFSIZE	DEFAULT_RTNL_BUFSIZE
+#endif
+#ifndef RTNL_RCV_BUFSIZE
+#define RTNL_RCV_BUFSIZE	DEFAULT_RTNL_BUFSIZE
+#endif
+
 void rtnl_close(struct rtnl_handle *rth)
 {
 	close(rth->fd);
@@ -35,8 +46,8 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 		      int protocol)
 {
 	socklen_t addr_len;
-	int sndbuf = 32768;
-	int rcvbuf = 32768;
+	int sndbuf = RTNL_SND_BUFSIZE;
+	int rcvbuf = RTNL_RCV_BUFSIZE;
 
 	memset(rth, 0, sizeof(*rth));
 
