@@ -42,7 +42,9 @@ install: all
 	if [ -d $(DESTDIR)/etc/network/if-pre-up.d ] ; then ln -sf /lib/mstpctl-utils/ifupdown.sh $(DESTDIR)/etc/network/if-pre-up.d/mstpctl ; fi
 	if [ -d $(DESTDIR)/etc/network/if-pre-up.d ] ; then ln -sf /lib/mstpctl-utils/ifupdown.sh $(DESTDIR)/etc/network/if-post-down.d/mstpctl ; fi
 	if [ -d $(DESTDIR)/etc/bash_completion.d ] ; then ln -sf /lib/mstpctl-utils/bash_completion $(DESTDIR)/etc/bash_completion.d/mstpctl ; fi
+	-mkdir -pv $(DESTDIR)/usr/share/man/man8/
 	ln -sf /lib/mstpctl-utils/mstpctl.8.gz $(DESTDIR)/usr/share/man/man8/mstpctl.8.gz
+	-mkdir -pv $(DESTDIR)/usr/share/man/man5/
 	ln -sf /lib/mstpctl-utils/mstpctl-utils-interfaces.5.gz $(DESTDIR)/usr/share/man/man5/mstpctl-utils-interfaces.5.gz
 
 romfs: all
