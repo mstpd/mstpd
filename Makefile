@@ -34,7 +34,7 @@ install: all
 	-mkdir -pv $(DESTDIR)/sbin
 	install -m 755 mstpd $(DESTDIR)/sbin/mstpd
 	install -m 755 mstpctl $(DESTDIR)/sbin/mstpctl
-	install -m 755 bridge-stp /sbin/bridge-stp
+	install -m 755 bridge-stp $(DESTDIR)/sbin/bridge-stp
 	-mkdir -pv $(DESTDIR)/lib/mstpctl-utils/
 	cp -rv lib/* $(DESTDIR)/lib/mstpctl-utils/
 	gzip -f $(DESTDIR)/lib/mstpctl-utils/mstpctl.8
