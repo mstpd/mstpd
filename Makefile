@@ -20,10 +20,10 @@ endif
 all: mstpd mstpctl
 
 mstpd: $(DOBJECTS)
-	$(CC) -o $@ $(DOBJECTS) $(LDFLAGS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(DOBJECTS) $(LDFLAGS)
 
 mstpctl: $(CTLOBJECTS)
-	$(CC) -o $@ $(CTLOBJECTS) $(LDFLAGS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(CTLOBJECTS) $(LDFLAGS)
 
 -include .depend
 
