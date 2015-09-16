@@ -15,8 +15,11 @@ fi
 bridge=$1
 service=mstpd
 pid_file=/var/run/${service}.pid
+bin_dir=/sbin
+net_dir=/sys/class/net
 
-# Set this to the list of bridges for which MSTP should be used
+# Set this to the list of bridges for which MSTP should be used.
+# Comment this out to allow any valid bridge to use used.
 MSTP_BRIDGES="br0"
 
 # Set $pid to pids from /var/run* for {program}.  $pid should be declared
@@ -42,14 +45,23 @@ checkpid()
 case $2 in
     start) 
         checkpid $pid_file || exit 1
-        for b in $MSTP_BRIDGES; do
-            if [ "$bridge" == "$b" ]; then
-                exec /sbin/mstpctl addbridge $bridge
+        if [ -d "$net_dir/$bridge/bridge" ]; then
+            allowed=1
+            if [[ -n "$MSTP_BRIDGES" ]]; then
+                allowed=0
+                for b in $MSTP_BRIDGES; do
+                    if [ "$bridge" == "$b" ]; then
+                        allowed=1
+                    fi
+                done
             fi
-        done
+            if [[ "$allowed" -eq 1 ]]; then
+                exec $bin_dir/mstpctl addbridge $bridge
+            fi
+        fi
         exit 1 ;;
     stop)
-        exec /sbin/mstpctl delbridge $bridge
+        exec $bin_dir/mstpctl delbridge $bridge
         ;;
     *)
         echo "Unknown action:" $2
