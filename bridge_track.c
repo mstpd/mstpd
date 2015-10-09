@@ -183,15 +183,14 @@ static bool check_mac_address(char *name, __u8 *addr)
 
 static void set_br_up(bridge_t * br, bool up)
 {
-    INFO("%s was %s", br->sysdeps.name, br->sysdeps.up ? "up" : "down");
-    INFO("Set bridge %s %s", br->sysdeps.name, up ? "up" : "down");
-
     bool changed = false;
 
     if(up != br->sysdeps.up)
     {
         br->sysdeps.up = up;
         changed = true;
+        INFO("%s was %s. Set %s", br->sysdeps.name,
+             br->sysdeps.up ? "up" : "down", up ? "up" : "down");
     }
 
     if(check_mac_address(br->sysdeps.name, br->sysdeps.macaddr))
