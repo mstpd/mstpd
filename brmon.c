@@ -97,9 +97,9 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     }
 
     if(n->nlmsg_type == RTM_DELLINK)
-        INFO("Deleted ");
+        LOG("Deleted ");
 
-    INFO("%d: %s ", ifi->ifi_index, (char*)RTA_DATA(tb[IFLA_IFNAME]));
+    LOG("%d: %s ", ifi->ifi_index, (char*)RTA_DATA(tb[IFLA_IFNAME]));
 
     if(tb[IFLA_OPERSTATE])
     {
@@ -107,37 +107,37 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
         switch (state)
         {
             case IF_OPER_UNKNOWN:
-                INFO("Unknown ");
+                LOG("Unknown ");
                 break;
             case IF_OPER_NOTPRESENT:
-                INFO("Not Present ");
+                LOG("Not Present ");
                 break;
             case IF_OPER_DOWN:
-                INFO("Down ");
+                LOG("Down ");
                 break;
             case IF_OPER_LOWERLAYERDOWN:
-                INFO("Lowerlayerdown ");
+                LOG("Lowerlayerdown ");
                 break;
             case IF_OPER_TESTING:
-                INFO("Testing ");
+                LOG("Testing ");
                 break;
             case IF_OPER_DORMANT:
-                INFO("Dormant ");
+                LOG("Dormant ");
                 break;
             case IF_OPER_UP:
-                INFO("Up ");
+                LOG("Up ");
                 break;
             default:
-                INFO("State(%d) ", state);
+                LOG("State(%d) ", state);
         }
     }
 
     if(tb[IFLA_MTU])
-        INFO("mtu %u ", *(int*)RTA_DATA(tb[IFLA_MTU]));
+        LOG("mtu %u ", *(int*)RTA_DATA(tb[IFLA_MTU]));
 
     if(tb[IFLA_MASTER])
     {
-        INFO("master %s ",
+        LOG("master %s ",
                 if_indextoname(*(int*)RTA_DATA(tb[IFLA_MASTER]), b1));
     }
 
@@ -145,9 +145,9 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     {
         uint8_t state = *(uint8_t *)RTA_DATA(tb[IFLA_PROTINFO]);
         if(state <= BR_STATE_BLOCKING)
-            INFO("state %s", port_states[state]);
+            LOG("state %s", port_states[state]);
         else
-            INFO("state (%d)", state);
+            LOG("state (%d)", state);
     }
 
     newlink = (n->nlmsg_type == RTM_NEWLINK);
