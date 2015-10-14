@@ -1027,6 +1027,12 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     status->num_tx_tcn = prt->num_tx_tcn;
     status->num_trans_fwd = prt->num_trans_fwd;
     status->num_trans_blk = prt->num_trans_blk;
+    status->rcvdBpdu = prt->rcvdBpdu;
+    status->rcvdRSTP = prt->rcvdRSTP;
+    status->rcvdSTP = prt->rcvdSTP;
+    status->rcvdTcAck = prt->rcvdTcAck;
+    status->rcvdTcn = prt->rcvdTcn;
+    status->sendRSTP = prt->sendRSTP;
 }
 
 /* 12.8.2.2 Read MSTI Port Parameters */

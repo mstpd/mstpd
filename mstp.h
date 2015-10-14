@@ -707,6 +707,12 @@ typedef struct
     unsigned int num_tx_tcn;
     unsigned int num_trans_fwd;
     unsigned int num_trans_blk;
+    bool rcvdBpdu;
+    bool rcvdRSTP;
+    bool rcvdSTP;
+    bool rcvdTcAck;
+    bool rcvdTcn;
+    bool sendRSTP;
 } CIST_PortStatus;
 
 void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status);

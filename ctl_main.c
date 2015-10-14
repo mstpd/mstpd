@@ -581,6 +581,12 @@ static int do_showport(int br_index, const char *bridge_name,
                 printf("Num RX TCN           %u\n", s.num_rx_tcn);
                 printf("  Num Transition FWD %-23u ", s.num_trans_fwd);
                 printf("Num Transition BLK   %u\n", s.num_trans_blk);
+                printf("  Rcvd BPDU          %-23s ", BOOL_STR(s.rcvdBpdu));
+                printf("Rcvd STP             %s\n", BOOL_STR(s.rcvdSTP));
+                printf("  Rcvd RSTP          %-23s ", BOOL_STR(s.rcvdRSTP));
+                printf("Send RSTP            %s\n", BOOL_STR(s.sendRSTP));
+                printf("  Rcvd TC Ack        %-23s ", BOOL_STR(s.rcvdTcAck));
+                printf("Rcvd TCN             %s\n", BOOL_STR(s.rcvdTcn));
             }
             else
             {
