@@ -35,13 +35,23 @@ int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data);
 int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
               int alen);
 int addraw_l(struct nlmsghdr *n, int maxlen, const void *data, int len);
+int rta_addattr8(struct rtattr *rta, int maxlen, int type, __u8 data);
+int rta_addattr16(struct rtattr *rta, int maxlen, int type, __u16 data);
 int rta_addattr32(struct rtattr *rta, int maxlen, int type, __u32 data);
+int rta_addattr64(struct rtattr *rta, int maxlen, int type, __u64 data);
 int rta_addattr_l(struct rtattr *rta, int maxlen, int type,
                          const void *data, int alen);
 
 int parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len);
 int parse_rtattr_byindex(struct rtattr *tb[], int max, struct rtattr *rta,
                          int len);
+
+struct rtattr *rta_nest(struct rtattr *rta, int maxlen, int type);
+int rta_nest_end(struct rtattr *rta, struct rtattr *nest);
+
+#define RTA_TAIL(rta) \
+		((struct rtattr *) (((void *) (rta)) + \
+				    RTA_ALIGN((rta)->rta_len)))
 
 #define parse_rtattr_nested(tb, max, rta) \
     (parse_rtattr((tb), (max), RTA_DATA(rta), RTA_PAYLOAD(rta)))
