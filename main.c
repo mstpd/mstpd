@@ -40,8 +40,7 @@
 
 #define APP_NAME    "mstpd"
 
-static int become_daemon = 1;
-static int is_daemon = 0;
+static int print_to_syslog = 0;
 int log_level = LOG_LEVEL_DEFAULT;
 
 #ifdef MISC_TEST_FUNCS
@@ -51,6 +50,7 @@ static bool test_ports_trees_mesh(void);
 int main(int argc, char *argv[])
 {
     int c;
+    int daemonize = 1;
 
     /* Sanity check */
     {
@@ -73,12 +73,15 @@ int main(int argc, char *argv[])
         INFO("Sanity checks succeeded");
     }
 
-    while((c = getopt(argc, argv, "dv:")) != -1)
+    while((c = getopt(argc, argv, "dsv:")) != -1)
     {
         switch (c)
         {
             case 'd':
-                become_daemon = 0;
+                daemonize = 0;
+                break;
+            case 's':
+                print_to_syslog = 1;
                 break;
             case 'v':
             {
@@ -98,7 +101,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if(become_daemon)
+    if(daemonize)
     {
         FILE *f = fopen("/var/run/"APP_NAME".pid", "w");
         if(!f)
@@ -106,16 +109,18 @@ int main(int argc, char *argv[])
             ERROR("can't open /var/run/"APP_NAME".pid");
             return -1;
         }
-        openlog(APP_NAME, 0, LOG_DAEMON);
         if(daemon(0, 0))
         {
             ERROR("can't daemonize");
             return -1;
         }
-        is_daemon = 1;
         fprintf(f, "%d", getpid());
         fclose(f);
+        print_to_syslog = 1;
     }
+
+    if(print_to_syslog)
+        openlog(APP_NAME, 0, LOG_DAEMON);
 
     TST(driver_mstp_init() == 0, -1);
     TST(init_epoll() == 0, -1);
@@ -140,7 +145,7 @@ void vDprintf(int level, const char *fmt, va_list ap)
     if(level > log_level)
         return;
 
-    if(!is_daemon)
+    if(!print_to_syslog)
     {
         char logbuf[256];
         logbuf[255] = 0;
