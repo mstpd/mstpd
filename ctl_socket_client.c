@@ -26,7 +26,7 @@
 
 #include <sys/un.h>
 #include <unistd.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 #include "ctl_functions.h"
 #define NO_DAEMON

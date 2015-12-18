@@ -27,6 +27,8 @@
 #ifndef CTL_SOCKET_H
 #define CTL_SOCKET_H
 
+#include <string.h>
+
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
