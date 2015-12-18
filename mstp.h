@@ -12,6 +12,7 @@
 #ifndef MSTP_H
 #define MSTP_H
 
+#include <sys/types.h>
 #include <stdlib.h>
 
 #include "bridge_ctl.h"
