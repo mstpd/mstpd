@@ -389,16 +389,17 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
      */
     struct llc_header *h;
     unsigned int l;
-    if (!(len > sizeof(struct llc_header)))
-        return;
+    TST(len > sizeof(struct llc_header),);
     h = (struct llc_header *)data;
-    if (memcmp(h->dest_addr, bridge_group_address, ETH_ALEN))
-        return;
+    TST(0 == memcmp(h->dest_addr, bridge_group_address, ETH_ALEN),
+             INFO("ifindex %d, len %d, %02hhX%02hhX%02hhX%02hhX%02hhX%02hhX",
+                  if_index, len,
+                  h->dest_addr[0], h->dest_addr[1], h->dest_addr[2],
+                  h->dest_addr[3], h->dest_addr[4], h->dest_addr[5])
+       );
     l = __be16_to_cpu(h->len8023);
-    if (!((l <= ETH_DATA_LEN && l <= len - ETH_HLEN && l >= LLC_PDU_LEN_U)))
-        return;
-    if (!(h->d_sap == LLC_SAP_BSPAN && h->s_sap == LLC_SAP_BSPAN && (h->llc_ctrl & 0x3) == LLC_PDU_TYPE_U))
-        return
+    TST(l <= ETH_DATA_LEN && l <= len - ETH_HLEN && l >= LLC_PDU_LEN_U, );
+    TST(h->d_sap == LLC_SAP_BSPAN && h->s_sap == LLC_SAP_BSPAN && (h->llc_ctrl & 0x3) == LLC_PDU_TYPE_U,);
 
     MSTP_IN_rx_bpdu(prt,
                     /* Don't include LLC header */
