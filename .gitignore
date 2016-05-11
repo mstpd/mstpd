@@ -2,3 +2,29 @@ mstpctl
 mstpd
 *.o
 *.swp
+
+# autotools files
+Makefile.in
+aclocal.m4
+ar-lib
+autom4te.cache
+compile
+config.guess
+config.h.in
+config.h.in~
+config.sub
+configure
+depcomp
+install-sh
+ltmain.sh
+m4
+missing
+
+# configure files
+Makefile
+.deps
+config.h
+config.log
+config.status
+libtool
+stamp-h1
