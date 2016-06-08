@@ -15,11 +15,12 @@ fi
 bridge=$1
 service=mstpd
 pid_file=/var/run/${service}.pid
+conf_file=/etc/bridge-stp.conf
 bin_dir=/sbin
 net_dir=/sys/class/net
 
 # Set this to the list of bridges for which MSTP should be used.
-# Comment this out to allow any valid bridge to use used.
+# Set to empty value to allow any valid bridge to use MSTP.
 MSTP_BRIDGES="br0"
 
 # Set $pid to pids from /var/run* for {program}.  $pid should be declared
@@ -43,7 +44,10 @@ checkpid()
 }
 
 case $2 in
-    start) 
+    start)
+        if [ -e "$conf_file" ]; then
+            . "$conf_file" || exit
+        fi
         checkpid $pid_file || exit 1
         if [ -d "$net_dir/$bridge/bridge" ]; then
             allowed=1
