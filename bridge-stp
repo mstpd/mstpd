@@ -51,7 +51,7 @@ case $2 in
         checkpid $pid_file || exit 1
         if [ -d "$net_dir/$bridge/bridge" ]; then
             allowed=1
-            if [[ -n "$MSTP_BRIDGES" ]]; then
+            if [ -n "$MSTP_BRIDGES" ]; then
                 allowed=0
                 for b in $MSTP_BRIDGES; do
                     if [ "$bridge" == "$b" ]; then
@@ -59,7 +59,7 @@ case $2 in
                     fi
                 done
             fi
-            if [[ "$allowed" -eq 1 ]]; then
+            if [ "$allowed" -eq 1 ]; then
                 exec $bin_dir/mstpctl addbridge $bridge
             fi
         fi
