@@ -9,17 +9,18 @@ PATH="/sbin:/usr/sbin:/bin:/usr/bin"
 export PATH
 
 if [ $# -ne 2 ]; then
-    echo "Usage: bridge-stp <bridge> {start|stop}"
+    echo "Usage: bridge-stp <bridge> {start|stop}" >&2
     exit 1
 fi
 bridge=$1
 service=mstpd
 pid_file=/var/run/${service}.pid
+conf_file=/etc/bridge-stp.conf
 bin_dir=/sbin
 net_dir=/sys/class/net
 
 # Set this to the list of bridges for which MSTP should be used.
-# Comment this out to allow any valid bridge to use used.
+# Set to empty value to allow any valid bridge to use MSTP.
 MSTP_BRIDGES="br0"
 
 # Set $pid to pids from /var/run* for {program}.  $pid should be declared
@@ -31,8 +32,10 @@ checkpid()
     if [ -f "$1" ] ; then
         local line p
         read line < "$pid_file"
-        for p in $line ; do
-            [ -z "${p//[0-9]/}" -a -d "/proc/$p" ] && pid="$pid $p"
+        for p in $line; do
+            if [ -z "${p//[0-9]/}" ] && [ -d "/proc/$p" ]; then
+                pid="$pid $p"
+            fi
         done
         if [ -n "$pid" ]; then
             return 0
@@ -43,11 +46,14 @@ checkpid()
 }
 
 case $2 in
-    start) 
+    start)
+        if [ -e "$conf_file" ]; then
+            . "$conf_file" || exit
+        fi
         checkpid $pid_file || exit 1
         if [ -d "$net_dir/$bridge/bridge" ]; then
             allowed=1
-            if [[ -n "$MSTP_BRIDGES" ]]; then
+            if [ -n "$MSTP_BRIDGES" ]; then
                 allowed=0
                 for b in $MSTP_BRIDGES; do
                     if [ "$bridge" == "$b" ]; then
@@ -55,7 +61,7 @@ case $2 in
                     fi
                 done
             fi
-            if [[ "$allowed" -eq 1 ]]; then
+            if [ "$allowed" -eq 1 ]; then
                 exec $bin_dir/mstpctl addbridge $bridge
             fi
         fi
@@ -64,7 +70,7 @@ case $2 in
         exec $bin_dir/mstpctl delbridge $bridge
         ;;
     *)
-        echo "Unknown action:" $2
-        echo "Usage: bridge-stp <bridge> {start|stop}"
+        echo "Unknown action: $2" >&2
+        echo "Usage: bridge-stp <bridge> {start|stop}" >&2
         exit 1
 esac
