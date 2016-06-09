@@ -9,7 +9,7 @@ PATH="/sbin:/usr/sbin:/bin:/usr/bin"
 export PATH
 
 if [ $# -ne 2 ]; then
-    echo "Usage: bridge-stp <bridge> {start|stop}"
+    echo "Usage: bridge-stp <bridge> {start|stop}" >&2
     exit 1
 fi
 bridge=$1
@@ -68,7 +68,7 @@ case $2 in
         exec $bin_dir/mstpctl delbridge $bridge
         ;;
     *)
-        echo "Unknown action:" $2
-        echo "Usage: bridge-stp <bridge> {start|stop}"
+        echo "Unknown action: $2" >&2
+        echo "Usage: bridge-stp <bridge> {start|stop}" >&2
         exit 1
 esac
