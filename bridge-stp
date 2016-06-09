@@ -33,7 +33,9 @@ checkpid()
         local line p
         read line < "$pid_file"
         for p in $line; do
-            [ -z "${p//[0-9]/}" ] && [ -d "/proc/$p" ] && pid="$pid $p"
+            if [ -z "${p//[0-9]/}" ] && [ -d "/proc/$p" ]; then
+                pid="$pid $p"
+            fi
         done
         if [ -n "$pid" ]; then
             return 0
