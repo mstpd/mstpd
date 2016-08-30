@@ -1632,9 +1632,6 @@ static void help(void)
     command_helpall();
 }
 
-#define PACKAGE_VERSION2(v, b) "mstp, " #v "-" #b
-#define PACKAGE_VERSION(v, b) PACKAGE_VERSION2(v, b)
-
 int main(int argc, char *const *argv)
 {
     const struct command *cmd;
