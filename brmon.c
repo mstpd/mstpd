@@ -9,7 +9,7 @@
  * Authors: Stephen Hemminger <shemminger@osdl.org>
  * Modified by Srinivas Aji <Aji_Srinivas@emc.com>
  *    for use in RSTP daemon. - 2006-09-01
- * Modified by Vitalii Demianets <vitas@nppfactor.kiev.ua>
+ * Modified by Vitalii Demianets <dvitasgs@gmail.com>
  *    for use in MSTP daemon. - 2011-07-18
  */
 

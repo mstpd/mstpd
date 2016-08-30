@@ -1,5 +1,5 @@
 AC_PREREQ([2.61])
-AC_INIT([mstpd], [0.0.4], [https://github.com/ocedo/mstpd])
+AC_INIT([mstpd], [0.0.4], [https://github.com/mstpd/mstpd])
 
 AM_INIT_AUTOMAKE([foreign -Wall])
 
