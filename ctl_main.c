@@ -18,7 +18,7 @@
   The full GNU General Public License is included in this distribution in the
   file called LICENSE.
 
-  Authors: Vitalii Demianets <vitas@nppfactor.kiev.ua>
+  Authors: Vitalii Demianets <dvitasgs@gmail.com>
 
 ******************************************************************************/
 

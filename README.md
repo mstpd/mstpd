@@ -9,7 +9,7 @@ As the note (near the title says) this is not the original repo of **mstpd**.
 It's a "fork" from SourceForge and the origin link is:
  https://sourceforge.net/projects/mstpd/
 
-And the original author is: Vitalii Demianets <vitas@nppfactor.kiev.ua>
+And the original author is: Vitalii Demianets <dvitasgs@gmail.com>
 
 Description
 -----------
