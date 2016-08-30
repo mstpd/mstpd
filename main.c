@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
     int c;
     int daemonize = 1;
 
+    INFO(PACKAGE_VERSION(VERSION, BUILD));
+
     /* Sanity check */
     {
         bridge_identifier_t BridgeIdentifier;
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
         INFO("Sanity checks succeeded");
     }
 
-    while((c = getopt(argc, argv, "dsv:")) != -1)
+    while((c = getopt(argc, argv, "Vdsv:")) != -1)
     {
         switch (c)
         {
@@ -96,6 +98,9 @@ int main(int argc, char *argv[])
                 log_level = l;
                 break;
             }
+            case 'V':
+                printf("%s\n", PACKAGE_VERSION(VERSION, BUILD));
+                return 0;
             default:
                 return -1;
         }
