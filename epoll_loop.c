@@ -24,6 +24,8 @@
 
 ******************************************************************************/
 
+#include <config.h>
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -34,7 +36,7 @@
 
 /* globals */
 static int epoll_fd = -1;
-static struct timeval nexttimeout;
+static struct timespec nexttimeout;
 
 int init_epoll(void)
 {
@@ -87,10 +89,10 @@ void clear_epoll(void)
         close(epoll_fd);
 }
 
-static inline int time_diff(struct timeval *second, struct timeval *first)
+static inline int time_diff(struct timespec *second, struct timespec *first)
 {
     return (second->tv_sec - first->tv_sec) * 1000
-            + (second->tv_usec - first->tv_usec) / 1000;
+            + (second->tv_nsec - first->tv_nsec) / 1000000;
 }
 
 static inline void run_timeouts(void)
@@ -101,7 +103,7 @@ static inline void run_timeouts(void)
 
 int epoll_main_loop(void)
 {
-    gettimeofday(&nexttimeout, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &nexttimeout);
     ++(nexttimeout.tv_sec);
 #define EV_SIZE 8
     struct epoll_event ev[EV_SIZE];
@@ -111,26 +113,19 @@ int epoll_main_loop(void)
         int r, i;
         int timeout;
 
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
+        struct timespec tv;
+        clock_gettime(CLOCK_MONOTONIC, &tv);
         timeout = time_diff(&nexttimeout, &tv);
         if(timeout < 0 || timeout > 1000)
         {
             run_timeouts();
             /*
              * Check if system time has changed.
-             * NOTE: we can not differentiate reliably if system
-             * time has changed or we have spent too much time
-             * inside event handlers and run_timeouts().
-             * Fix: use clock_gettime(CLOCK_MONOTONIC, ) instead of
-             * gettimeofday, if it is available.
-             * If it is not available on given system -
-             * the following is the best we can do.
              */
             if(timeout < -4000 || timeout > 1000)
             {
                 /* Most probably, system time has changed */
-                nexttimeout.tv_usec = tv.tv_usec;
+                nexttimeout.tv_nsec = tv.tv_nsec;
                 nexttimeout.tv_sec = tv.tv_sec + 1;
             }
             timeout = 0;
