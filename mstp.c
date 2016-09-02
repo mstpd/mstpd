@@ -35,6 +35,8 @@
  *      Otherwise (!dry_run || !state_change) they return false.
  */
 
+#include <config.h>
+
 #include <string.h>
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
@@ -5095,13 +5097,13 @@ static bool __br_state_machines_run(bridge_t *br, bool dry_run)
  */
 static void br_state_machines_run(bridge_t *br)
 {
-    struct timeval tv, tv_end;
+    struct timespec tv, tv_end;
     signed long delta;
 
     if(!br->bridgeEnabled)
         return;
 
-    gettimeofday(&tv_end, NULL);
+    clock_gettime(CLOCK_MONOTONIC, &tv_end);
     ++(tv_end.tv_sec);
 
     do {
@@ -5110,12 +5112,12 @@ static void br_state_machines_run(bridge_t *br)
         __br_state_machines_run(br, false /* actual run */);
 
         /* Check for the timeout */
-        gettimeofday(&tv, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &tv);
         if(0 < (delta = tv.tv_sec - tv_end.tv_sec))
             return;
         if(0 == delta)
         {
-            delta = tv.tv_usec - tv_end.tv_usec;
+            delta = tv.tv_nsec - tv_end.tv_nsec;
             if(0 < delta)
                 return;
         }
