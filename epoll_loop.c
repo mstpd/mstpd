@@ -30,6 +30,7 @@
 #include "log.h"
 #include "epoll_loop.h"
 #include "bridge_ctl.h"
+#include "clock_gettime.h"
 
 /* globals */
 static int epoll_fd = -1;

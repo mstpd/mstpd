@@ -36,7 +36,6 @@
  */
 
 #include <string.h>
-#include <sys/time.h>
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
@@ -44,6 +43,7 @@
 #include "mstp.h"
 #include "log.h"
 #include "driver.h"
+#include "clock_gettime.h"
 
 static void PTSM_tick(port_t *prt);
 static bool TCSM_run(per_tree_port_t *ptp, bool dry_run);
