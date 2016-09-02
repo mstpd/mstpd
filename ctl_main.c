@@ -32,12 +32,6 @@
 #include "ctl_socket_client.h"
 #include "log.h"
 
-#ifdef  __LIBC_HAS_VERSIONSORT__
-#define sorting_func    versionsort
-#else
-#define sorting_func    alphasort
-#endif
-
 static int get_index_die(const char *ifname, const char *doc, bool die)
 {
     int r = if_nametoindex(ifname);
@@ -304,7 +298,7 @@ static int isbridge(const struct dirent *entry)
 
 static inline int get_bridge_list(struct dirent ***namelist)
 {
-    return scandir(SYSFS_CLASS_NET, namelist, isbridge, sorting_func);
+    return scandir(SYSFS_CLASS_NET, namelist, isbridge, versionsort);
 }
 
 static int cmd_showbridge(int argc, char *const *argv)
@@ -707,7 +701,7 @@ static int get_port_list(const char *br_ifname, struct dirent ***namelist)
     char buf[SYSFS_PATH_MAX];
 
     snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", br_ifname);
-    if(0 > (res = scandir(buf, namelist, not_dot_dotdot, sorting_func)))
+    if(0 > (res = scandir(buf, namelist, not_dot_dotdot, versionsort)))
         fprintf(stderr, "Error getting list of all ports of bridge %s\n",
                 br_ifname);
     return res;

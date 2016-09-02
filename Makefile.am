@@ -12,7 +12,7 @@ BUILDDEF = $(shell git log --pretty=format:'%h' -n 1)
 
 mstpd_CFLAGS = \
 	-Os -Wall -Werror -D_REENTRANT -D__LINUX__ -DVERSION=$(VERSION) -DBUILD="$(BUILDDEF)" -I. \
-	-D_GNU_SOURCE -D__LIBC_HAS_VERSIONSORT__
+	-D_GNU_SOURCE
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0
 endif
