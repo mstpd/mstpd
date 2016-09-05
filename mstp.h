@@ -20,9 +20,6 @@
 
 /* #define HMAC_MDS_TEST_FUNCTIONS */
 
-#define PACKAGE_VERSION2(v, b) "Version " #v "-" #b
-#define PACKAGE_VERSION(v, b) PACKAGE_VERSION2(v, b)
-
 /* Useful macro for counting number of elements in array */
 #define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
 

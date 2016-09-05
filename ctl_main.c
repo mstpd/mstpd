@@ -22,6 +22,8 @@
 
 ******************************************************************************/
 
+#include <config.h>
+
 #include <string.h>
 #include <getopt.h>
 #include <dirent.h>
@@ -1644,7 +1646,7 @@ int main(int argc, char *const *argv)
                 help();
                 return 0;
             case 'V':
-                printf("%s\n", PACKAGE_VERSION(VERSION, BUILD));
+                printf(PACKAGE_VERSION "\n");
                 return 0;
             default:
                 fprintf(stderr, "Unknown option '%c'\n", f);

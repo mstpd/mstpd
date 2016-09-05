@@ -8,10 +8,8 @@ mstpd_SOURCES = \
 mstpctl_SOURCES = \
 	ctl_main.c ctl_socket_client.c
 
-BUILDDEF = $(shell git log --pretty=format:'%h' -n 1)
-
 mstpd_CFLAGS = \
-	-Os -Wall -Werror -D_REENTRANT -D__LINUX__ -DVERSION=$(VERSION) -DBUILD="$(BUILDDEF)" -I. \
+	-Os -Wall -Werror -D_REENTRANT -D__LINUX__ -I. \
 	-D_GNU_SOURCE
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0

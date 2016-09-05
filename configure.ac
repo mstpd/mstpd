@@ -16,6 +16,16 @@ AC_ARG_ENABLE([devel],
 
 AM_CONDITIONAL([ENABLE_DEVEL], [test "$enable_devel" = yes])
 
+# Define PACKAGE_BUILD
+PACKAGE_BUILD=`git log --pretty=format:'%h' -n 1`
+AC_SUBST(PACKAGE_BUILD)
+AC_DEFINE_UNQUOTED(PACKAGE_BUILD, "$PACKAGE_BUILD", [Build revision obtained from git])
+
+# Override PACKAGE_VERSION to include git tag
+PACKAGE_VERSION="${PACKAGE_VERSION}-${PACKAGE_BUILD}"
+AC_SUBST(PACKAGE_VERSION)
+AC_DEFINE_UNQUOTED(PACKAGE_VERSION, "$PACKAGE_VERSION", [Package version, including build number])
+
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 

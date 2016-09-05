@@ -26,6 +26,8 @@
 
 /* #define MISC_TEST_FUNCS */
 
+#include <config.h>
+
 #include <unistd.h>
 #include <syslog.h>
 
@@ -52,7 +54,7 @@ int main(int argc, char *argv[])
     int c;
     int daemonize = 1;
 
-    INFO(PACKAGE_VERSION(VERSION, BUILD));
+    INFO("Version - " PACKAGE_VERSION "\n");
 
     /* Sanity check */
     {
@@ -99,7 +101,7 @@ int main(int argc, char *argv[])
                 break;
             }
             case 'V':
-                printf("%s\n", PACKAGE_VERSION(VERSION, BUILD));
+                printf(PACKAGE_VERSION "\n");
                 return 0;
             default:
                 return -1;
