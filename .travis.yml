@@ -1,0 +1,7 @@
+git:
+  depth: 1
+language: c
+os: linux
+compiler: gcc
+script:
+  - ./autogen.sh && ./configure && make V=s
