@@ -1,6 +1,8 @@
 mstpd: Multiple Spanning Tree Protocol Daemon
 =============================================
 
+[![Build Status](https://travis-ci.org/mstpd/mstpd.svg?branch=master)](https://travis-ci.org/mstpd/mstpd)
+
 MSTPD is an open source user-space daemon licensed under GPLv2.
 
 MSTPD is reported to be compliant with IXIA ANVL RSTP test suite, with
