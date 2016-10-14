@@ -26,6 +26,8 @@ PACKAGE_VERSION="${PACKAGE_VERSION}-${PACKAGE_BUILD}"
 AC_SUBST(PACKAGE_VERSION)
 AC_DEFINE_UNQUOTED(PACKAGE_VERSION, "$PACKAGE_VERSION", [Package version, including build number])
 
+AC_SEARCH_LIBS([clock_gettime], [rt])
+
 AC_CHECK_TYPES(struct timespec)
 AC_CHECK_FUNCS(clock_gettime)
 
