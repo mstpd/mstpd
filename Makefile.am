@@ -78,3 +78,20 @@ install-data-hook:
 	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
 	install -m 644 README.VLANs.md $(docdest)/README.VLANs
+
+rpm: rpm.spec
+	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
+	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
+	[ -n "$$Version" ] || exit 3 ; SrcDir="$$(pwd)" ; \
+	mkdir -p "../rpmbuild/SOURCES" ; cd "../rpmbuild/SOURCES" ; \
+	git clone "$$SrcDir" "mstpd-$$Version" ; \
+	tar -cvjf "mstpd-$$Version.tar.bz2" "mstpd-$$Version" ; \
+	rm -rf "mstpd-$$Version" ; \
+	cd .. ; mkdir -p SPECS ; cp "$$SrcDir/rpm.spec" SPECS/mstpd.spec
+	rpmbuild --define "_topdir $$(pwd)" -ba SPECS/mstpd.spec
+
+rpm.spec: configure.ac
+	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
+	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
+	[ -n "$$Version" ] || exit 3 ; \
+	perl -i -p -e 's/^(\s*Version:\s+).*$$/$${1}'"$$Version/" rpm.spec
