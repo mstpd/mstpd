@@ -6,7 +6,7 @@ AM_INIT_AUTOMAKE([foreign -Wall])
 AC_CONFIG_MACRO_DIR([m4])
 
 AC_PROG_CC
-AM_PROG_AR
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 
 # Optional building of examples
