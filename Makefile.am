@@ -58,6 +58,8 @@ docdest=$(DESTDIR)$(docdir)
 
 install-data-hook:
 	install -m 755 bridge-stp $(sbindest)/bridge-stp
+	mkdir -pv $(etcdest)
+	install -m 644 bridge-stp.conf $(etcdest)/bridge-stp.conf
 	mkdir -pv $(utilsdest)
 	install -m 755 lib/ifupdown.sh $(utilsdest)
 	install -m 644 lib/mstpctl-utils-functions.sh $(utilsdest)

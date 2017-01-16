@@ -1,6 +1,9 @@
 #!/bin/bash
+# /sbin/bridge-stp is called by the kernel to start/stop spanning tree on a
+# bridge.
 #
-# Script to start/stop spanning tree called from kernel
+# Configuration is in @bridgestpconffile@
+
 # Make sure umask is sane
 umask 022
 
@@ -18,9 +21,9 @@ conf_file='@bridgestpconffile@'
 bin_dir='@sbindir@'
 net_dir=/sys/class/net
 
-# Set this to the list of bridges for which MSTP should be used.
-# Set to empty value to allow any valid bridge to use MSTP.
-MSTP_BRIDGES="br0"
+# A space-separated list of bridges for which MSTP should be used in place of
+# the kernel's STP implementation.  If empty, MSTP will be used for all bridges.
+MSTP_BRIDGES=''
 
 # Set $pid to pids from /var/run* for {program}.  $pid should be declared
 # local in the caller.
