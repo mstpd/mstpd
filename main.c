@@ -110,10 +110,10 @@ int main(int argc, char *argv[])
 
     if(daemonize)
     {
-        FILE *f = fopen("/var/run/"APP_NAME".pid", "w");
+        FILE *f = fopen(MSTPD_PID_FILE, "w");
         if(!f)
         {
-            ERROR("can't open /var/run/"APP_NAME".pid");
+            ERROR("can't open "MSTPD_PID_FILE);
             return -1;
         }
         if(daemon(0, 0))

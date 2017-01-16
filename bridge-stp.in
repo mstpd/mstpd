@@ -13,10 +13,9 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 bridge=$1
-service=mstpd
-pid_file=/var/run/${service}.pid
-conf_file=/etc/bridge-stp.conf
-bin_dir=/sbin
+pid_file='@mstpdpidfile@'
+conf_file='@bridgestpconffile@'
+bin_dir='@sbindir@'
 net_dir=/sys/class/net
 
 # Set this to the list of bridges for which MSTP should be used.
