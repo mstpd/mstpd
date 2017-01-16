@@ -23,7 +23,7 @@ utilsdir=$(libexecdir)/mstpctl-utils
 mstpctlfile=$(sbindir)/mstpctl
 mstpdpidfile=$(localstatedir)/run/mstpd.pid
 bridgestpconffile=$(sysconfdir)/bridge-stp.conf
-utilsfuncfile=$(utilsdir)/mstpctl-utils.sh
+utilsfuncfile=$(utilsdir)/mstpctl-utils-functions.sh
 
 mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 
@@ -55,7 +55,7 @@ install-data-hook:
 	install -m 755 bridge-stp $(sbindest)/bridge-stp
 	mkdir -pv $(utilsdest)
 	install -m 755 lib/ifupdown.sh $(utilsdest)
-	install -m 644 lib/mstpctl-utils.sh $(utilsdest)
+	install -m 644 lib/mstpctl-utils-functions.sh $(utilsdest)
 	install -m 755 lib/mstpctl_restart_config $(utilsdest)
 	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
 	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
