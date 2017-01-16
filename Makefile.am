@@ -66,8 +66,14 @@ install-data-hook:
 	install -m 755 lib/mstpctl_restart_config $(utilsdest)
 	install -m 755 lib/mstp_config_bridge $(utilsdest)
 	install -m 755 lib/ifquery $(utilsdest)
-	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
-	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
+	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
+	  mkdir -pv $(etcdest)/network/if-pre-up.d ; \
+	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
+	fi
+	if [ -d $(sysconfdir)/network/if-post-down.d ]; then \
+	  mkdir -pv $(etcdest)/network/if-post-down.d ; \
+	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
+	fi
 	mkdir -pv $(bashcompdest)
 	install -m 644 lib/bash_completion $(bashcompdest)/mstpctl
 	mkdir -pv $(man8dest)
@@ -78,6 +84,18 @@ install-data-hook:
 	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
 	install -m 644 README.VLANs.md $(docdest)/README.VLANs
+
+deb: debian/changelog
+#	# Build unsigned binary package
+	dpkg-buildpackage --build=binary -us -uc
+#	# Build signed binary and source packages
+#	#debuild
+
+debian/changelog: configure.ac
+	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
+	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
+	[ -n "$$Version" ] || exit 3 ; \
+	perl -0777 -i -p -e "s/^mstpd \([^)]*\) /mstpd ($$Version) /m" debian/changelog
 
 rpm: rpm.spec
 	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
