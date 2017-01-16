@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # /sbin/bridge-stp is called by the kernel to start/stop spanning tree on a
 # bridge.
 #
@@ -35,7 +35,7 @@ checkpid()
         local line p
         read line < "$pid_file"
         for p in $line; do
-            if [ -z "${p//[0-9]/}" ] && [ -d "/proc/$p" ]; then
+            if [ "$p" = "${p%[!0-9]*}" ] && [ -d "/proc/$p" ]; then
                 pid="$pid $p"
             fi
         done
