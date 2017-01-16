@@ -227,6 +227,66 @@ if [ "$MODE" = 'start' ]; then
   # We activate the bridge
   "$ip" link set dev "$IFACE" up
 
+  # Calculate the maximum time to wait for STP to converge
+  maxwait=''
+  if [ -n "$IF_MSTPCTL_MAXWAIT" ] && [ "$IF_MSTPCTL_MAXWAIT" != 'auto' ]; then
+    # if [ "$IF_MSTPCTL_MAXWAIT" is a number ]; then
+    if [ "$IF_MSTPCTL_MAXWAIT" = "${IF_MSTPCTL_MAXWAIT%[!0-9]*}" ]; then
+      maxwait="$IF_MSTPCTL_MAXWAIT"
+    else
+      echo "Ignoring invalid mstpctl_maxwait value '$maxwait'" >&2
+    fi
+  fi
+  if [ -z "$maxwait" ]; then
+    root_forward_delay="$("$mstpctl" showbridge "$IFACE" forward-delay)"
+    if [ -z "$root_forward_delay" ] || [ -n "${root_forward_delay//[0-9]/}" ]; then
+      root_forward_delay=0
+    fi
+    bridge_forward_delay="$("$mstpctl" showbridge "$IFACE" bridge-forward-delay)"
+    if [ -z "$bridge_forward_delay" ] || [ -n "${bridge_forward_delay//[0-9]/}" ]; then
+      bridge_forward_delay=0
+    fi
+    if [ $root_forward_delay -gt $bridge_forward_delay ]; then
+      maxwait="$root_forward_delay"
+    else
+      maxwait="$bridge_forward_delay"
+    fi
+    maxwait=$((maxwait*2+1))
+  fi
+
+  # Wait for STP to converge
+  if [ $maxwait -ne 0 ]; then
+    echo -e "\nWaiting for STP on bridge '$IFACE' to converge (mstpctl_maxwait is $maxwait seconds)."
+
+    # Use 0.1 delay if available
+    sleep 0.1 2>/dev/null && maxwait=$((maxwait*10))
+
+    count=0 ; transitioned='' ; converged=''
+    while [ -z "$converged" ] && [ $count -lt $maxwait ]; do
+      sleep 0.1 2>/dev/null || sleep 1
+      count=$((count+1))
+
+      # Converged if all ports are either 'forwarding', 'blocking', or
+      # 'disabled', except if all ports are 'disabled' and we have yet to see
+      # any port transition to any other valid state.
+      converged=true
+      for i in $("$brctl" showstp "$IFACE" | sed -n 's/^.*port id.*state[ \t]*\(.*\)$/\1/p'); do
+        if [ "$i" = 'listening' ] || [ "$i" = 'learning' ]; then
+          transitioned=true
+          converged=''
+          break
+        elif [ "$i" = 'forwarding' ] || [ "$i" = 'blocking' ]; then
+          transitioned=true
+        elif [ "$i" != 'disabled' ] || [ -z "$transitioned" ]; then
+          converged=''
+        fi
+      done
+    done
+    if [ -z "$converged" ]; then
+      echo "Timed out waiting for STP on bridge '$IFACE' to converge" >&2
+    fi
+  fi
+
 # Finally we destroy the interface
 elif [ "$MODE" = 'stop' ]; then
 
