@@ -43,24 +43,25 @@ bridge-stp lib/ifupdown.sh: Makefile
 bridge-stp: $(srcdir)/bridge-stp.in
 lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
 
-mstpdir=$(DESTDIR)$(utilsdir)
-etcdir=$(DESTDIR)$(sysconfdir)
-man5dir=$(DESTDIR)$(mandir)/man5
-man8dir=$(DESTDIR)$(mandir)/man8
+sbindest=$(DESTDIR)$(sbindir)
+utilsdest=$(DESTDIR)$(utilsdir)
+etcdest=$(DESTDIR)$(sysconfdir)
+man5dest=$(DESTDIR)$(mandir)/man5
+man8dest=$(DESTDIR)$(mandir)/man8
 docdest=$(DESTDIR)$(docdir)
 
 install-data-hook:
-	install -m 755 bridge-stp $(DESTDIR)$(sbindir)/bridge-stp
-	mkdir -pv $(mstpdir)
-	cp -rv lib/* $(mstpdir)
-	gzip -f $(mstpdir)/mstpctl.8
-	gzip -f $(mstpdir)/mstpctl-utils-interfaces.5
-	if [ -d $(etcdir)/network/if-pre-up.d ] ; then ln -sf $(mstpdir)/ifupdown.sh $(etcdir)/network/if-pre-up.d/mstpctl ; fi
-	if [ -d $(etcdir)/network/if-post-down.d ] ; then ln -sf $(mstpdir)/ifupdown.sh $(etcdir)/network/if-post-down.d/mstpctl ; fi
-	if [ -d $(etcdir)/bash_completion.d ] ; then ln -sf $(mstpdir)/bash_completion $(etcdir)/bash_completion.d/mstpctl ; fi
-	mkdir -pv $(man8dir)
-	ln -sf $(mstpdir)/mstpctl.8.gz $(man8dir)/mstpctl.8.gz
-	mkdir -pv $(man5dir)
-	ln -sf $(mstpdir)/mstpctl-utils-interfaces.5.gz $(man5dir)/mstpctl-utils-interfaces.5.gz
+	install -m 755 bridge-stp $(sbindest)/bridge-stp
+	mkdir -pv $(utilsdest)
+	cp -rv lib/* $(utilsdest)
+	gzip -f $(utilsdest)/mstpctl.8
+	gzip -f $(utilsdest)/mstpctl-utils-interfaces.5
+	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
+	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
+	if [ -d $(etcdest)/bash_completion.d ] ; then ln -sf $(utilsdest)/bash_completion $(etcdest)/bash_completion.d/mstpctl ; fi
+	mkdir -pv $(man8dest)
+	ln -sf $(utilsdest)/mstpctl.8.gz $(man8dest)/mstpctl.8.gz
+	mkdir -pv $(man5dest)
+	ln -sf $(utilsdest)/mstpctl-utils-interfaces.5.gz $(man5dest)/mstpctl-utils-interfaces.5.gz
 	mkdir -pv $(docdest)
 	install -m 644 README.VLANs.md $(docdest)/README.VLANs
