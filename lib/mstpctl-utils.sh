@@ -1,5 +1,3 @@
-#!/bin/sh
-
 mstpctl_parse_ports()
 {
   while [ x"${1+set}" = xset ]
