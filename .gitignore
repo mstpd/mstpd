@@ -1,5 +1,5 @@
-mstpctl
-mstpd
+/mstpctl
+/mstpd
 *.o
 *.swp
 
@@ -36,3 +36,10 @@ config.log
 config.status
 libtool
 stamp-h1
+
+# packaging files
+/debian/mstpd.debhelper.log
+/debian/debhelper-build-stamp
+/debian/mstpd.substvars
+/debian/files
+/debian/mstpd
