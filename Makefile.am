@@ -16,14 +16,16 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
-all-local: bridge-stp lib/ifupdown.sh
+all-local: bridge-stp lib/ifupdown.sh lib/mstp_config_bridge
 
 utilsdir=$(libexecdir)/mstpctl-utils
 
 mstpctlfile=$(sbindir)/mstpctl
 mstpdpidfile=$(localstatedir)/run/mstpd.pid
 bridgestpconffile=$(sysconfdir)/bridge-stp.conf
+ifupdownfile=$(utilsdir)/ifupdown.sh
 utilsfuncfile=$(utilsdir)/mstpctl-utils-functions.sh
+ifqueryfile=$(utilsdir)/ifquery
 
 mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 
@@ -33,8 +35,10 @@ populate_template = sed \
 	-e 's|@mstpctlfile[@]|$(mstpctlfile)|g' \
 	-e 's|@mstpdpidfile[@]|$(mstpdpidfile)|g' \
 	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
-	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g'
-bridge-stp lib/ifupdown.sh: Makefile
+	-e 's|@ifupdownfile[@]|$(ifupdownfile)|g' \
+	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
+	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
+bridge-stp lib/ifupdown.sh lib/mstp_config_bridge: Makefile
 	rm -f $@ $@.tmp
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
 	$(populate_template) $${srcdir}$@.in > $@.tmp
@@ -42,6 +46,7 @@ bridge-stp lib/ifupdown.sh: Makefile
 	mv $@.tmp $@
 bridge-stp: $(srcdir)/bridge-stp.in
 lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
+lib/mstp_config_bridge: $(srcdir)/lib/mstp_config_bridge.in
 
 sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsdir)
@@ -57,6 +62,8 @@ install-data-hook:
 	install -m 755 lib/ifupdown.sh $(utilsdest)
 	install -m 644 lib/mstpctl-utils-functions.sh $(utilsdest)
 	install -m 755 lib/mstpctl_restart_config $(utilsdest)
+	install -m 755 lib/mstp_config_bridge $(utilsdest)
+	install -m 755 lib/ifquery $(utilsdest)
 	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
 	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
 	mkdir -pv $(bashcompdest)
