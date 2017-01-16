@@ -52,8 +52,8 @@ iface br0 inet static
     mstpctl_portrestrrole swp1=no swp2=no
     mstpctl_bpduguard swp1=no swp2=no
     mstpctl_portrestrtcn swp1=no swp2=no
-    mstpctl_treeprio 32768
-    mstpctl_treeportprio swp3=128
+    mstpctl_treeprio 8
+    mstpctl_treeportprio swp3=8
     mstpctl_hello 2
     mstpctl_portnetwork swp1=no
 
@@ -108,7 +108,7 @@ Enables/disables the admin edge state of the \fIport\fP, default is no.
 .TP
 .BI mstpctl_portautoedge " port yes|no"
 Enables/disables the auto transition to/from edge state of the \fIport\fP,
-default is no.
+default is yes.
 .TP
 .BI mstpctl_portp2p " port yes|no|auto"
 Enables/disables the point2point detection mode of the \fIport\fP,
