@@ -10,6 +10,29 @@ AC_INIT([mstpd], [0.0.4], [https://github.com/mstpd/mstpd])
 # just do it manually.
 test "x$exec_prefix" = xNONE && exec_prefix=''
 
+# bridge-stp.conf should be installed in /etc/ rather than /usr/local/etc/ by
+# default.  If `./configure` was run without specifying `--prefix=...` or
+# `--sysconfdir=...`, then set the default sysconfdir appropriately.
+# There is no standard macro to override the default sysconfdir, so just do it
+# manually.
+test "x$prefix" = xNONE && test "x$sysconfdir" = 'x${prefix}/etc' && sysconfdir='/etc'
+
+# The mstpd PID file should not be installed under /usr/ if mstpd itself is not
+# installed under /usr.  If exec_prefix is empty and `./configure` was run
+# without specifying `--localstatedir=...`, then set the default localstatedir
+# appropriately.
+# There is no standard macro to override the default localstatedir, so just do
+# it manually.
+test "x$exec_prefix" = x && test "x$localstatedir" = 'x${prefix}/var' && localstatedir='/var'
+
+# If exec_prefix is empty, then the default libexecdir is normally /libexec/,
+# which is not a standard path.  Therefore, if exec_prefix is empty and
+# `./configure` was run without specifying `--libexecdir=...`, set the default
+# localstatedir to /lib/ instead of /libexec/.
+# There is no standard macro to override the default libexecdir, so just do it
+# manually.
+test "x$exec_prefix" = x && test "x$libexecdir" = 'x${exec_prefix}/libexec' && libexecdir='/lib'
+
 AM_INIT_AUTOMAKE([foreign -Wall])
 
 AC_CONFIG_MACRO_DIR([m4])
