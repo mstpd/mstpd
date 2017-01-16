@@ -16,6 +16,20 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
+all-local: bridge-stp lib/ifupdown.sh
+
+# See https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.69/html_node/Installation-Directory-Variables.html#index-sysconfdir-188
+populate_template = sed \
+	-e 's|@sbindir[@]|$(sbindir)|g'
+bridge-stp lib/ifupdown.sh: Makefile
+	rm -f $@ $@.tmp
+	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
+	$(populate_template) $${srcdir}$@.in > $@.tmp
+	chmod 755 $@.tmp
+	mv $@.tmp $@
+bridge-stp: $(srcdir)/bridge-stp.in
+lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
+
 mstpdir=$(DESTDIR)$(libdir)/mstpctl-utils
 etcdir=$(DESTDIR)$(sysconfdir)
 man5dir=$(DESTDIR)$(mandir)/man5

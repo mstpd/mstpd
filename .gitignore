@@ -3,6 +3,11 @@ mstpd
 *.o
 *.swp
 
+/bridge-stp
+/bridge-stp.tmp
+/lib/ifupdown.sh
+/lib/ifupdown.sh.tmp
+
 # autotools files
 /m4/lt*.m4
 /m4/libtool.m4
