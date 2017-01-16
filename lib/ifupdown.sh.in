@@ -4,12 +4,12 @@
 # more info about the way on wich a bridge is set up on Debian.
 # Author: Satish Ashok, <sashok@cumulusnetworks.com>
 
-if [ ! -x /sbin/mstpctl ]
+if [ ! -x '@mstpctlfile@' ]
 then
   exit 0
 fi
 
-. /lib/mstpctl-utils/mstpctl-utils.sh
+. '@utilsfuncfile@'
 
 case "$IF_MSTPCTL_PORTS" in
     "")

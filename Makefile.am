@@ -18,9 +18,22 @@ mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
 all-local: bridge-stp lib/ifupdown.sh
 
+utilsdir=$(libexecdir)/mstpctl-utils
+
+mstpctlfile=$(sbindir)/mstpctl
+mstpdpidfile=$(localstatedir)/run/mstpd.pid
+bridgestpconffile=$(sysconfdir)/bridge-stp.conf
+utilsfuncfile=$(utilsdir)/mstpctl-utils.sh
+
+mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
+
 # See https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.69/html_node/Installation-Directory-Variables.html#index-sysconfdir-188
 populate_template = sed \
-	-e 's|@sbindir[@]|$(sbindir)|g'
+	-e 's|@sbindir[@]|$(sbindir)|g' \
+	-e 's|@mstpctlfile[@]|$(mstpctlfile)|g' \
+	-e 's|@mstpdpidfile[@]|$(mstpdpidfile)|g' \
+	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
+	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g'
 bridge-stp lib/ifupdown.sh: Makefile
 	rm -f $@ $@.tmp
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
@@ -30,7 +43,7 @@ bridge-stp lib/ifupdown.sh: Makefile
 bridge-stp: $(srcdir)/bridge-stp.in
 lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
 
-mstpdir=$(DESTDIR)$(libdir)/mstpctl-utils
+mstpdir=$(DESTDIR)$(utilsdir)
 etcdir=$(DESTDIR)$(sysconfdir)
 man5dir=$(DESTDIR)$(mandir)/man5
 man8dir=$(DESTDIR)$(mandir)/man8
