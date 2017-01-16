@@ -2,6 +2,10 @@
 # /sbin/bridge-stp is called by the kernel to start/stop spanning tree on a
 # bridge.
 #
+# To avoid kernel deadlocks, this script and any foreground processes it runs
+# must not make any changes (using brctl, ifconfig, ip, /sys/..., etc) to the
+# bridge or any associated kernel network interfaces.
+#
 # Configuration is in @bridgestpconffile@
 
 # Make sure umask is sane
