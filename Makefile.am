@@ -20,6 +20,7 @@ mstpdir=$(DESTDIR)$(libdir)/mstpctl-utils
 etcdir=$(DESTDIR)$(sysconfdir)
 man5dir=$(DESTDIR)$(mandir)/man5
 man8dir=$(DESTDIR)$(mandir)/man8
+docdest=$(DESTDIR)$(docdir)
 
 install-data-hook:
 	install -m 755 bridge-stp $(DESTDIR)$(sbindir)/bridge-stp
@@ -34,3 +35,5 @@ install-data-hook:
 	ln -sf $(mstpdir)/mstpctl.8.gz $(man8dir)/mstpctl.8.gz
 	mkdir -pv $(man5dir)
 	ln -sf $(mstpdir)/mstpctl-utils-interfaces.5.gz $(man5dir)/mstpctl-utils-interfaces.5.gz
+	mkdir -pv $(docdest)
+	install -m 644 README.VLANs.md $(docdest)/README.VLANs
