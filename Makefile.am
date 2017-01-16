@@ -46,6 +46,7 @@ lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
 sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsdir)
 etcdest=$(DESTDIR)$(sysconfdir)
+bashcompdest=$(etcdest)/bash_completion.d
 man5dest=$(DESTDIR)$(mandir)/man5
 man8dest=$(DESTDIR)$(mandir)/man8
 docdest=$(DESTDIR)$(docdir)
@@ -53,15 +54,18 @@ docdest=$(DESTDIR)$(docdir)
 install-data-hook:
 	install -m 755 bridge-stp $(sbindest)/bridge-stp
 	mkdir -pv $(utilsdest)
-	cp -rv lib/* $(utilsdest)
-	gzip -f $(utilsdest)/mstpctl.8
-	gzip -f $(utilsdest)/mstpctl-utils-interfaces.5
+	install -m 755 lib/ifupdown.sh $(utilsdest)
+	install -m 755 lib/mstpctl-utils.sh $(utilsdest)
+	install -m 755 lib/mstpctl_restart_config $(utilsdest)
 	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
 	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
-	if [ -d $(etcdest)/bash_completion.d ] ; then ln -sf $(utilsdest)/bash_completion $(etcdest)/bash_completion.d/mstpctl ; fi
+	mkdir -pv $(bashcompdest)
+	install -m 644 lib/bash_completion $(bashcompdest)/mstpctl
 	mkdir -pv $(man8dest)
-	ln -sf $(utilsdest)/mstpctl.8.gz $(man8dest)/mstpctl.8.gz
+	install -m 644 lib/mstpctl.8 $(man8dest)/mstpctl.8
+	gzip -f $(man8dest)/mstpctl.8
 	mkdir -pv $(man5dest)
-	ln -sf $(utilsdest)/mstpctl-utils-interfaces.5.gz $(man5dest)/mstpctl-utils-interfaces.5.gz
+	install -m 644 lib/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
+	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
 	install -m 644 README.VLANs.md $(docdest)/README.VLANs
