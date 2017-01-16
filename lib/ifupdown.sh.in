@@ -9,11 +9,22 @@
 #
 # Author: Satish Ashok, <sashok@cumulusnetworks.com>
 
-if [ ! -x '@mstpctlfile@' ]; then
+mstpctl='@mstpctlfile@'
+if [ ! -x "$mstpctl" ]; then
   exit 0
 fi
+brctl="$(which brctl)"
+if [ -z "$brctl" ] || [ ! -x "$brctl" ]; then
+  echo "'brctl' binary does not exist or is not executable" >&2
+  exit 2
+fi
+ifconfig="$(which ifconfig)"
+if [ -z "$ifconfig" ] || [ ! -x "$ifconfig" ]; then
+  echo "'ifconfig' binary does not exist or is not executable" >&2
+  exit 2
+fi
 
-. '@utilsfuncfile@'
+. '@utilsfuncfile@' || exit 2
 
 case "$IF_MSTPCTL_PORTS" in
     '')
@@ -29,10 +40,10 @@ esac
 
 # Previous work (create the interface)
 if [ "$MODE" = 'start' ] && [ ! -d "/sys/class/net/$IFACE" ]; then
-  brctl addbr "$IFACE" || exit 1
+  "$brctl" addbr "$IFACE" || exit 2
 # Previous work (stop the interface)
 elif [ "$MODE" = 'stop' ]; then
-  ifconfig "$IFACE" down || exit 1
+  "$ifconfig" "$IFACE" down || exit 2
 fi
 
 all_interfaces= &&
@@ -42,20 +53,20 @@ mstpctl_parse_ports $INTERFACES | while read i; do
     # We attach and configure each port of the bridge
     if [ "$MODE" = 'start' ] && [ ! -d "/sys/class/net/$IFACE/brif/$port" ]; then
       if [ -x /etc/network/if-pre-up.d/vlan ]; then
-        env IFACE="$port" /etc/network/if-pre-up.d/vlan
+        IFACE="$port" /etc/network/if-pre-up.d/vlan
       fi
       if [ "$IF_BRIDGE_HW" ]; then
-        ifconfig "$port" down; ifconfig "$port" hw ether "$IF_BRIDGE_HW"
+        "$ifconfig" "$port" down; "$ifconfig" "$port" hw ether "$IF_BRIDGE_HW"
       fi
       if [ -f "/proc/sys/net/ipv6/conf/$port/disable_ipv6" ]; then
         echo 1 > "/proc/sys/net/ipv6/conf/$port/disable_ipv6"
       fi
-      brctl addif "$IFACE" "$port" && ifconfig "$port" 0.0.0.0 up
+      "$brctl" addif "$IFACE" "$port" && "$ifconfig" "$port" 0.0.0.0 up
     # We detach each port of the bridge
     elif [ "$MODE" = 'stop' ] && [ -d "/sys/class/net/$IFACE/brif/$port" ]; then
-      ifconfig "$port" down && brctl delif "$IFACE" "$port" && \
+      "$ifconfig" "$port" down && "$brctl" delif "$IFACE" "$port" && \
         if [ -x /etc/network/if-post-down.d/vlan ]; then
-          env IFACE="$port" /etc/network/if-post-down.d/vlan
+          IFACE="$port" /etc/network/if-post-down.d/vlan
         fi
       if [ -f "/proc/sys/net/ipv6/conf/$port/disable_ipv6" ]; then
         echo 0 > "/proc/sys/net/ipv6/conf/$port/disable_ipv6"
@@ -68,31 +79,31 @@ done
 if [ "$MODE" = 'start' ]; then
 
   if [ "$IF_MSTPCTL_STP" ]; then
-    brctl stp "$IFACE" "$IF_MSTPCTL_STP"
+    "$brctl" stp "$IFACE" "$IF_MSTPCTL_STP"
   fi
 
   if [ "$IF_MSTPCTL_MAXAGE" ]; then
-    mstpctl setmaxage "$IFACE" "$IF_MSTPCTL_MAXAGE"
+    "$mstpctl" setmaxage "$IFACE" "$IF_MSTPCTL_MAXAGE"
   fi
 
   if [ "$IF_MSTPCTL_FDELAY" ]; then
-    mstpctl setfdelay "$IFACE" "$IF_MSTPCTL_FDELAY"
+    "$mstpctl" setfdelay "$IFACE" "$IF_MSTPCTL_FDELAY"
   fi
 
   if [ "$IF_MSTPCTL_MAXHOPS" ]; then
-    mstpctl setmaxhops "$IFACE" "$IF_MSTPCTL_MAXHOPS"
+    "$mstpctl" setmaxhops "$IFACE" "$IF_MSTPCTL_MAXHOPS"
   fi
 
   if [ "$IF_MSTPCTL_TXHOLDCOUNT" ]; then
-    mstpctl settxholdcount "$IFACE" "$IF_MSTPCTL_TXHOLDCOUNT"
+    "$mstpctl" settxholdcount "$IFACE" "$IF_MSTPCTL_TXHOLDCOUNT"
   fi
 
   if [ "$IF_MSTPCTL_FORCEVERS" ]; then
-    mstpctl setforcevers "$IFACE" "$IF_MSTPCTL_FORCEVERS"
+    "$mstpctl" setforcevers "$IFACE" "$IF_MSTPCTL_FORCEVERS"
   fi
 
   if [ "$IF_MSTPCTL_TREEPRIO" ]; then
-    mstpctl settreeprio "$IFACE" 0 "$IF_MSTPCTL_TREEPRIO"
+    "$mstpctl" settreeprio "$IFACE" 0 "$IF_MSTPCTL_TREEPRIO"
   fi
 
   if [ "$IF_MSTPCTL_PORTPATHCOST" ]; then
@@ -101,7 +112,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portpathcost" | cut -d '=' -f1)"
       pathcost="$(echo "$portpathcost" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$pathcost" ]; then
-        mstpctl setportpathcost "$IFACE" "$port" "$pathcost"
+        "$mstpctl" setportpathcost "$IFACE" "$port" "$pathcost"
       fi
     done
   fi
@@ -112,7 +123,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portadminedge" | cut -d '=' -f1)"
       adminedge="$(echo "$portadminedge" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$adminedge" ]; then
-        mstpctl setportadminedge "$IFACE" "$port" "$adminedge"
+        "$mstpctl" setportadminedge "$IFACE" "$port" "$adminedge"
       fi
     done
   fi
@@ -123,7 +134,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portautoedge" | cut -d '=' -f1)"
       autoedge="$(echo "$portautoedge" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$autoedge" ]; then
-        mstpctl setportautoedge "$IFACE" "$port" "$autoedge"
+        "$mstpctl" setportautoedge "$IFACE" "$port" "$autoedge"
       fi
     done
   fi
@@ -134,7 +145,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portp2p" | cut -d '=' -f1)"
       p2p="$(echo "$portp2p" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$p2p" ]; then
-        mstpctl setportp2p "$IFACE" "$port" "$p2p"
+        "$mstpctl" setportp2p "$IFACE" "$port" "$p2p"
       fi
     done
   fi
@@ -145,7 +156,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portrestrrole" | cut -d '=' -f1)"
       restrrole="$(echo "$portrestrrole" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$restrrole" ]; then
-        mstpctl setportrestrrole "$IFACE" "$port" "$restrrole"
+        "$mstpctl" setportrestrrole "$IFACE" "$port" "$restrrole"
       fi
     done
   fi
@@ -156,7 +167,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portrestrtcn" | cut -d '=' -f1)"
       restrtcn="$(echo "$portrestrtcn" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$restrtcn" ]; then
-        mstpctl setportrestrtcn "$IFACE" "$port" "$restrtcn"
+        "$mstpctl" setportrestrtcn "$IFACE" "$port" "$restrtcn"
       fi
     done
   fi
@@ -167,7 +178,7 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portbpduguard" | cut -d '=' -f1)"
       bpduguard="$(echo "$portbpduguard" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$bpduguard" ]; then
-        mstpctl setbpduguard "$IFACE" "$port" "$bpduguard"
+        "$mstpctl" setbpduguard "$IFACE" "$port" "$bpduguard"
       fi
     done
   fi
@@ -178,7 +189,7 @@ if [ "$MODE" = 'start' ]; then
       treeport="$(echo "$treeportprio" | cut -d '=' -f1)"
       prio="$(echo "$treeportprio" | cut -d '=' -f2)"
       if [ -n "$treeport" -a -n "$prio" ]; then
-        mstpctl settreeportprio "$IFACE" "$treeport" 0 "$prio"
+        "$mstpctl" settreeportprio "$IFACE" "$treeport" 0 "$prio"
       fi
     done
   fi
@@ -189,17 +200,17 @@ if [ "$MODE" = 'start' ]; then
       treeport="$(echo "$treeportcost" | cut -d '=' -f1)"
       cost="$(echo "$treeportcost" | cut -d '=' -f2)"
       if [ -n "$treeport" -a -n "$cost" ]; then
-        mstpctl settreeportcost "$IFACE" "$treeport" 0 "$cost"
+        "$mstpctl" settreeportcost "$IFACE" "$treeport" 0 "$cost"
       fi
     done
   fi
 
   if [ "$IF_MSTPCTL_HELLO" ]; then
-    mstpctl sethello "$IFACE" "$IF_MSTPCTL_HELLO"
+    "$mstpctl" sethello "$IFACE" "$IF_MSTPCTL_HELLO"
   fi
 
   if [ "$IF_MSTPCTL_AGEING" ]; then
-    mstpctl setageing "$IFACE" "$IF_MSTPCTL_AGEING"
+    "$mstpctl" setageing "$IFACE" "$IF_MSTPCTL_AGEING"
   fi
 
   if [ "$IF_MSTPCTL_PORTNETWORK" ]; then
@@ -208,17 +219,17 @@ if [ "$MODE" = 'start' ]; then
       port="$(echo "$portnetwork" | cut -d '=' -f1)"
       network="$(echo "$portnetwork" | cut -d '=' -f2)"
       if [ -n "$port" -a -n "$network" ]; then
-        mstpctl setportnetwork "$IFACE" "$port" "$network"
+        "$mstpctl" setportnetwork "$IFACE" "$port" "$network"
       fi
     done
   fi
 
   # We activate the bridge
-  ifconfig "$IFACE" 0.0.0.0 up
+  "$ifconfig" "$IFACE" 0.0.0.0 up
 
 # Finally we destroy the interface
 elif [ "$MODE" = 'stop' ]; then
 
-  brctl delbr "$IFACE"
+  "$brctl" delbr "$IFACE"
 
 fi
