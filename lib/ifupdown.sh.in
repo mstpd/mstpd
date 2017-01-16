@@ -18,9 +18,9 @@ if [ -z "$brctl" ] || [ ! -x "$brctl" ]; then
   echo "'brctl' binary does not exist or is not executable" >&2
   exit 2
 fi
-ifconfig="$(which ifconfig)"
-if [ -z "$ifconfig" ] || [ ! -x "$ifconfig" ]; then
-  echo "'ifconfig' binary does not exist or is not executable" >&2
+ip="$(which ip)"
+if [ -z "$ip" ] || [ ! -x "$ip" ]; then
+  echo "'ip' binary does not exist or is not executable" >&2
   exit 2
 fi
 
@@ -43,7 +43,7 @@ if [ "$MODE" = 'start' ] && [ ! -d "/sys/class/net/$IFACE" ]; then
   "$brctl" addbr "$IFACE" || exit 2
 # Previous work (stop the interface)
 elif [ "$MODE" = 'stop' ]; then
-  "$ifconfig" "$IFACE" down || exit 2
+  "$ip" link set dev "$IFACE" down || exit 2
 fi
 
 all_interfaces= &&
@@ -56,15 +56,15 @@ mstpctl_parse_ports $INTERFACES | while read i; do
         IFACE="$port" /etc/network/if-pre-up.d/vlan
       fi
       if [ "$IF_BRIDGE_HW" ]; then
-        "$ifconfig" "$port" down; "$ifconfig" "$port" hw ether "$IF_BRIDGE_HW"
+        "$ip" link set dev "$port" down; "$ip" link set dev "$port" address "$IF_BRIDGE_HW"
       fi
       if [ -f "/proc/sys/net/ipv6/conf/$port/disable_ipv6" ]; then
         echo 1 > "/proc/sys/net/ipv6/conf/$port/disable_ipv6"
       fi
-      "$brctl" addif "$IFACE" "$port" && "$ifconfig" "$port" 0.0.0.0 up
+      "$brctl" addif "$IFACE" "$port" && "$ip" link set dev "$port" up
     # We detach each port of the bridge
     elif [ "$MODE" = 'stop' ] && [ -d "/sys/class/net/$IFACE/brif/$port" ]; then
-      "$ifconfig" "$port" down && "$brctl" delif "$IFACE" "$port" && \
+      "$ip" link set dev "$port" down && "$brctl" delif "$IFACE" "$port" && \
         if [ -x /etc/network/if-post-down.d/vlan ]; then
           IFACE="$port" /etc/network/if-post-down.d/vlan
         fi
@@ -225,7 +225,7 @@ if [ "$MODE" = 'start' ]; then
   fi
 
   # We activate the bridge
-  "$ifconfig" "$IFACE" 0.0.0.0 up
+  "$ip" link set dev "$IFACE" up
 
 # Finally we destroy the interface
 elif [ "$MODE" = 'stop' ]; then
