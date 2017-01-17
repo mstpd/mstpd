@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "log.h"
 #include "epoll_loop.h"
@@ -101,14 +102,14 @@ static inline void run_timeouts(void)
     ++(nexttimeout.tv_sec);
 }
 
-int epoll_main_loop(void)
+int epoll_main_loop(volatile bool *quit)
 {
     clock_gettime(CLOCK_MONOTONIC, &nexttimeout);
     ++(nexttimeout.tv_sec);
 #define EV_SIZE 8
     struct epoll_event ev[EV_SIZE];
 
-    while(1)
+    while(!*quit)
     {
         int r, i;
         int timeout;

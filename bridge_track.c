@@ -913,3 +913,14 @@ int CTL_del_bridges(int *br_array)
 
     return 0;
 }
+
+int bridge_track_fini(void)
+{
+    INFO("Stopping all bridges");
+    bridge_t *br;
+    list_for_each_entry(br, &bridges, list)
+    {
+        set_br_up(br, false);
+    }
+    return 0;
+}

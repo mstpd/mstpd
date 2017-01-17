@@ -30,6 +30,10 @@
 
 #include <unistd.h>
 #include <syslog.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <string.h>
+#include <sys/types.h>
 
 #include "epoll_loop.h"
 #include "bridge_ctl.h"
@@ -39,6 +43,7 @@
 #include "mstp.h"
 #include "ctl_socket_server.h"
 #include "driver.h"
+#include "bridge_track.h"
 
 #define APP_NAME    "mstpd"
 
@@ -48,6 +53,26 @@ int log_level = LOG_LEVEL_DEFAULT;
 #ifdef MISC_TEST_FUNCS
 static bool test_ports_trees_mesh(void);
 #endif /* MISC_TEST_FUNCS */
+
+volatile bool quit = false;
+
+static void handle_signal(int sig)
+{
+    quit = true;
+}
+
+int signal_init(void)
+{
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_signal;
+    sa.sa_flags = 0;
+
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGINT, &sa, NULL);
+
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {
@@ -129,6 +154,8 @@ int main(int argc, char *argv[])
     if(print_to_syslog)
         openlog(APP_NAME, 0, LOG_DAEMON);
 
+
+    TST(signal_init() == 0, -1);
     TST(driver_mstp_init() == 0, -1);
     TST(init_epoll() == 0, -1);
     TST(ctl_socket_init() == 0, -1);
@@ -136,7 +163,8 @@ int main(int argc, char *argv[])
     TST(netsock_init() == 0, -1);
     TST(init_bridge_ops() == 0, -1);
 
-    c = epoll_main_loop();
+    c = epoll_main_loop(&quit);
+    bridge_track_fini();
     driver_mstp_fini();
 
     return c;
