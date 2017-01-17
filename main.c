@@ -61,6 +61,11 @@ static void handle_signal(int sig)
     quit = true;
 }
 
+static void handle_sigusr1(int sig)
+{
+    log_level = LOG_LEVEL_DEBUG;
+}
+
 int signal_init(void)
 {
     struct sigaction sa;
@@ -70,6 +75,14 @@ int signal_init(void)
 
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGHUP, &sa, NULL);
+    sigaction(SIGUSR2, &sa, NULL);
+
+    sa.sa_handler = handle_sigusr1;
+    sigaction(SIGUSR1, &sa, NULL);
+
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sa, NULL);
 
     return 0;
 }
