@@ -57,8 +57,8 @@ install-data-hook:
 	install -m 755 lib/ifupdown.sh $(utilsdest)
 	install -m 755 lib/mstpctl-utils.sh $(utilsdest)
 	install -m 755 lib/mstpctl_restart_config $(utilsdest)
-	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
-	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdest)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
+	if [ -d $(etcdest)/network/if-pre-up.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; fi
+	if [ -d $(etcdest)/network/if-post-down.d ] ; then ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; fi
 	mkdir -pv $(bashcompdest)
 	install -m 644 lib/bash_completion $(bashcompdest)/mstpctl
 	mkdir -pv $(man8dest)
