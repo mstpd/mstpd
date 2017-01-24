@@ -5,10 +5,10 @@
 
 /bridge-stp
 /bridge-stp.tmp
-/lib/ifupdown.sh
-/lib/ifupdown.sh.tmp
-/lib/mstp_config_bridge
-/lib/mstp_config_bridge.tmp
+/utils/ifupdown.sh
+/utils/ifupdown.sh.tmp
+/utils/mstp_config_bridge
+/utils/mstp_config_bridge.tmp
 
 # autotools files
 /m4/lt*.m4
