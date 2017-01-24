@@ -16,7 +16,7 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
-all-local: bridge-stp lib/ifupdown.sh lib/mstp_config_bridge
+all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge
 
 utilsdir=$(libexecdir)/mstpctl-utils
 
@@ -40,15 +40,15 @@ populate_template = sed \
 	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
 	-e 's|@configbridgefile[@]|$(configbridgefile)|g' \
 	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
-bridge-stp lib/ifupdown.sh lib/mstp_config_bridge: Makefile
+bridge-stp utils/ifupdown.sh utils/mstp_config_bridge: Makefile
 	rm -f $@ $@.tmp
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
 	$(populate_template) $${srcdir}$@.in > $@.tmp
 	chmod 755 $@.tmp
 	mv $@.tmp $@
 bridge-stp: $(srcdir)/bridge-stp.in
-lib/ifupdown.sh: $(srcdir)/lib/ifupdown.sh.in
-lib/mstp_config_bridge: $(srcdir)/lib/mstp_config_bridge.in
+utils/ifupdown.sh: $(srcdir)/utils/ifupdown.sh.in
+utils/mstp_config_bridge: $(srcdir)/utils/mstp_config_bridge.in
 
 sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsdir)
@@ -64,11 +64,11 @@ install-data-hook:
 	mkdir -pv $(etcdest)
 	install -m 644 bridge-stp.conf $(etcdest)/bridge-stp.conf
 	mkdir -pv $(utilsdest)
-	install -m 755 lib/ifupdown.sh $(utilsdest)
-	install -m 644 lib/mstpctl-utils-functions.sh $(utilsdest)
+	install -m 755 utils/ifupdown.sh $(utilsdest)
+	install -m 644 utils/mstpctl-utils-functions.sh $(utilsdest)
 	ln -sf $(sbindir)/bridge-stp $(utilsdest)/mstpctl_restart_config
-	install -m 755 lib/mstp_config_bridge $(utilsdest)
-	install -m 755 lib/ifquery $(utilsdest)
+	install -m 755 utils/mstp_config_bridge $(utilsdest)
+	install -m 755 utils/ifquery $(utilsdest)
 	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
 	  mkdir -pv $(etcdest)/network/if-pre-up.d ; \
 	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
@@ -78,12 +78,12 @@ install-data-hook:
 	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
 	fi
 	mkdir -pv $(bashcompdest)
-	install -m 644 lib/bash_completion $(bashcompdest)/mstpctl
+	install -m 644 utils/bash_completion $(bashcompdest)/mstpctl
 	mkdir -pv $(man8dest)
-	install -m 644 lib/mstpctl.8 $(man8dest)/mstpctl.8
+	install -m 644 utils/mstpctl.8 $(man8dest)/mstpctl.8
 	gzip -f $(man8dest)/mstpctl.8
 	mkdir -pv $(man5dest)
-	install -m 644 lib/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
+	install -m 644 utils/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
 	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
 	install -m 644 README.VLANs.md $(docdest)/README.VLANs
