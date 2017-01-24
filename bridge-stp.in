@@ -20,7 +20,6 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 bridge=$1
-pid_file='@mstpdpidfile@'
 conf_file='@bridgestpconffile@'
 bin_dir='@sbindir@'
 net_dir=/sys/class/net
@@ -29,34 +28,15 @@ net_dir=/sys/class/net
 # the kernel's STP implementation.  If empty, MSTP will be used for all bridges.
 MSTP_BRIDGES=''
 
-# Set $pid to pids from /var/run* for {program}.  $pid should be declared
-# local in the caller.
-# Returns LSB exit code for the 'status' action.
-checkpid()
-{
-    pid=
-    if [ -f "$1" ] ; then
-        local line p
-        read line < "$pid_file"
-        for p in $line; do
-            if [ "$p" = "${p%[!0-9]*}" ] && [ -d "/proc/$p" ]; then
-                pid="$pid $p"
-            fi
-        done
-        if [ -n "$pid" ]; then
-            return 0
-        fi
-        return 1 # "Program is dead and /var/run pid file exists"
-    fi
-    return 3 # "Program is not running"
-}
-
 case $2 in
     start)
         if [ -e "$conf_file" ]; then
             . "$conf_file" || exit
         fi
-        checkpid $pid_file || exit 1
+        if ! pidof -c -s mstpd >/dev/null; then
+            echo 'mstpd is not running' >&2
+            exit 3
+        fi
         if [ -d "$net_dir/$bridge/bridge" ]; then
             allowed=1
             if [ -n "$MSTP_BRIDGES" ]; then
