@@ -20,6 +20,7 @@ all-local: bridge-stp lib/ifupdown.sh lib/mstp_config_bridge
 
 utilsdir=$(libexecdir)/mstpctl-utils
 
+mstpdfile=$(sbindir)/mstpd
 mstpctlfile=$(sbindir)/mstpctl
 mstpdpidfile=$(localstatedir)/run/mstpd.pid
 bridgestpconffile=$(sysconfdir)/bridge-stp.conf
@@ -31,7 +32,7 @@ mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 
 # See https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.69/html_node/Installation-Directory-Variables.html#index-sysconfdir-188
 populate_template = sed \
-	-e 's|@sbindir[@]|$(sbindir)|g' \
+	-e 's|@mstpdfile[@]|$(mstpdfile)|g' \
 	-e 's|@mstpctlfile[@]|$(mstpctlfile)|g' \
 	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
 	-e 's|@ifupdownfile[@]|$(ifupdownfile)|g' \
