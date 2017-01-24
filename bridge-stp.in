@@ -20,40 +20,68 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 bridge=$1
+
+# Define some relevant paths.
+mstpctl='@mstpctlfile@'
 conf_file='@bridgestpconffile@'
-bin_dir='@sbindir@'
 net_dir=/sys/class/net
 
 # A space-separated list of bridges for which MSTP should be used in place of
 # the kernel's STP implementation.  If empty, MSTP will be used for all bridges.
 MSTP_BRIDGES=''
 
+# Ensure that mstpctl exists and is executable.
+if [ -z "$mstpctl" ] || [ ! -x "$mstpctl" ]; then
+    echo "mstpctl binary does not exist or is not executable" >&2
+    exit 2
+fi
+
+# Determine whether mstpd should manage STP for the specified bridge.
+# Returns 0 if mstpd should manage STP for the specified bridge, or 1 if mstpd
+# should not manage STP for the specified bridge.
+is_mstp_bridge()
+{
+    if [ -z "$MSTP_BRIDGES" ]; then
+        return 0
+    fi
+    for b in $MSTP_BRIDGES; do
+        if [ "$1" = "$b" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 case $2 in
     start)
         if [ -e "$conf_file" ]; then
             . "$conf_file" || exit
         fi
+
+        # Make sure the specified bridge is valid.
+        if [ ! -d "$net_dir/$bridge/bridge" ]; then
+            echo "'$bridge' is not a bridge" >&2
+            exit 1
+        fi
+
+        # Determine whether the specified bridge should use MSTP.
+        if ! is_mstp_bridge "$bridge"; then
+            echo "Ignoring bridge '$bridge' that is not listed in \$MSTP_BRIDGES"
+            exit 10
+        fi
+
+        # Make sure mstpd is running.
         if ! pidof -c -s mstpd >/dev/null; then
             echo 'mstpd is not running' >&2
             exit 3
         fi
-        if [ -d "$net_dir/$bridge/bridge" ]; then
-            allowed=1
-            if [ -n "$MSTP_BRIDGES" ]; then
-                allowed=0
-                for b in $MSTP_BRIDGES; do
-                    if [ "$bridge" == "$b" ]; then
-                        allowed=1
-                    fi
-                done
-            fi
-            if [ "$allowed" -eq 1 ]; then
-                exec $bin_dir/mstpctl addbridge $bridge
-            fi
-        fi
-        exit 1 ;;
+
+        # Add bridge to mstpd.
+        "$mstpctl" addbridge "$bridge" || exit 3
+        ;;
     stop)
-        exec $bin_dir/mstpctl delbridge $bridge
+        # Remove bridge from mstpd.
+        "$mstpctl" delbridge "$bridge" || exit 3
         ;;
     *)
         echo "Unknown action: $2" >&2
