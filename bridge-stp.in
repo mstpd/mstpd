@@ -1,29 +1,54 @@
 #!/bin/sh
 # /sbin/bridge-stp is called by the kernel to start/stop spanning tree on a
-# bridge.
+# bridge.  It may also be called directly by the user to restart mstpd or
+# reconfigure mstpd after a restart.
 #
 # To avoid kernel deadlocks, this script and any foreground processes it runs
 # must not make any changes (using brctl, ifconfig, ip, /sys/..., etc) to the
-# bridge or any associated kernel network interfaces.
+# bridge or any associated kernel network interfaces if this script was called
+# by the kernel.
 #
 # Configuration is in @bridgestpconffile@
 
-# Make sure umask is sane
-umask 022
-
-# Set up a default search path.
-PATH="/sbin:/usr/sbin:/bin:/usr/bin"
-export PATH
-
-if [ $# -ne 2 ]; then
-    echo "Usage: bridge-stp <bridge> {start|stop}" >&2
+# Parse arguments.
+CalledAs="$(basename "$0")"
+if [ "$CalledAs" = 'mstpctl_restart_config' ]; then
+    action='restart_config'
+elif [ $# -eq 1 ] && [ "$1" = 'restart_config' ]; then
+    action='restart_config'
+elif [ "$CalledAs" = 'mstp_restart' ]; then
+    action='restart'
+elif [ $# -eq 1 ] && [ "$1" = 'restart' ]; then
+    action='restart'
+elif [ $# -eq 2 ] && [ "$2" = 'start' ]; then
+    action='start'
+    bridge="$1"
+elif [ $# -eq 2 ] && [ "$2" = 'stop' ]; then
+    action='stop'
+    bridge="$1"
+else
+    echo "Usage: $0 <bridge> {start|stop}" >&2
+    echo "   or: $0 {restart|restart_config}" >&2
     exit 1
 fi
-bridge=$1
+
+# Make sure this script is being run as root.
+if [ "$(id -u)" != '0' ]; then
+    echo 'This script must be run as root' >&2
+    exit 1
+fi
+
+# Ensure that we have a sane umask.
+umask 022
+
+# Ensure that we have a sane PATH.
+PATH='/sbin:/usr/sbin:/bin:/usr/bin'
+export PATH
 
 # Define some relevant paths.
 mstpctl='@mstpctlfile@'
 mstpd='@mstpdfile@'
+config_cmd='@configbridgefile@'
 pid_file='@mstpdpidfile@'
 net_dir='/sys/class/net'
 
@@ -69,7 +94,7 @@ is_mstp_bridge()
     return 1
 }
 
-case $2 in
+case "$action" in
     start)
         # Make sure the specified bridge is valid.
         if [ ! -d "$net_dir/$bridge/bridge" ]; then
@@ -139,8 +164,59 @@ case $2 in
         # Kill mstpd, since no bridges are currently using it.
         kill $(pidof -c mstpd)
         ;;
-    *)
-        echo "Unknown action: $2" >&2
-        echo "Usage: bridge-stp <bridge> {start|stop}" >&2
-        exit 1
+    restart|restart_config)
+        if [ "$action" = 'restart' ]; then
+            # Kill mstpd.
+            pids="$(pidof -c mstpd)" ; Err=$?
+            if [ $Err -eq 0 ]; then
+                echo 'Stopping mstpd ...'
+                kill $pids
+            fi
+
+            # Start mstpd.
+            echo 'Starting mstpd ...'
+            "$mstpd" $MSTPD_ARGS || exit 3
+        fi
+
+        # Reconfigure bridges.
+        for bridge in $(ls "$net_dir"); do
+            # Ignore interfaces that are not bridges.
+            if [ ! -e "$net_dir/$bridge/bridge/stp_state" ]; then
+                continue
+            fi
+
+            # Ignore bridges that should not use MSTP.
+            if ! is_mstp_bridge "$bridge"; then
+                continue
+            fi
+
+            # Skip bridges that have STP disabled.
+            read State < "$net_dir/$bridge/bridge/stp_state"
+            if [ "$State" = '0' ]; then
+                echo
+                echo "Skipping bridge '$bridge' that has STP disabled."
+                echo "To configure this bridge to use MSTP, run:"
+                echo "brctl stp '$bridge' on"
+                continue
+            fi
+
+            # Skip bridges that are not in user_stp mode.
+            if [ "$State" != '2' ]; then
+                echo
+                echo "Skipping bridge '$bridge' that is not in user_stp mode."
+                echo "To reconfigure this bridge to use MSTP, run:"
+                echo "brctl stp '$bridge' off ; brctl stp '$bridge' on"
+                continue
+            fi
+
+            # Add bridge to mstpd and configure.
+            echo "Adding/configuring bridge '$bridge' ..."
+            "$mstpctl" addbridge "$bridge" || continue
+            if [ -n "$config_cmd" ]; then
+                "$config_cmd" "$bridge"
+            fi
+        done
+        echo
+        echo 'Done'
+        ;;
 esac
