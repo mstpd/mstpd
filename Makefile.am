@@ -33,7 +33,6 @@ mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 populate_template = sed \
 	-e 's|@sbindir[@]|$(sbindir)|g' \
 	-e 's|@mstpctlfile[@]|$(mstpctlfile)|g' \
-	-e 's|@mstpdpidfile[@]|$(mstpdpidfile)|g' \
 	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
 	-e 's|@ifupdownfile[@]|$(ifupdownfile)|g' \
 	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
