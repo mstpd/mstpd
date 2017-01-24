@@ -26,6 +26,7 @@ mstpdpidfile=$(localstatedir)/run/mstpd.pid
 bridgestpconffile=$(sysconfdir)/bridge-stp.conf
 ifupdownfile=$(utilsdir)/ifupdown.sh
 utilsfuncfile=$(utilsdir)/mstpctl-utils-functions.sh
+configbridgefile=$(utilsdir)/mstp_config_bridge
 ifqueryfile=$(utilsdir)/ifquery
 
 mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
@@ -37,6 +38,7 @@ populate_template = sed \
 	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
 	-e 's|@ifupdownfile[@]|$(ifupdownfile)|g' \
 	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
+	-e 's|@configbridgefile[@]|$(configbridgefile)|g' \
 	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
 bridge-stp lib/ifupdown.sh lib/mstp_config_bridge: Makefile
 	rm -f $@ $@.tmp
@@ -58,6 +60,7 @@ docdest=$(DESTDIR)$(docdir)
 
 install-data-hook:
 	install -m 755 bridge-stp $(sbindest)/bridge-stp
+	ln -sf $(sbindir)/bridge-stp $(sbindest)/mstp_restart
 	mkdir -pv $(etcdest)
 	install -m 644 bridge-stp.conf $(etcdest)/bridge-stp.conf
 	mkdir -pv $(utilsdest)
