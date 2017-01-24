@@ -66,7 +66,7 @@ install-data-hook:
 	mkdir -pv $(utilsdest)
 	install -m 755 lib/ifupdown.sh $(utilsdest)
 	install -m 644 lib/mstpctl-utils-functions.sh $(utilsdest)
-	install -m 755 lib/mstpctl_restart_config $(utilsdest)
+	ln -sf $(sbindir)/bridge-stp $(utilsdest)/mstpctl_restart_config
 	install -m 755 lib/mstp_config_bridge $(utilsdest)
 	install -m 755 lib/ifquery $(utilsdest)
 	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
