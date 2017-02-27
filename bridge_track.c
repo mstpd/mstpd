@@ -381,8 +381,9 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
         return;
 
     /* sanity checks */
-    TST(br == prt->bridge,);
-    TST(prt->sysdeps.up,);
+    TSTM(br == prt->bridge,, "Bridge mismatch. This bridge is '%s' but port "
+        "'%s' belongs to bridge '%s'", br->sysdeps.name, prt->bridge->sysdeps.name);
+    TSTM(prt->sysdeps.up,, "Port '%s' should be up", prt->sysdeps.name);
 
     /* Validate Ethernet and LLC header,
      * maybe we can skip this check thanks to Berkeley filter in packet socket?
