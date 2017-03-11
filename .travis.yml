@@ -3,5 +3,13 @@ git:
 language: c
 os: linux
 compiler: gcc
+addons:
+  apt:
+    sources:
+    - debian-sid
+    packages:
+    - shellcheck
 script:
+  - set -e
+  - shellcheck utils/ifupdown.sh.in utils/mstp_config_bridge.in utils/mstpctl-utils-functions.sh
   - ./autogen.sh && ./configure && make V=s
