@@ -48,7 +48,6 @@ elif [ "$MODE" = 'stop' ]; then
 fi
 
 # shellcheck disable=SC2086
-all_interfaces= &&
 unset all_interfaces &&
 # $INTERFACES should be word split into multiple arguments to
 # mstpctl_parse_ports.  Therefore it should not be quoted here.
