@@ -51,7 +51,7 @@ all_interfaces= &&
 unset all_interfaces &&
 # $INTERFACES should be word split into multiple arguments to
 # mstpctl_parse_ports.  Therefore it should not be quoted here.
-mstpctl_parse_ports $INTERFACES | while read i; do
+mstpctl_parse_ports $INTERFACES | while read -r i; do
   for port in $i; do
     # We attach and configure each port of the bridge
     if [ "$MODE" = 'start' ] && [ ! -d "/sys/class/net/$IFACE/brif/$port" ]; then
