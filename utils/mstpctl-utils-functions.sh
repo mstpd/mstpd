@@ -19,8 +19,8 @@ mstpctl_parse_ports()
 	shift
 	;;
       regex-*)
-	echo -n "$0 needs to be ported for your $(uname -s) system.  " >&2
-	echo "Trying to continue nevertheless." >&2
+	echo "$0 needs to be ported for your $(uname -s) system.  " \
+	     "Trying to continue nevertheless." >&2
 	shift
 	;;
       noregex-*)
