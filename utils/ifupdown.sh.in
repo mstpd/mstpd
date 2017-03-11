@@ -46,6 +46,7 @@ elif [ "$MODE" = 'stop' ]; then
   "$ip" link set dev "$IFACE" down || exit 2
 fi
 
+# shellcheck disable=SC2086
 all_interfaces= &&
 unset all_interfaces &&
 # $INTERFACES should be word split into multiple arguments to
