@@ -8,7 +8,7 @@ mstpctl_parse_ports()
     case $1 in
       all)
 	shift &&
-	set regex eth.\* em.\* 'p[0-9].*' noregex "$@"
+	set -- regex eth.\* em.\* 'p[0-9].*' noregex "$@"
 	;;
     esac
 
