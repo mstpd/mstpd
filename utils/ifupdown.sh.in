@@ -113,7 +113,7 @@ if [ "$MODE" = 'start' ]; then
     for portpathcost in $portpathcosts; do
       port="$(echo "$portpathcost" | cut -d '=' -f1)"
       pathcost="$(echo "$portpathcost" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$pathcost" ]; then
+      if [ -n "$port" ] && [ -n "$pathcost" ]; then
         "$mstpctl" setportpathcost "$IFACE" "$port" "$pathcost"
       fi
     done
@@ -124,7 +124,7 @@ if [ "$MODE" = 'start' ]; then
     for portadminedge in $portadminedges; do
       port="$(echo "$portadminedge" | cut -d '=' -f1)"
       adminedge="$(echo "$portadminedge" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$adminedge" ]; then
+      if [ -n "$port" ] && [ -n "$adminedge" ]; then
         "$mstpctl" setportadminedge "$IFACE" "$port" "$adminedge"
       fi
     done
@@ -135,7 +135,7 @@ if [ "$MODE" = 'start' ]; then
     for portautoedge in $portautoedges; do
       port="$(echo "$portautoedge" | cut -d '=' -f1)"
       autoedge="$(echo "$portautoedge" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$autoedge" ]; then
+      if [ -n "$port" ] && [ -n "$autoedge" ]; then
         "$mstpctl" setportautoedge "$IFACE" "$port" "$autoedge"
       fi
     done
@@ -146,7 +146,7 @@ if [ "$MODE" = 'start' ]; then
     for portp2p in $portp2ps; do
       port="$(echo "$portp2p" | cut -d '=' -f1)"
       p2p="$(echo "$portp2p" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$p2p" ]; then
+      if [ -n "$port" ] && [ -n "$p2p" ]; then
         "$mstpctl" setportp2p "$IFACE" "$port" "$p2p"
       fi
     done
@@ -157,7 +157,7 @@ if [ "$MODE" = 'start' ]; then
     for portrestrrole in $portrestrroles; do
       port="$(echo "$portrestrrole" | cut -d '=' -f1)"
       restrrole="$(echo "$portrestrrole" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$restrrole" ]; then
+      if [ -n "$port" ] && [ -n "$restrrole" ]; then
         "$mstpctl" setportrestrrole "$IFACE" "$port" "$restrrole"
       fi
     done
@@ -168,7 +168,7 @@ if [ "$MODE" = 'start' ]; then
     for portrestrtcn in $portrestrtcns; do
       port="$(echo "$portrestrtcn" | cut -d '=' -f1)"
       restrtcn="$(echo "$portrestrtcn" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$restrtcn" ]; then
+      if [ -n "$port" ] && [ -n "$restrtcn" ]; then
         "$mstpctl" setportrestrtcn "$IFACE" "$port" "$restrtcn"
       fi
     done
@@ -179,7 +179,7 @@ if [ "$MODE" = 'start' ]; then
     for portbpduguard in $portbpduguards; do
       port="$(echo "$portbpduguard" | cut -d '=' -f1)"
       bpduguard="$(echo "$portbpduguard" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$bpduguard" ]; then
+      if [ -n "$port" ] && [ -n "$bpduguard" ]; then
         "$mstpctl" setbpduguard "$IFACE" "$port" "$bpduguard"
       fi
     done
@@ -190,7 +190,7 @@ if [ "$MODE" = 'start' ]; then
     for treeportprio in $treeportprios; do
       treeport="$(echo "$treeportprio" | cut -d '=' -f1)"
       prio="$(echo "$treeportprio" | cut -d '=' -f2)"
-      if [ -n "$treeport" -a -n "$prio" ]; then
+      if [ -n "$treeport" ] && [ -n "$prio" ]; then
         "$mstpctl" settreeportprio "$IFACE" "$treeport" 0 "$prio"
       fi
     done
@@ -201,7 +201,7 @@ if [ "$MODE" = 'start' ]; then
     for treeportcost in $treeportcosts; do
       treeport="$(echo "$treeportcost" | cut -d '=' -f1)"
       cost="$(echo "$treeportcost" | cut -d '=' -f2)"
-      if [ -n "$treeport" -a -n "$cost" ]; then
+      if [ -n "$treeport" ] && [ -n "$cost" ]; then
         "$mstpctl" settreeportcost "$IFACE" "$treeport" 0 "$cost"
       fi
     done
@@ -220,7 +220,7 @@ if [ "$MODE" = 'start' ]; then
     for portnetwork in $portnetworks; do
       port="$(echo "$portnetwork" | cut -d '=' -f1)"
       network="$(echo "$portnetwork" | cut -d '=' -f2)"
-      if [ -n "$port" -a -n "$network" ]; then
+      if [ -n "$port" ] && [ -n "$network" ]; then
         "$mstpctl" setportnetwork "$IFACE" "$port" "$network"
       fi
     done
