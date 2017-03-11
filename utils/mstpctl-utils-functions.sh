@@ -24,7 +24,6 @@ mstpctl_parse_ports()
 	shift
 	;;
       noregex-*)
-	all_interfaces=
 	unset all_interfaces
 	shift
 	;;
