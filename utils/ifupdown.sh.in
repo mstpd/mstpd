@@ -24,6 +24,7 @@ if [ -z "$ip" ] || [ ! -x "$ip" ]; then
   exit 2
 fi
 
+# shellcheck disable=SC1091
 . '@utilsfuncfile@' || exit 2
 
 case "$IF_MSTPCTL_PORTS" in
