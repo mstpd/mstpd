@@ -76,7 +76,7 @@ eval "$(
 IFS= ; echo "$Out" | \
 while read -r Line; do
     OptName="${Line%%: *}"  # Strip everything after the first ': '
-    OptName="IF_$(echo $OptName | tr '[:lower:]' '[:upper:]')"  # Uppercase
+    OptName="IF_$(echo "$OptName" | tr '[:lower:]' '[:upper:]')"  # Uppercase
     OptVal="${Line#*: }"  # Strip everything before the first ': '
     echo "export $OptName=\"$OptVal\""
 done
