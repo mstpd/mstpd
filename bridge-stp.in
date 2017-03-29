@@ -127,7 +127,7 @@ case "$action" in
             # then dying before or when mstpctl connects to it.  To avoid that
             # possibility, we instead simply turn STP off if `mstpctl addbridge`
             # fails.
-            ( "$mstpctl" addbridge "$bridge" || brctl stp "$bridge" off ) &
+            ( sleep 1 ; "$mstpctl" addbridge "$bridge" || brctl stp "$bridge" off ) &
             exit 0
         fi
 
