@@ -2,7 +2,7 @@ Source: mstpd
 Section: net
 Priority: optional
 Maintainer: Vitalii Demianets <vitalii@orsoc.se>
-Build-Depends: debhelper (>=9),autotools-dev
+Build-Depends: debhelper (>=9), dh-autoreconf
 Standards-Version: 3.9.8
 Homepage: https://github.com/mstpd/mstpd
 Vcs-Git: https://github.com/mstpd/mstpd.git
