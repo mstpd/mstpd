@@ -28,7 +28,7 @@ case "$1" in
                     # Make sure a process with this PID is running, that its command
                     # line contains 'mstpd', and that it is not the grep command we
                     # are using to look for the 'mstpd' string.
-                    if ps -o command -ww "$pid" | grep -v grep | grep 'mstpd' >/dev/null 2>&1; then
+                    if ps -o command -ww "$p" | grep -v grep | grep 'mstpd' >/dev/null 2>&1; then
                         pid="$pid $p"
                     fi
                 fi
