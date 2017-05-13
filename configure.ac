@@ -48,6 +48,15 @@ AC_ARG_ENABLE([devel],
 
 AM_CONDITIONAL([ENABLE_DEVEL], [test "$enable_devel" = yes])
 
+AC_ARG_WITH([bashcompletiondir],
+     [AS_HELP_STRING([--with-bashcompletiondir=DIR], [Directory for bash completion files.
+     [default=${sysconfdir}/bash_completion.d]])],,
+     [with_bashcompletiondir=default])
+AS_IF([test "x$with_bashcompletiondir" = "xdefault"],
+     [AC_SUBST([bashcompletiondir], [${sysconfdir}/bash_completion.d])])
+AS_IF([test "x$with_bashcompletiondir" != "xdefault"],
+      [AC_SUBST([bashcompletiondir], [$with_bashcompletiondir])])
+
 # Define PACKAGE_BUILD
 PACKAGE_BUILD=`git log --pretty=format:'%h' -n 1`
 AC_SUBST(PACKAGE_BUILD)
