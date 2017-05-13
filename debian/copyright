@@ -8,6 +8,31 @@ Copyright: 2017 Vitalii Demianets <dvitasgs@gmail.com>
            2006 EMC Corporation
 License: GPL-2+
 
+Files: brmon.c
+Copyright: 2006-2015 Stephen Hemminger <shemminger@osdl.org>
+           2006-2015 Srinivas Aji <Aji_Srinivas@emc.com>
+           2011-2015 Vitalii Demianets <dvitasgs@gmail.com>
+License: GPL-2+
+
+Files: broadcom_xstrata/*
+Copyright: 2011-2015 Vitalii Demianets <dvitasgs@gmail.com>
+           2011-2015 Vladimir Cotfas <unix_router@yahoo.com>
+           2012 Phybridge Inc
+License: GPL-2+
+
+Files: libnetlink.*
+Copyright: 2011-2015 Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+License: GPL-2+
+
+Files: list.h
+Copyright: 2011-2015 kazutomo@mcs.anl.gov
+License: GPL-2+
+
+Files: packet.c
+Copyright: 2006-2015 Stephen Hemminger <shemminger@linux-foundation.org>
+           2006-2015 Srinivas Aji <Aji_Srinivas@emc.com>
+License: GPL-2+
+
 Files: debian/*
 Copyright: 2017 Vitalii Demianets <vitalii@orsoc.se>
 License: GPL-2+
