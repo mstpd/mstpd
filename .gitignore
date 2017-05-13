@@ -43,3 +43,5 @@ stamp-h1
 /debian/mstpd.substvars
 /debian/files
 /debian/mstpd
+/debian/.debhelper
+/debian/autoreconf*

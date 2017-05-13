@@ -15,7 +15,7 @@
 
 
 %:
-	dh $@ --with autotools_dev
+	dh $@ --with autoreconf
 
 # Use /lib/mstpctl-utils/ instead of /lib/x86_64-linux-gnu/mstpctl-utils/
 override_dh_auto_configure:
