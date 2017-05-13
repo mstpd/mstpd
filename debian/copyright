@@ -6,17 +6,17 @@ Files: *
 Copyright: 2017 Vitalii Demianets <dvitasgs@gmail.com>
            2011 Factor-SPE
            2006 EMC Corporation
-License: GPL-2.0+
+License: GPL-2+
 
 Files: debian/*
 Copyright: 2017 Vitalii Demianets <vitalii@orsoc.se>
-License: GPL-2.0+
+License: GPL-2+
 
 Files: hmac_md5.c
 Copyright: 1991-2, RSA Data Security, Inc.
 License: RSA
 
-License: GPL-2.0+
+License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
