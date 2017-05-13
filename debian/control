@@ -10,7 +10,7 @@ Vcs-Browser: https://github.com/mstpd/mstpd
 
 Package: mstpd
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, python (>= 2.7)
 Description: STP/RSTP/PVST+/MSTP Spanning Tree Protocol Daemon
  This package provides a user-space daemon which replaces the STP handling that
  is built into the Linux kernel Ethernet bridge and adds support for RSTP and
