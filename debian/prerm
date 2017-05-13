@@ -24,7 +24,7 @@ case "$1" in
         if [ -f "$pid_file" ]; then
             read line < "$pid_file"
             for p in $line; do
-                if [ -z "${p//[0-9]/}" ]; then
+                if echo $p | grep -q -E "[0-9]\b"; then
                     # Make sure a process with this PID is running, that its command
                     # line contains 'mstpd', and that it is not the grep command we
                     # are using to look for the 'mstpd' string.
