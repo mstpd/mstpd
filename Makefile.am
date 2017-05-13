@@ -53,7 +53,7 @@ utils/mstp_config_bridge: $(srcdir)/utils/mstp_config_bridge.in
 sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsdir)
 etcdest=$(DESTDIR)$(sysconfdir)
-bashcompdest=$(etcdest)/bash_completion.d
+bashcompdest=$(DESTDIR)$(bashcompletiondir)
 man5dest=$(DESTDIR)$(mandir)/man5
 man8dest=$(DESTDIR)$(mandir)/man8
 docdest=$(DESTDIR)$(docdir)
