@@ -19,23 +19,8 @@ set -e
 
 case "$1" in
     remove|upgrade|deconfigure)
-        pid_file=/var/run/mstpd.pid
-        pid=
-        if [ -f "$pid_file" ]; then
-            read line < "$pid_file"
-            for p in $line; do
-                if echo $p | grep -q -E "[0-9]\b"; then
-                    # Make sure a process with this PID is running, that its command
-                    # line contains 'mstpd', and that it is not the grep command we
-                    # are using to look for the 'mstpd' string.
-                    if ps -o command -ww "$p" | grep -v grep | grep 'mstpd' >/dev/null 2>&1; then
-                        pid="$pid $p"
-                    fi
-                fi
-            done
-        fi
-        if [ -n "$pid" ]; then
-            kill $pid
+        if pidof -c -s mstpd >/dev/null; then
+            kill $(pidof -c mstpd)
         fi
     ;;
 
