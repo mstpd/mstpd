@@ -42,6 +42,7 @@ populate_template = sed \
 	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
 bridge-stp utils/ifupdown.sh utils/mstp_config_bridge: Makefile
 	rm -f $@ $@.tmp
+	mkdir -p $(@D)
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
 	$(populate_template) $${srcdir}$@.in > $@.tmp
 	chmod 755 $@.tmp
