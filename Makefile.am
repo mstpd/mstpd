@@ -59,16 +59,17 @@ man8dest=$(DESTDIR)$(mandir)/man8
 docdest=$(DESTDIR)$(docdir)
 
 install-data-hook:
+	mkdir -pv $(sbindest)
 	install -m 755 bridge-stp $(sbindest)/bridge-stp
 	ln -sf $(sbindir)/bridge-stp $(sbindest)/mstp_restart
 	mkdir -pv $(etcdest)
-	install -m 644 bridge-stp.conf $(etcdest)/bridge-stp.conf
+	install -m 644 $(srcdir)/bridge-stp.conf $(etcdest)/bridge-stp.conf
 	mkdir -pv $(utilsdest)
-	install -m 755 utils/ifupdown.sh $(utilsdest)
-	install -m 644 utils/mstpctl-utils-functions.sh $(utilsdest)
+	install -m 755 $(top_builddir)/utils/ifupdown.sh $(utilsdest)
+	install -m 644 $(srcdir)/utils/mstpctl-utils-functions.sh $(utilsdest)
 	ln -sf $(sbindir)/bridge-stp $(utilsdest)/mstpctl_restart_config
-	install -m 755 utils/mstp_config_bridge $(utilsdest)
-	install -m 755 utils/ifquery $(utilsdest)
+	install -m 755 $(top_builddir)/utils/mstp_config_bridge $(utilsdest)
+	install -m 755 $(srcdir)/utils/ifquery $(utilsdest)
 	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
 	  mkdir -pv $(etcdest)/network/if-pre-up.d ; \
 	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
@@ -78,15 +79,15 @@ install-data-hook:
 	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
 	fi
 	mkdir -pv $(bashcompdest)
-	install -m 644 utils/bash_completion $(bashcompdest)/mstpctl
+	install -m 644 $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
 	mkdir -pv $(man8dest)
-	install -m 644 utils/mstpctl.8 $(man8dest)/mstpctl.8
+	install -m 644 $(srcdir)/utils/mstpctl.8 $(man8dest)/mstpctl.8
 	gzip -f $(man8dest)/mstpctl.8
 	mkdir -pv $(man5dest)
-	install -m 644 utils/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
+	install -m 644 $(srcdir)/utils/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
 	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
-	install -m 644 README.VLANs.md $(docdest)/README.VLANs
+	install -m 644 $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
 
 deb: debian/changelog
 #	# Build unsigned binary package
