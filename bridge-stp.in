@@ -212,7 +212,7 @@ case "$action" in
             # Add bridge to mstpd and configure.
             echo "Adding/configuring bridge '$bridge' ..."
             "$mstpctl" addbridge "$bridge" || continue
-            if [ -n "$config_cmd" ]; then
+            if [ -x "$config_cmd" ] || type "$config_cmd" 2>/dev/null >/dev/null ; then
                 "$config_cmd" "$bridge"
             fi
         done
