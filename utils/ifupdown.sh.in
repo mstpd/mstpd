@@ -9,6 +9,10 @@
 #
 # Author: Satish Ashok, <sashok@cumulusnetworks.com>
 
+if [ "$IF_MSTPCTL_STP" != 'on' ]; then
+  exit 0
+fi
+
 mstpctl='@mstpctlfile@'
 if [ ! -x "$mstpctl" ]; then
   exit 0
@@ -81,9 +85,7 @@ done
 # We finish setting up the bridge
 if [ "$MODE" = 'start' ]; then
 
-  if [ "$IF_MSTPCTL_STP" ]; then
-    "$brctl" stp "$IFACE" "$IF_MSTPCTL_STP"
-  fi
+  "$brctl" stp "$IFACE" on
 
   if [ "$IF_MSTPCTL_MAXAGE" ]; then
     "$mstpctl" setmaxage "$IFACE" "$IF_MSTPCTL_MAXAGE"
