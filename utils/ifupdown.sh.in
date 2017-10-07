@@ -1,8 +1,16 @@
 #!/bin/sh
 
 # This script should be symlinked into /etc/network/ip-pre-up.d/ and
-# /etc/network/ip-post-down.d/ so that it will be run by ifupdown when
-# configuring network interfaces.
+# /etc/network/ip-post-down.d/ on Debian/Ubuntu systems so that it will be run
+# by ifupdown when configuring network interfaces.
+#
+# This script is also used by `mstp_config_bridge`.
+# `mstp_config_bridge` is used by `/sbin/bridge-stp` when
+# `mstpctl_restart_config` or `mstp_restart` or
+# `/sbin/bridge-stp restart_config` or `/sbin/bridge-stp restart` are called to
+# automatically reconfigure bridges.
+# `mstp_config_bridge` may also be used and to configure bridges on systems
+# without ifupdown (on systems that are not based on Debian or Ubuntu).
 #
 # Have a look at /usr/share/doc/bridge-utils/README.Debian if you want
 # more info about the way in which bridges are set up on Debian.
@@ -96,6 +104,7 @@ if [ "$MODE" = 'start' ]; then
   # may not run before `brctl stp $IFACE on` returns.
   # It should not hurt to call `mstpctl addbridge $IFACE` twice, so call it
   # again to ensure that it has been called before continuing.
+  # See the code and comments in /sbin/bridge-stp for more details.
   "$mstpctl" addbridge "$IFACE"
 
   if [ "$IF_MSTPCTL_MAXAGE" ]; then

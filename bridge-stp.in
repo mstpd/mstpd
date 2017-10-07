@@ -1,14 +1,34 @@
 #!/bin/sh
-# /sbin/bridge-stp is called by the kernel to start/stop spanning tree on a
-# bridge.  It may also be called directly by the user to restart mstpd or
-# reconfigure mstpd after a restart.
-#
-# To avoid kernel deadlocks, this script and any foreground processes it runs
-# must not make any changes (using brctl, ifconfig, ip, /sys/..., etc) to the
-# bridge or any associated kernel network interfaces if this script was called
-# by the kernel.
 #
 # Configuration is in @bridgestpconffile@
+#
+# `/sbin/bridge-stp <bridge> <start|stop>` is called by the kernel when STP is
+# enabled/disabled on a bridge (via `brctl stp <bridge> <on|off>`).  The kernel
+# enables user_stp mode if that command returns 0, or enables kernel_stp mode if
+# that command returns any other value.
+#
+# If called with the above arguments, this script determines whether MSTP should
+# be used for the specified bridge (based on the "MSTP_BRIDGES" configuration
+# value), starts/stops mstpd if necessary, and calls
+# `mstpctl <addbridge|delbridge> <bridge>` to add/remove the bridge from mstpd
+# (possibly in a background job after a delay; see the comments in the code
+# below).  No further configuration is performed automatically by this script at
+# that time.  Additional configuration is usually performed by
+# @ifupdownfile@ (which calls `brctl stp <bridge> on`
+# to trigger this script to start mstpd if necessary).
+#
+# This script is not intended to be called with the above arguments directly
+# (not via the kernel).  However, this script may be called directly as
+# `mstpctl_restart_config` or `/sbin/bridge-stp restart_config` to reconfigure
+# (using `@configbridgefile@ <bridge>` or an alternative command specified using
+# a "config_cmd" configuration value) all existing bridges that are using mstpd,
+# or called as `mstp_restart` or `/sbin/bridge-stp restart` to restart mstpd and
+# then reconfigure all bridges that are using it.
+#
+# To avoid kernel deadlocks, this script (and any foreground processes it runs)
+# must not make any changes (using brctl, ifconfig, ip, /sys/..., etc) to the
+# bridge or any associated kernel network interfaces in any code paths that are
+# used when this script is called by the kernel.
 
 # Parse arguments.
 CalledAs="$(basename "$0")"
@@ -119,8 +139,17 @@ case "$action" in
             "$mstpd" $MSTPD_ARGS || exit 3
 
             # Due to kernel locks, mstpd will not respond to mstpctl until after
-            # this script exits, so `mstpctl addbridge` must be run as an
-            # asynchronous background process.
+            # this script exits, so `mstpctl addbridge <bridge>` must be run as
+            # an asynchronous background process.
+            # On some systems (eg. OpenWrt), mstpctl will fail if it is called
+            # too soon after mstpd is started, so the call must also be delayed.
+            #
+            # To avoid race conditions, any scripts that configure the bridge
+            # immediately after calling `brctl stp <bridge> on` should
+            # explicitly call `mstpctl addbridge <bridge>` themselves before
+            # configuring the bridge.  (It should not hurt to call
+            # `mstpctl addbridge <bridge>` multiple times.)
+            #
             # If `mstpctl addbridge` fails, we could turn STP off and back on
             # again to fall back to kernel STP mode.  However, that could cause
             # an infinite loop if mstpd is being started successfully but is

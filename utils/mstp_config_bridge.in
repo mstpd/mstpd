@@ -1,10 +1,16 @@
 #!/bin/sh
-# This script uses 'ifquery' to read the config in /etc/network/interfaces and
-# then runs the mstpctl-utils 'ifupdown.sh' script to configure the specified
-# bridge in mstpd.
-# This is used by the 'bridge-stp' script to automatically reconfigure bridges
-# after mstpd has been restarted.  It may also be used to configure mstpd on
-# systems without ifupdown (systems that are not based on Debian or Ubuntu).
+#
+# This script uses `ifquery` to read the config in
+# /etc/network/interfaces and then runs the mstpctl-utils
+# `ifupdown.sh` script to configure the specified bridge in mstpd.
+#
+# This is used by the `/sbin/bridge-stp` script when called as
+# `mstpctl_restart_config` or `mstp_restart` or
+# `/sbin/bridge-stp restart_config` or `/sbin/bridge-stp restart` to
+# automatically reconfigure bridges.
+#
+# This may also be used to configure mstpd on systems without ifupdown (on
+# systems that are not based on Debian or Ubuntu).
 
 # Parse arguments.
 if [ $# -ne 1 ]; then
@@ -82,5 +88,5 @@ while read -r Line; do
 done
 )"
 
-# Call the mstp ifupdown.sh script.
+# Call the mstpctl-utils ifupdown.sh script.
 '@ifupdownfile@'
