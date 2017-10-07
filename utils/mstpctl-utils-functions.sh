@@ -33,7 +33,7 @@ mstpctl_parse_ports()
       regex-set)
 	# The following interface specification are to be parsed as regular
 	# expressions against all interfaces the system provides.
-	i=$(egrep "^$1$" << EOAI
+	i=$(grep -E "^$1$" << EOAI
 $all_interfaces
 EOAI
 )
