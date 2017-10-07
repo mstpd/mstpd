@@ -85,7 +85,18 @@ done
 # We finish setting up the bridge
 if [ "$MODE" = 'start' ]; then
 
+  # This triggers the kernel to run `/sbin/bridge-stp start $IFACE`
   "$brctl" stp "$IFACE" on
+
+  # `mstpctl addbridge $IFACE` must be called before this script continues.
+  # If mstpd is already running then /sbin/bridge-stp will call
+  # `mstpctl addbridge $IFACE` before `brctl stp $IFACE on` returns.
+  # If mstpd is not already running then /sbin/bridge-stp will start it and call
+  # `mstpctl addbridge $IFACE` as a delayed background process, in which case it
+  # may not run before `brctl stp $IFACE on` returns.
+  # It should not hurt to call `mstpctl addbridge $IFACE` twice, so call it
+  # again to ensure that it has been called before continuing.
+  "$mstpctl" addbridge "$IFACE"
 
   if [ "$IF_MSTPCTL_MAXAGE" ]; then
     "$mstpctl" setmaxage "$IFACE" "$IF_MSTPCTL_MAXAGE"
