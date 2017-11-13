@@ -290,7 +290,9 @@ static int isbridge(const struct dirent *entry)
     bool result;
     struct stat st;
 
-    snprintf(path, SYSFS_PATH_MAX, SYSFS_CLASS_NET "/%s/bridge",
+    /* strlen(SYSFS_CLASS_NET) + strlen("/%.230s/bridge") must be < SYSFS_PATH_MAX
+       to prevent string truncation ; gcc7's fortify headers complain about that */
+    snprintf(path, SYSFS_PATH_MAX, SYSFS_CLASS_NET "/%.230s/bridge",
              entry->d_name);
     save_errno = errno;
     result = (0 == stat(path, &st)) && S_ISDIR(st.st_mode);
@@ -702,7 +704,9 @@ static int get_port_list(const char *br_ifname, struct dirent ***namelist)
     int res;
     char buf[SYSFS_PATH_MAX];
 
-    snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%s/brif", br_ifname);
+    /* strlen(sysfs_class_net) + strlen("/%.230s/brif") must be < sizeof(buf)
+       to prevent truncation ; gcc7's fortify headers complain about that */
+    snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%.230s/brif", br_ifname);
     if(0 > (res = scandir(buf, namelist, not_dot_dotdot, versionsort)))
         fprintf(stderr, "Error getting list of all ports of bridge %s\n",
                 br_ifname);
