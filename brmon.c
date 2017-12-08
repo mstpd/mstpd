@@ -65,7 +65,7 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     struct rtattr * tb[IFLA_MAX + 1];
     int len = n->nlmsg_len;
     char b1[IFNAMSIZ];
-    int af_family = ifi->ifi_family;
+    int af_family;
     bool newlink;
     int br_index;
 
@@ -77,6 +77,8 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     {
         return -1;
     }
+
+    af_family = ifi->ifi_family;
 
     if(af_family != AF_BRIDGE && af_family != AF_UNSPEC)
         return 0;
