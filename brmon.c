@@ -105,7 +105,7 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
 
     if(tb[IFLA_OPERSTATE])
     {
-        int state = *(int*)RTA_DATA(tb[IFLA_OPERSTATE]);
+        __u8 state = *(__u8*)RTA_DATA(tb[IFLA_OPERSTATE]);
         switch (state)
         {
             case IF_OPER_UNKNOWN:
