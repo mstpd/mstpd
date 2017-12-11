@@ -251,7 +251,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
             macaddr[3], macaddr[4], macaddr[5]);
     assign(br->MstConfigId.s.revision_level, __constant_cpu_to_be16(0));
     RecalcConfigDigest(br); /* set br->MstConfigId.s.configuration_digest */
-    br->ForceProtocolVersion = protoMSTP;
+    br->ForceProtocolVersion = protoRSTP;
     assign(br->MaxHops, (__u8)20);       /* 13.37.3 */
     assign(br->Forward_Delay, (__u8)15); /* 17.14 of 802.1D */
     assign(br->Max_Age, (__u8)20);       /* 17.14 of 802.1D */
