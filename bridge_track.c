@@ -187,10 +187,10 @@ static void set_br_up(bridge_t * br, bool up)
 
     if(up != br->sysdeps.up)
     {
-        br->sysdeps.up = up;
-        changed = true;
         INFO("%s was %s. Set %s", br->sysdeps.name,
              br->sysdeps.up ? "up" : "down", up ? "up" : "down");
+        br->sysdeps.up = up;
+        changed = true;
     }
 
     if(check_mac_address(br->sysdeps.name, br->sysdeps.macaddr))
