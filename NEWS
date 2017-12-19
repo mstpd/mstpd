@@ -1,6 +1,20 @@
 mstpd: Multiple Spanning Tree Protocol Daemon
 =============================================
 
+Version: 0.0.6
+---------------------------------------------
+- Tagging this version as 0.0.6, since internally
+  versions are x.y.z, while the last 2 git tags
+  were 0.04 & 0.05
+- Fixed compilation on GCC 7
+- Default protocol version is RSTP since that is
+  what most people use. To use MSTP, users will need
+  to use `--setforcevers mstp`.
+- Various fixes to `ifupdown.sh` script
+  - Paul Donohue <git@PaulSD.com>
+- Small code fixes
+  - Lionel Flandrin <lflandrin@ereca.fr>
+
 Version: 0.05
 ---------------------------------------------
 - [Internal] Integration with Travis-CI
