@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 
     c = epoll_main_loop(&quit);
     bridge_track_fini();
+    ctl_socket_cleanup();
     driver_mstp_fini();
 
     return c;
