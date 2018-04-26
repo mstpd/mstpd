@@ -5,10 +5,9 @@ os: linux
 compiler: gcc
 services:
   - docker
+dist: xenial
 addons:
   apt:
-    sources:
-    - debian-sid
     packages:
     - shellcheck
 env:
