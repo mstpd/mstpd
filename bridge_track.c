@@ -148,6 +148,9 @@ static bool delete_br_byindex(int if_index)
     bridge_t *br;
     if(!(br = find_br(if_index)))
         return false;
+
+    INFO("Delete bridge %s (%d)", br->sysdeps.name, if_index);
+
     list_del(&br->list);
     MSTP_IN_delete_bridge(br);
     free(br);
