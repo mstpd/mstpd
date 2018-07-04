@@ -132,6 +132,18 @@ typedef enum {
     PARAM_BPDUGUARDERROR,
     PARAM_NETWORKPORT,
     PARAM_BA_INCONSISTENT,
+    PARAM_NUMTXBPDU,
+    PARAM_NUMRXBPDU,
+    PARAM_NUMTXTCN,
+    PARAM_NUMRXTCN,
+    PARAM_NUMTRANSFWD,
+    PARAM_NUMTRANSBLK,
+    PARAM_RCVDBPDU,
+    PARAM_RCVDSTP,
+    PARAM_RCVDRSTP,
+    PARAM_SENDRSTP,
+    PARAM_RCVDTCACK,
+    PARAM_RCVDTCN,
 } param_id_t;
 
 typedef struct {
@@ -498,6 +510,18 @@ static const cmd_param_t cist_port_params[] = {
     { PARAM_BPDUGUARDERROR, "bpdu-guard-error" },
     { PARAM_NETWORKPORT,    "network-port" },
     { PARAM_BA_INCONSISTENT,"ba-inconsistent" },
+    { PARAM_NUMTXBPDU,      "num-tx-bpdu" },
+    { PARAM_NUMRXBPDU,      "num-rx-bpdu" },
+    { PARAM_NUMTXTCN,       "num-tx-tcn" },
+    { PARAM_NUMRXTCN,       "num-rx-tcn" },
+    { PARAM_NUMTRANSFWD,    "num-transition-fwd" },
+    { PARAM_NUMTRANSBLK,    "num-transition-blk" },
+    { PARAM_RCVDBPDU,       "received-bpdu" },
+    { PARAM_RCVDSTP,        "received-stp" },
+    { PARAM_RCVDRSTP,       "received-rstp" },
+    { PARAM_SENDRSTP,       "send-rstp" },
+    { PARAM_RCVDTCACK,      "received-tc-ack" },
+    { PARAM_RCVDTCN,        "received-tcn" },
 };
 
 static int detail = 0;
@@ -684,6 +708,42 @@ static int do_showport(int br_index, const char *bridge_name,
             break;
         case PARAM_BA_INCONSISTENT:
             printf("%s\n", BOOL_STR(s.ba_inconsistent));
+            break;
+        case PARAM_NUMTXBPDU:
+            printf("%u\n", s.num_tx_bpdu);
+            break;
+        case PARAM_NUMRXBPDU:
+            printf("%u\n", s.num_rx_bpdu);
+            break;
+        case PARAM_NUMTXTCN:
+            printf("%u\n", s.num_tx_tcn);
+            break;
+        case PARAM_NUMRXTCN:
+            printf("%u\n", s.num_rx_tcn);
+            break;
+        case PARAM_NUMTRANSFWD:
+            printf("%u\n", s.num_trans_fwd);
+            break;
+        case PARAM_NUMTRANSBLK:
+            printf("%u\n", s.num_trans_blk);
+            break;
+        case PARAM_RCVDBPDU:
+            printf("%s\n", BOOL_STR(s.rcvdBpdu));
+            break;
+        case PARAM_RCVDSTP:
+            printf("%s\n", BOOL_STR(s.rcvdSTP));
+            break;
+        case PARAM_RCVDRSTP:
+            printf("%s\n", BOOL_STR(s.rcvdRSTP));
+            break;
+        case PARAM_SENDRSTP:
+            printf("%s\n", BOOL_STR(s.sendRSTP));
+            break;
+        case PARAM_RCVDTCACK:
+            printf("%s\n", BOOL_STR(s.rcvdTcAck));
+            break;
+        case PARAM_RCVDTCN:
+            printf("%s\n", BOOL_STR(s.rcvdTcn));
             break;
         default:
             return -2; /* -2 = unknown param */
