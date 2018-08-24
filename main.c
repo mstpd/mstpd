@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
         if(daemon(0, 0))
         {
             ERROR("can't daemonize");
+            fclose(f);
             return -1;
         }
         fprintf(f, "%d", getpid());
