@@ -466,8 +466,8 @@ int rtnl_from_file(FILE * rtnl, rtnl_filter_t handler, void *jarg)
 
 		status = fread(&buf, 1, sizeof(*h), rtnl);
 
-		if (status < 0) {
-			if (errno == EINTR)
+		if (status != sizeof(*h)) {
+			if (feof(rtnl))
 				continue;
 			ERROR("rtnl_from_file: fread");
 			return -1;
@@ -486,10 +486,6 @@ int rtnl_from_file(FILE * rtnl, rtnl_filter_t handler, void *jarg)
 
 		status = fread(NLMSG_DATA(h), 1, NLMSG_ALIGN(l), rtnl);
 
-		if (status < 0) {
-			ERROR("rtnl_from_file: fread");
-			return -1;
-		}
 		if (status < l) {
 			ERROR("rtnl-from_file: truncated message\n");
 			return -1;
