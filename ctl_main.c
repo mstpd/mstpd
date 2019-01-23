@@ -56,10 +56,8 @@ static inline int get_index(const char *ifname, const char *doc)
 
 static inline int get_id(const char *str, const char *doc, unsigned int max_id)
 {
-    int id = strtol(str, NULL, 10);
-    if((0 > id) || (max_id < id)
-       || ((0 == id) && ('0' != str[0]))
-      )
+    unsigned long id = strtoul(str, NULL, 10);
+    if((max_id < id) || ((0 == id) && ('0' != str[0])))
     {
         fprintf(stderr, "Bad %s %s\n", doc, str);
         return -1;
