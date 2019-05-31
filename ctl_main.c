@@ -2301,6 +2301,9 @@ static void help(void)
     printf("  -h | --help              Show this help text\n");
     printf("  -V | --version           Show version\n");
     printf("  -b | --batch <file>      Process file with mstpctl commands\n");
+    printf("  -s | --stdin             Process mstpctl commands from stdin\n");
+    printf("                           Make sure to provide newlines between\n");
+    printf("                           commands. Won't work if `batch` is used\n");
     printf("  -i | --ignore            Ignore failing commands during batch\n");
     printf("                           processing\n");
     printf("  -f | --format <format>   Select output format (json, plain)\n");
@@ -2402,9 +2405,12 @@ static int __process_batch_cmds(FILE *batch_file, bool run, bool ignore)
     return cmds;
 }
 
-static int process_batch_cmds(FILE *batch_file, bool ignore)
+static int process_batch_cmds(FILE *batch_file, bool ignore, bool is_stdin)
 {
     int rc;
+
+    if (is_stdin)
+        goto skip_batch_validation;
 
     /* Do some basic argv + argc validation for all commands first */
     rc = __process_batch_cmds(batch_file, false, ignore);
@@ -2419,6 +2425,7 @@ static int process_batch_cmds(FILE *batch_file, bool ignore)
     /* go at beginning of file and start over*/
     fseek(batch_file, 0, SEEK_SET);
 
+skip_batch_validation:
     rc = __process_batch_cmds(batch_file, true, ignore);
     if (rc < 0)
         return 1;
@@ -2435,14 +2442,16 @@ int main(int argc, char *const *argv)
         {.name = "help",    .val = 'h'},
         {.name = "version", .val = 'V'},
         {.name = "batch",   .val = 'b', .has_arg = 1},
+        {.name = "stdin",   .val = 's'},
         {.name = "ignore",  .val = 'i'},
         {.name = "format",  .val = 'f', .has_arg = 1},
         {0}
     };
     FILE *batch_file = NULL;
+    bool is_stdin = false;
     bool ignore = false;
 
-    while(EOF != (f = getopt_long(argc, argv, "Vhf:b:i", options, NULL)))
+    while(EOF != (f = getopt_long(argc, argv, "Vhf:b:is", options, NULL)))
         switch(f)
         {
             case 'h':
@@ -2452,6 +2461,10 @@ int main(int argc, char *const *argv)
                 printf(PACKAGE_VERSION "\n");
                 return 0;
             case 'b':
+                if (is_stdin) {
+                    fprintf(stderr, "Cannot mix stdin & batch file\n");
+                    goto help;
+                }
                 if (!optarg || !strlen(optarg)) {
                     fprintf(stderr, "No batch file provided\n");
                     goto help;
@@ -2461,6 +2474,14 @@ int main(int argc, char *const *argv)
                     fprintf(stderr, "Could not open file '%s'\n", optarg);
                     goto help;
                 }
+                break;
+            case 's':
+                if (batch_file) {
+                    fprintf(stderr, "Cannot mix stdin & batch file\n");
+                    goto help;
+                }
+                batch_file = stdin;
+                is_stdin = true;
                 break;
             case 'i':
                 ignore = true;
@@ -2491,8 +2512,9 @@ int main(int argc, char *const *argv)
     }
 
     if (batch_file) {
-        rc = process_batch_cmds(batch_file, ignore);
-        fclose(batch_file);
+        rc = process_batch_cmds(batch_file, ignore, is_stdin);
+        if (!is_stdin)
+            fclose(batch_file);
         return rc;
     }
 
