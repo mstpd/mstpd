@@ -2305,6 +2305,31 @@ static void help(void)
     command_helpall();
 }
 
+static const struct command *command_lookup_and_validate(int argc,
+                                                         char *const *argv)
+{
+    const struct command *cmd;
+
+    cmd = command_lookup(argv[0]);
+    if(!cmd)
+    {
+        fprintf(stderr, "Unknown command [%s]\n", argv[0]);
+        help();
+        return NULL;
+    }
+
+    if(argc < cmd->nargs + 1 || argc > cmd->nargs + cmd->optargs + 1)
+    {
+        fprintf(stderr, "Incorrect number of arguments for command '%s'\n",
+                cmd->name);
+        fprintf(stderr, "Usage: mstpctl %s %s\n  %s\n",
+                cmd->name, cmd->format, cmd->help);
+        return NULL;
+    }
+
+    return cmd;
+}
+
 int main(int argc, char *const *argv)
 {
     const struct command *cmd;
@@ -2353,19 +2378,10 @@ int main(int argc, char *const *argv)
 
     argc -= optind;
     argv += optind;
-    if(NULL == (cmd = command_lookup(argv[0])))
-    {
-        fprintf(stderr, "never heard of command [%s]\n", argv[0]);
-        goto help;
-    }
 
-    if(argc < cmd->nargs + 1 || argc > cmd->nargs + cmd->optargs + 1)
-    {
-        printf("Incorrect number of arguments for command\n");
-        printf("Usage: mstpctl %s %s\n  %s\n",
-               cmd->name, cmd->format, cmd->help);
+    cmd = command_lookup_and_validate(argc, argv);
+    if(!cmd)
         return 1;
-    }
 
     return cmd->func(argc, argv);
 
