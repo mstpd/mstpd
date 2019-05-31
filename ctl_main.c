@@ -2300,26 +2300,33 @@ static void help(void)
     printf("options:\n");
     printf("  -h | --help              Show this help text\n");
     printf("  -V | --version           Show version\n");
+    printf("  -b | --batch <file>      Process file with mstpctl commands\n");
     printf("  -f | --format <format>   Select output format (json, plain)\n");
     printf("commands:\n");
     command_helpall();
 }
 
 static const struct command *command_lookup_and_validate(int argc,
-                                                         char *const *argv)
+                                                         char *const *argv,
+                                                         int line_num)
 {
     const struct command *cmd;
 
     cmd = command_lookup(argv[0]);
     if(!cmd)
     {
+        if (line_num > 0)
+            fprintf(stderr, "Error on line %d:\n", line_num);
         fprintf(stderr, "Unknown command [%s]\n", argv[0]);
-        help();
+        if (line_num == 0)
+            help();
         return NULL;
     }
 
     if(argc < cmd->nargs + 1 || argc > cmd->nargs + cmd->optargs + 1)
     {
+        if (line_num > 0)
+            fprintf(stderr, "Error on line %d:\n", line_num);
         fprintf(stderr, "Incorrect number of arguments for command '%s'\n",
                 cmd->name);
         fprintf(stderr, "Usage: mstpctl %s %s\n  %s\n",
@@ -2330,19 +2337,102 @@ static const struct command *command_lookup_and_validate(int argc,
     return cmd;
 }
 
+static int split_line_into_parts(char *line, char **argv, int argv_size)
+{
+    const char *delim = " \n";
+    char *ptr = strtok(line, delim);
+    int cnt = 0;
+    while (ptr) {
+        argv[cnt] = ptr;
+        ptr = strtok(NULL, delim);
+        cnt++;
+        if (cnt >= argv_size)
+            return -1;
+    }
+    return cnt;
+}
+
+bool skip_line(const char *line)
+{
+    /* empty line or comment; comment is marked as # at beginning of line */
+    if (line[0] == '\0' || line[0] == '\n' || line[0] == '#')
+        return true;
+    return false;
+}
+
+static int __process_batch_cmds(FILE *batch_file, bool run)
+{
+    const struct command *cmd;
+    char line[64], *argv[8];
+    int line_num, argc, cmds, rc;
+
+    cmds = 0;
+    line_num = 0;
+    while (fgets(line, sizeof(line), batch_file)) {
+        line_num++;
+        if (skip_line(line))
+            continue;
+        argc = split_line_into_parts(line, argv, 8);
+        if (argc < 0) {
+            fprintf(stderr, "Too many elements on line '%d'\n", line_num);
+            return -1;
+        }
+        /* ignore lines with whitespace */
+        if (argc == 0)
+            continue;
+        cmd = command_lookup_and_validate(argc, argv, line_num);
+        if (!cmd)
+            return -1;
+        if (run) {
+            rc = cmd->func(argc, argv);
+            if (rc)
+                return -1;
+        }
+        cmds++;
+    }
+
+    return cmds;
+}
+
+static int process_batch_cmds(FILE *batch_file)
+{
+    int rc;
+
+    /* Do some basic argv + argc validation for all commands first */
+    rc = __process_batch_cmds(batch_file, false);
+
+    if (rc < 0)
+        return 1;
+
+    /* nothing do, exit with no error */
+    if (rc == 0)
+        return 0;
+
+    /* go at beginning of file and start over*/
+    fseek(batch_file, 0, SEEK_SET);
+
+    rc = __process_batch_cmds(batch_file, true);
+    if (rc < 0)
+        return 1;
+
+    return 0;
+}
+
 int main(int argc, char *const *argv)
 {
     const struct command *cmd;
-    int f;
+    int f, rc;
     static const struct option options[] =
     {
         {.name = "help",    .val = 'h'},
         {.name = "version", .val = 'V'},
+        {.name = "batch",   .val = 'b', .has_arg = 1},
         {.name = "format",  .val = 'f', .has_arg = 1},
         {0}
     };
+    FILE *batch_file = NULL;
 
-    while(EOF != (f = getopt_long(argc, argv, "Vhf:", options, NULL)))
+    while(EOF != (f = getopt_long(argc, argv, "Vhf:b:", options, NULL)))
         switch(f)
         {
             case 'h':
@@ -2351,6 +2441,17 @@ int main(int argc, char *const *argv)
             case 'V':
                 printf(PACKAGE_VERSION "\n");
                 return 0;
+            case 'b':
+                if (!optarg || !strlen(optarg)) {
+                    fprintf(stderr, "No batch file provided\n");
+                    goto help;
+                }
+                batch_file = fopen(optarg, "rb");
+                if (!batch_file) {
+                    fprintf(stderr, "Could not open file '%s'\n", optarg);
+                    goto help;
+                }
+                break;
             case 'f':
                 if (!strcmp(optarg, "json"))
                     format = FORMAT_JSON;
@@ -2367,7 +2468,7 @@ int main(int argc, char *const *argv)
                 goto help;
         }
 
-    if(argc == optind)
+    if((argc == optind) && !batch_file)
         goto help;
 
     if(ctl_client_init())
@@ -2376,10 +2477,16 @@ int main(int argc, char *const *argv)
         return 1;
     }
 
+    if (batch_file) {
+        rc = process_batch_cmds(batch_file);
+        fclose(batch_file);
+        return rc;
+    }
+
     argc -= optind;
     argv += optind;
 
-    cmd = command_lookup_and_validate(argc, argv);
+    cmd = command_lookup_and_validate(argc, argv, 0);
     if(!cmd)
         return 1;
 
