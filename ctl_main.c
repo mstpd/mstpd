@@ -2301,6 +2301,8 @@ static void help(void)
     printf("  -h | --help              Show this help text\n");
     printf("  -V | --version           Show version\n");
     printf("  -b | --batch <file>      Process file with mstpctl commands\n");
+    printf("  -i | --ignore            Ignore failing commands during batch\n");
+    printf("                           processing\n");
     printf("  -f | --format <format>   Select output format (json, plain)\n");
     printf("commands:\n");
     command_helpall();
@@ -2360,7 +2362,7 @@ bool skip_line(const char *line)
     return false;
 }
 
-static int __process_batch_cmds(FILE *batch_file, bool run)
+static int __process_batch_cmds(FILE *batch_file, bool run, bool ignore)
 {
     const struct command *cmd;
     char line[64], *argv[8];
@@ -2381,12 +2383,18 @@ static int __process_batch_cmds(FILE *batch_file, bool run)
         if (argc == 0)
             continue;
         cmd = command_lookup_and_validate(argc, argv, line_num);
-        if (!cmd)
+        if (!cmd) {
+            if (ignore)
+                continue;
             return -1;
+        }
         if (run) {
             rc = cmd->func(argc, argv);
-            if (rc)
+            if (rc) {
+                if (ignore)
+                    continue;
                 return -1;
+            }
         }
         cmds++;
     }
@@ -2394,12 +2402,12 @@ static int __process_batch_cmds(FILE *batch_file, bool run)
     return cmds;
 }
 
-static int process_batch_cmds(FILE *batch_file)
+static int process_batch_cmds(FILE *batch_file, bool ignore)
 {
     int rc;
 
     /* Do some basic argv + argc validation for all commands first */
-    rc = __process_batch_cmds(batch_file, false);
+    rc = __process_batch_cmds(batch_file, false, ignore);
 
     if (rc < 0)
         return 1;
@@ -2411,7 +2419,7 @@ static int process_batch_cmds(FILE *batch_file)
     /* go at beginning of file and start over*/
     fseek(batch_file, 0, SEEK_SET);
 
-    rc = __process_batch_cmds(batch_file, true);
+    rc = __process_batch_cmds(batch_file, true, ignore);
     if (rc < 0)
         return 1;
 
@@ -2427,12 +2435,14 @@ int main(int argc, char *const *argv)
         {.name = "help",    .val = 'h'},
         {.name = "version", .val = 'V'},
         {.name = "batch",   .val = 'b', .has_arg = 1},
+        {.name = "ignore",  .val = 'i'},
         {.name = "format",  .val = 'f', .has_arg = 1},
         {0}
     };
     FILE *batch_file = NULL;
+    bool ignore = false;
 
-    while(EOF != (f = getopt_long(argc, argv, "Vhf:b:", options, NULL)))
+    while(EOF != (f = getopt_long(argc, argv, "Vhf:b:i", options, NULL)))
         switch(f)
         {
             case 'h':
@@ -2451,6 +2461,9 @@ int main(int argc, char *const *argv)
                     fprintf(stderr, "Could not open file '%s'\n", optarg);
                     goto help;
                 }
+                break;
+            case 'i':
+                ignore = true;
                 break;
             case 'f':
                 if (!strcmp(optarg, "json"))
@@ -2478,7 +2491,7 @@ int main(int argc, char *const *argv)
     }
 
     if (batch_file) {
-        rc = process_batch_cmds(batch_file);
+        rc = process_batch_cmds(batch_file, ignore);
         fclose(batch_file);
         return rc;
     }
