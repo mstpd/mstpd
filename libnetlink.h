@@ -19,6 +19,8 @@ struct rtnl_handle
 int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions);
 int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
                       int protocol);
+int rtnl_add_nl_group(struct rtnl_handle *rth, unsigned int group)
+	__attribute__((warn_unused_result));
 void rtnl_close(struct rtnl_handle *rth);
 int rtnl_wilddump_request(struct rtnl_handle *rth, int fam, int type);
 int rtnl_dump_request(struct rtnl_handle *rth, int type, void *req, int len);
