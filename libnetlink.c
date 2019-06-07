@@ -37,6 +37,12 @@
 #define RTNL_RCV_BUFSIZE	DEFAULT_RTNL_BUFSIZE
 #endif
 
+int rtnl_add_nl_group(struct rtnl_handle *rth, unsigned int group)
+{
+	return setsockopt(rth->fd, SOL_NETLINK, NETLINK_ADD_MEMBERSHIP,
+			  &group, sizeof(group));
+}
+
 void rtnl_close(struct rtnl_handle *rth)
 {
 	close(rth->fd);
