@@ -166,6 +166,7 @@ typedef enum {
     PARAM_NUMRXTCN,
     PARAM_NUMTRANSFWD,
     PARAM_NUMTRANSBLK,
+    PARAM_NUMBPDUFILTERED,
     PARAM_RCVDBPDU,
     PARAM_RCVDSTP,
     PARAM_RCVDRSTP,
@@ -713,6 +714,7 @@ static const cmd_param_t cist_port_params[] = {
     { PARAM_NUMRXTCN,       "num-rx-tcn" },
     { PARAM_NUMTRANSFWD,    "num-transition-fwd" },
     { PARAM_NUMTRANSBLK,    "num-transition-blk" },
+    { PARAM_NUMBPDUFILTERED,"num-rx-bpdu-filtered" },
     { PARAM_RCVDBPDU,       "received-bpdu" },
     { PARAM_RCVDSTP,        "received-stp" },
     { PARAM_RCVDRSTP,       "received-rstp" },
@@ -919,6 +921,9 @@ static int do_showport_fmt_plain(const CIST_PortStatus *s,
         case PARAM_NUMTRANSBLK:
             printf("%u\n", s->num_trans_blk);
             break;
+        case PARAM_NUMBPDUFILTERED:
+            printf("%u\n", s->num_rx_bpdu_filtered);
+            break;
         case PARAM_RCVDBPDU:
             printf("%s\n", BOOL_STR(s->rcvdBpdu));
             break;
@@ -1006,12 +1011,16 @@ static int do_showport_fmt_json(const CIST_PortStatus *s,
                        BOOL_STR(s->bpdu_guard_port));
                 printf("\"bpdu-guard-error\":\"%s\",",
                        BOOL_STR(s->bpdu_guard_error));
+                printf("\"bpdu-filter-port\":\"%s\",",
+                       BOOL_STR(s->bpdu_filter_port));
                 printf("\"network-port\":\"%s\",",
                        BOOL_STR(s->network_port));
                 printf("\"ba-inconsistent\":\"%s\",",
                        BOOL_STR(s->ba_inconsistent));
                 printf("\"num-tx-bpdu\":\"%u\",", s->num_tx_bpdu);
                 printf("\"num-rx-bpdu\":\"%u\",", s->num_rx_bpdu);
+                printf("\"num-rx-bpdu-filtered\":\"%u\",",
+                       s->num_rx_bpdu_filtered);
                 printf("\"num-tx-tcn\":\"%u\",", s->num_tx_tcn);
                 printf("\"num-rx-tcn\":\"%u\",", s->num_rx_tcn);
                 printf("\"num-transition-fwd\":\"%u\",",
@@ -1094,6 +1103,7 @@ static int do_showport_fmt_json(const CIST_PortStatus *s,
         case PARAM_NUMRXTCN:
         case PARAM_NUMTRANSFWD:
         case PARAM_NUMTRANSBLK:
+        case PARAM_NUMBPDUFILTERED:
         case PARAM_RCVDBPDU:
         case PARAM_RCVDSTP:
         case PARAM_RCVDRSTP:
