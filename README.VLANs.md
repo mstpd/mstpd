@@ -35,10 +35,11 @@ Per-VLAN Spanning Tree (PVST+)
 * For each VLAN, create a Linux bridge and attach the relevant VLAN
   interfaces to it.
 * If the native VLAN is used (if the trunk may carry untagged packets),
-  create another Linux bridge and attach the trunk interfaces to it.
-  Then create `ebtables` rules to prevent this bridge from processing
-  tagged packets, as described at
-  http://blog.rackspace.com/vms-vlans-and-bridges-oh-my-part-2
+  then create another Linux bridge, attach the trunk interfaces to it,
+  and run
+  `ebtables -t broute -A BROUTING -i <trunk iface> -p 802_1Q -j DROP`
+  for each trunk interface to prevent this bridge from processing
+  tagged packets.
 * Enable STP on each bridge.
 * Force mstpd to use RSTP on each bridge
   (`mstpctl setforcevers <bridge> rstp`).
