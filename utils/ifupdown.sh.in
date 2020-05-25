@@ -107,13 +107,29 @@ if [ "$MODE" = 'start' ]; then
   # See the code and comments in /sbin/bridge-stp for more details.
   "$mstpctl" addbridge "$IFACE"
 
+  # If MAXAGE should be increased, then FDELAY must be increased before it.
+  # On the other hand, to reduce FDELAY, we must first reduce MAXAGE.
+  # To accommodate both orderings, we check the current value of FDELAY
+  # and act so that curfddly >= age is maintained.
+  age=0
   if [ "$IF_MSTPCTL_MAXAGE" ]; then
-    "$mstpctl" setmaxage "$IFACE" "$IF_MSTPCTL_MAXAGE"
+    age="$IF_MSTPCTL_MAXAGE"
   fi
 
-  if [ "$IF_MSTPCTL_FDELAY" ]; then
-    "$mstpctl" setfdelay "$IFACE" "$IF_MSTPCTL_FDELAY"
-  fi
+  curfwddly=$( "$mstpctl" showbridge "$IFACE" bridge-forward-delay )
+  curfwddly=$((curfwddly+curfwddly))
+
+  if [ "$curfwddly" -gt "$age" ]; then
+    [ "$age" -gt 0 ] && "$mstpctl" setmaxage "$IFACE" "$age"
+    if [ "$IF_MSTPCTL_FDELAY" ]; then
+      "$mstpctl" setfdelay "$IFACE" "$IF_MSTPCTL_FDELAY"
+    fi
+  else
+    if [ "$IF_MSTPCTL_FDELAY" ]; then
+      "$mstpctl" setfdelay "$IFACE" "$IF_MSTPCTL_FDELAY"
+    fi
+    [ "$age" -gt 0 ] && "$mstpctl" setmaxage "$IFACE" "$age"
+  fi  
 
   if [ "$IF_MSTPCTL_MAXHOPS" ]; then
     "$mstpctl" setmaxhops "$IFACE" "$IF_MSTPCTL_MAXHOPS"
