@@ -1,8 +1,13 @@
 mstpd (0.0.9) unstable; urgency=medium
 
+  [ Alexandru Ardelean ]
+  * d/control: bump Standards-Version.
+
+  [ Eemil Lagerspetz ]
   * Handle increasing/decreasing fdelay and maxage in sync in ifcfg files.
 
  -- Eemil Lagerspetz  <eemil.lagerspetz@lempea.com>  Thu, 28 May 2020 14:18:10 +0300
+
 mstpd (0.0.8) unstable; urgency=medium
 
   * Build Debian package.

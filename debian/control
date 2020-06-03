@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Vitalii Demianets <vitalii@orsoc.se>
 Build-Depends: debhelper (>=9), dh-autoreconf
-Standards-Version: 3.9.8
+Standards-Version: 4.1.1.0
 Homepage: https://github.com/mstpd/mstpd
 Vcs-Git: https://github.com/mstpd/mstpd.git
 Vcs-Browser: https://github.com/mstpd/mstpd
