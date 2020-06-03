@@ -10,10 +10,7 @@ addons:
   apt:
     packages:
     - shellcheck
-env:
-  - TRAVIS_DEBIAN_DISTRIBUTION="${TRAVIS_DEBIAN_DISTRIBUTION:-experimental}"
 script:
   - set -e
   - shellcheck utils/ifupdown.sh.in utils/mstp_config_bridge.in utils/mstpctl-utils-functions.sh
   - ./autogen.sh && ./configure && make V=s
-  - wget -O- http://travis.debian.net/script.sh | sh -
