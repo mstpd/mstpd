@@ -2,6 +2,7 @@ mstpd (0.0.9) unstable; urgency=medium
 
   [ Alexandru Ardelean ]
   * d/control: bump Standards-Version.
+  * Set upstream metadata fields: Repository, Repository-Browse.
 
   [ Eemil Lagerspetz ]
   * Handle increasing/decreasing fdelay and maxage in sync in ifcfg files.
