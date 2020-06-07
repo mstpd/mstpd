@@ -16,7 +16,7 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
-all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge
+all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service
 
 utilsdir=$(libexecdir)/mstpctl-utils
 
@@ -34,13 +34,14 @@ mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 # See https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.69/html_node/Installation-Directory-Variables.html#index-sysconfdir-188
 populate_template = sed \
 	-e 's|@mstpdfile[@]|$(mstpdfile)|g' \
+	-e 's|@mstpdpidfile[@]|$(mstpdpidfile)|g' \
 	-e 's|@mstpctlfile[@]|$(mstpctlfile)|g' \
 	-e 's|@bridgestpconffile[@]|$(bridgestpconffile)|g' \
 	-e 's|@ifupdownfile[@]|$(ifupdownfile)|g' \
 	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
 	-e 's|@configbridgefile[@]|$(configbridgefile)|g' \
 	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
-bridge-stp utils/ifupdown.sh utils/mstp_config_bridge: Makefile
+bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service: Makefile
 	rm -f $@ $@.tmp
 	mkdir -p $(@D)
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
@@ -55,6 +56,7 @@ sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsdir)
 etcdest=$(DESTDIR)$(sysconfdir)
 bashcompdest=$(DESTDIR)$(bashcompletiondir)
+systemdunitdest=$(DESTDIR)$(systemdunitdir)
 man5dest=$(DESTDIR)$(mandir)/man5
 man8dest=$(DESTDIR)$(mandir)/man8
 docdest=$(DESTDIR)$(docdir)
@@ -81,6 +83,10 @@ install-data-hook:
 	fi
 	mkdir -pv $(bashcompdest)
 	install -m 644 $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
+	if [ -n "$(systemdunitdir)" ]; then \
+	  mkdir -pv $(systemdunitdest) ; \
+	  install -m 644 $(srcdir)/utils/mstpd.service $(systemdunitdest) ; \
+	fi
 	mkdir -pv $(man8dest)
 	install -m 644 $(srcdir)/utils/mstpctl.8 $(man8dest)/mstpctl.8
 	gzip -f $(man8dest)/mstpctl.8

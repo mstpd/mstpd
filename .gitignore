@@ -9,6 +9,8 @@
 /utils/ifupdown.sh.tmp
 /utils/mstp_config_bridge
 /utils/mstp_config_bridge.tmp
+/utils/mstpd.service
+/utils/mstpd.service.tmp
 
 # autotools files
 /m4/lt*.m4

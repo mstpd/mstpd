@@ -41,6 +41,8 @@ AC_PROG_CC
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 LT_INIT
 
+PKG_PROG_PKG_CONFIG
+
 # Optional building of examples
 AC_ARG_ENABLE([devel],
 	[AC_HELP_STRING([--enable-devel], [build devel mode])],
@@ -56,6 +58,14 @@ AS_IF([test "x$with_bashcompletiondir" = "xdefault"],
      [AC_SUBST([bashcompletiondir], [${sysconfdir}/bash_completion.d])])
 AS_IF([test "x$with_bashcompletiondir" != "xdefault"],
       [AC_SUBST([bashcompletiondir], [$with_bashcompletiondir])])
+
+AC_ARG_WITH([systemdunitdir],
+     [AS_HELP_STRING([--with-systemunitdir=DIR], [Directory for systemd unit files.])],,
+     [with_systemdunitdir=default])
+AS_IF([test "x$with_systemdunitdir" = "xdefault"],
+     [AC_SUBST([systemdunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd 2> /dev/null)])])
+AS_IF([test "x$with_systemdunitdir" != "xdefault"],
+      [AC_SUBST([systemdunitdir], [$with_systemdunitdir])])
 
 # Define PACKAGE_BUILD
 PACKAGE_BUILD=`git log --pretty=format:'%h' -n 1`
