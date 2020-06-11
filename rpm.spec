@@ -34,6 +34,12 @@ make %{?_smp_mflags}
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
 
+# RHEL7/CentOS7 still permits #!/usr/bin/python in scripts.  Other supported
+# RPM-based distros/versions require #!/usr/bin/python3 in all scripts.
+%if !0%{?rhel} || 0%{?rhel} >= 8
+sed -i -e 's|#!/usr/bin/python|#!/usr/bin/python3|g' %{buildroot}/%{_libexecdir}/mstpctl-utils/ifquery
+%endif
+
 sed -i -e 's|/etc/network/interfaces|/etc/sysconfig/network-scripts/bridge-stp|g' %{buildroot}/%{_libexecdir}/mstpctl-utils/ifquery
 sed -i -e 's|/etc/network/interfaces|/etc/sysconfig/network-scripts/bridge-stp|g' %{buildroot}/%{_libexecdir}/mstpctl-utils/mstp_config_bridge
 
