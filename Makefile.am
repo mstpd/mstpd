@@ -85,7 +85,7 @@ install-data-hook:
 	install -m 644 $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
 	if [ -n "$(systemdunitdir)" ]; then \
 	  mkdir -pv $(systemdunitdest) ; \
-	  install -m 644 $(srcdir)/utils/mstpd.service $(systemdunitdest) ; \
+	  install -m 644 $(top_builddir)/utils/mstpd.service $(systemdunitdest) ; \
 	fi
 	mkdir -pv $(man8dest)
 	install -m 644 $(srcdir)/utils/mstpctl.8 $(man8dest)/mstpctl.8
