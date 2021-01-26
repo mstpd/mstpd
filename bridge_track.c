@@ -391,7 +391,8 @@ int vlan_notify(int if_index, bool newvlan, __u16 vid, __u8 state)
     per_tree_port_t *ptp;
     bridge_t *br = NULL;
     port_t *prt = NULL;
-    __u16 fid, mstid;
+    __u16 fid;
+    __be16 mstid;
 
     LOG("if_index %d, newvlan %d, vid %d, state %d",
         if_index, newvlan, vid, state);
@@ -403,25 +404,28 @@ int vlan_notify(int if_index, bool newvlan, __u16 vid, __u8 state)
     br = prt->bridge;
     prt->sysdeps.vlan_state[vid] = state;
 
+    /* VLAN was deleted, nothing to do here */
+    if (!newvlan)
+        return 0;
+
     fid = br->vid2fid[vid];
     mstid = br->fid2mstid[fid];
 
     list_for_each_entry(ptp, &prt->trees, port_list)
     {
-        if (ptp->MSTID != mstid)
-            continue;
+        if (ptp->MSTID == mstid)
+            break;
+    }
 
-        if (ptp->state == state)
-        {
-            LOG_MSTINAME(br, prt, ptp, "VID %i: already in desired STP state %i", vid, ptp->state);
-            continue;
-        }
+    TST(ptp->MSTID == mstid, -1);
 
-        if (0 > br_set_vlan_state(&rth_state, if_index, vid, ptp->state))
-        {
-            ERROR_MSTINAME(br, prt, ptp, "VID %i: failed setting STP state %i in kernel", vid, ptp->state);
-        }
-
+    if (ptp->state != state)
+    {
+      if (0 > br_set_vlan_state(&rth_state, if_index, vid, ptp->state))
+      {
+          ERROR_MSTINAME(br, prt, ptp, "VID %i: failed setting STP state %i in kernel", vid, ptp->state);
+          return -1;
+      }
     }
 
     return 0;
