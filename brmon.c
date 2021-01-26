@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <string.h>
 #include <linux/if_bridge.h>
 
 #include "log.h"
@@ -58,8 +59,10 @@ static struct epoll_event_handler br_handler;
 
 struct rtnl_handle rth_state;
 
-static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
-                    void *arg)
+bool have_per_vlan_state = 1;
+
+static int dump_br_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                       void *arg)
 {
     struct ifinfomsg *ifi = NLMSG_DATA(n);
     struct rtattr * tb[IFLA_MAX + 1];
@@ -166,6 +169,144 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     return 0;
 }
 
+static int dump_vlan_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                         void *arg)
+{
+    struct br_vlan_msg *bvm = NLMSG_DATA(n);
+    struct rtattr *pos;
+    int len = n->nlmsg_len;
+    bool newvlan = n->nlmsg_type == RTM_NEWVLAN;
+
+    for (pos = NLMSG_DATA(n) + NLMSG_ALIGN(sizeof(*bvm)); RTA_OK(pos, len); pos = RTA_NEXT(pos, len))
+    {
+        struct rtattr *tb[BRIDGE_VLANDB_ENTRY_MAX +1];
+        struct bridge_vlan_info *info = NULL;
+        uint8_t state = VLAN_STATE_UNASSIGNED;
+        uint16_t range = 0;
+        uint16_t i;
+
+        if ((pos->rta_type & NLA_TYPE_MASK) != BRIDGE_VLANDB_ENTRY)
+            continue;
+
+        parse_rtattr_nested(tb, BRIDGE_VLANDB_ENTRY_MAX, pos);
+
+        if (tb[BRIDGE_VLANDB_ENTRY_INFO])
+            info = RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_INFO]);
+        if (tb[BRIDGE_VLANDB_ENTRY_STATE])
+            state = *(uint8_t *)RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_STATE]);
+        if (tb[BRIDGE_VLANDB_ENTRY_RANGE])
+            range = *(uint16_t*)RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_RANGE]);
+
+        if (!info)
+            continue;
+
+        if (!range)
+            range = info->vid;
+
+        for (i = info->vid;  i <= range; i++)
+            vlan_notify(bvm->ifindex, newvlan, i, state);
+    }
+
+    return 0;
+}
+
+struct vlan_dump_table {
+    int if_index;
+    uint8_t *table;
+};
+
+static int vlan_table_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                          void *arg)
+{
+    struct br_vlan_msg *bvm = NLMSG_DATA(n);
+    struct rtattr *pos;
+    int len = n->nlmsg_len;
+    struct vlan_dump_table *req = arg;
+
+    if (bvm->ifindex != req->if_index)
+            return 0;
+
+    for (pos = NLMSG_DATA(n) + NLMSG_ALIGN(sizeof(*bvm)); RTA_OK(pos, len); pos = RTA_NEXT(pos, len))
+    {
+        struct rtattr *tb[BRIDGE_VLANDB_ENTRY_MAX +1];
+        struct bridge_vlan_info *info = NULL;
+        uint8_t state = VLAN_STATE_UNASSIGNED;
+        uint16_t range = 0;
+        uint16_t i;
+
+        if ((pos->rta_type & NLA_TYPE_MASK) != BRIDGE_VLANDB_ENTRY)
+            continue;
+
+        parse_rtattr_nested(tb, BRIDGE_VLANDB_ENTRY_MAX, pos);
+
+        if (tb[BRIDGE_VLANDB_ENTRY_INFO])
+            info = RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_INFO]);
+        if (tb[BRIDGE_VLANDB_ENTRY_STATE])
+            state = *(uint8_t *)RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_STATE]);
+        if (tb[BRIDGE_VLANDB_ENTRY_RANGE])
+            range = *(uint16_t*)RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_RANGE]);
+
+        if (!info)
+            continue;
+
+        if (!range)
+            range = info->vid;
+
+        for (i = info->vid; i <= range; i++)
+            req->table[i] = state;
+    }
+
+    return 0;
+}
+
+static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                    void *arg)
+{
+    switch (n->nlmsg_type)
+    {
+        case RTM_NEWLINK:
+        case RTM_DELLINK:
+            return dump_br_msg(who, n, arg);
+        case RTM_NEWVLAN:
+        case RTM_DELVLAN:
+            return dump_vlan_msg(who, n, arg);
+        default:
+            return 0;
+    }
+}
+
+int fill_vlan_table(int if_index, uint8_t *vlan_table)
+{
+    struct br_vlan_msg bvm = {
+        .family = PF_BRIDGE,
+     /* .ifindex = if_index, */
+    };
+    struct vlan_dump_table req = {
+        .if_index = if_index,
+        .table = vlan_table,
+    };
+
+    if(!have_per_vlan_state)
+        return 0;
+
+    /* For unknown reason setting ifindex to non-zero will cause the kernel
+     * to flood us with the same message over and over again, so filter
+     * within mstpd for now */
+    if(rtnl_dump_request(&rth, RTM_GETVLAN, &bvm, sizeof(bvm)) < 0)
+    {
+        ERROR("Cannot send dump request: %m\n");
+        return -1;
+    }
+
+    if(rtnl_dump_filter(&rth, vlan_table_msg, &req, NULL, NULL) < 0)
+    {
+        ERROR("Dump terminated\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
 {
     if(rtnl_listen(&rth, dump_msg, stdout) < 0)
@@ -180,6 +321,12 @@ int init_bridge_ops(void)
     {
         ERROR("Couldn't open rtnl socket for monitoring\n");
         return -1;
+    }
+
+    if(rtnl_add_nl_group(&rth, RTNLGRP_BRVLAN) < 0)
+    {
+        ERROR("Couldn't join RTNLGRP_BRVLAN, per vlan STP state not available\n");
+        have_per_vlan_state = 0;
     }
 
     if(rtnl_open(&rth_state, 0) < 0)

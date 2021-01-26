@@ -443,6 +443,7 @@ typedef struct
 typedef struct
 {
     struct list_head br_list; /* anchor in bridge's list of ports */
+    struct list_head list; /* list of all interfaces */
     bridge_t * bridge;
     __be16 port_number;
 
