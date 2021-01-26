@@ -97,6 +97,6 @@ void bridge_one_second(void);
 
 int vlan_notify(int if_index, bool newvlan, __u16 vid, __u8 state);
 
-int fill_vlan_table(int if_index, __u8 *vlan_table);
+int fill_vlan_table(sysdep_if_data_t *if_data);
 
 #endif /* BRIDGE_CTL_H */

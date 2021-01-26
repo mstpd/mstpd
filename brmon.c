@@ -221,9 +221,9 @@ static int vlan_table_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     struct br_vlan_msg *bvm = NLMSG_DATA(n);
     struct rtattr *pos;
     int len = n->nlmsg_len;
-    struct vlan_dump_table *req = arg;
+    sysdep_if_data_t *if_data = arg;
 
-    if (bvm->ifindex != req->if_index)
+    if (bvm->ifindex != if_data->if_index)
             return 0;
 
     for (pos = NLMSG_DATA(n) + NLMSG_ALIGN(sizeof(*bvm)); RTA_OK(pos, len); pos = RTA_NEXT(pos, len))
@@ -253,7 +253,7 @@ static int vlan_table_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
             range = info->vid;
 
         for (i = info->vid; i <= range; i++)
-            req->table[i] = state;
+            if_data->vlan_state[i] = state;
     }
 
     return 0;
@@ -275,15 +275,11 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     }
 }
 
-int fill_vlan_table(int if_index, uint8_t *vlan_table)
+int fill_vlan_table(sysdep_if_data_t *if_data)
 {
     struct br_vlan_msg bvm = {
         .family = PF_BRIDGE,
-     /* .ifindex = if_index, */
-    };
-    struct vlan_dump_table req = {
-        .if_index = if_index,
-        .table = vlan_table,
+     /* .ifindex = if_data->if_index, */
     };
 
     if(!have_per_vlan_state)
@@ -298,7 +294,7 @@ int fill_vlan_table(int if_index, uint8_t *vlan_table)
         return -1;
     }
 
-    if(rtnl_dump_filter(&rth, vlan_table_msg, &req, NULL, NULL) < 0)
+    if(rtnl_dump_filter(&rth, vlan_table_msg, if_data, NULL, NULL) < 0)
     {
         ERROR("Dump terminated\n");
         return -1;

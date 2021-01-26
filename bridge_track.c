@@ -107,7 +107,7 @@ static port_t * create_if(bridge_t * br, int if_index)
     }
 
     memset(prt->sysdeps.vlan_state, VLAN_STATE_UNASSIGNED, sizeof(prt->sysdeps.vlan_state));
-    fill_vlan_table(if_index, prt->sysdeps.vlan_state);
+    fill_vlan_table(&prt->sysdeps);
 
     INFO("Add iface %s as port#%d to bridge %s", prt->sysdeps.name,
          portno, br->sysdeps.name);
