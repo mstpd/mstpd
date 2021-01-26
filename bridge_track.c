@@ -46,6 +46,7 @@
 #endif
 
 static LIST_HEAD(bridges);
+static LIST_HEAD(ports);
 
 static bridge_t * create_br(int if_index)
 {
@@ -105,11 +106,15 @@ static port_t * create_if(bridge_t * br, int if_index)
         goto err;
     }
 
+    memset(prt->sysdeps.vlan_state, VLAN_STATE_UNASSIGNED, sizeof(prt->sysdeps.vlan_state));
+    fill_vlan_table(if_index, prt->sysdeps.vlan_state);
+
     INFO("Add iface %s as port#%d to bridge %s", prt->sysdeps.name,
          portno, br->sysdeps.name);
     prt->bridge = br;
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
         goto err;
+    list_add_tail(&prt->list, &ports);
 
     return prt;
 err:
@@ -120,16 +125,28 @@ err:
 static port_t * find_if(bridge_t * br, int if_index)
 {
     port_t *prt;
-    list_for_each_entry(prt, &br->ports, br_list)
+    if (br)
     {
-        if(prt->sysdeps.if_index == if_index)
-            return prt;
+        list_for_each_entry(prt, &br->ports, br_list)
+        {
+            if(prt->sysdeps.if_index == if_index)
+                return prt;
+        }
+    }
+    else
+    {
+        list_for_each_entry(prt, &ports, list)
+        {
+            if(prt->sysdeps.if_index == if_index)
+                return prt;
+        }
     }
     return NULL;
 }
 
 static inline void delete_if(port_t *prt)
 {
+    list_del(&prt->list);
     MSTP_IN_delete_port(prt);
     free(prt);
 }
@@ -347,6 +364,49 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
     return 0;
 }
 
+static int br_set_vlan_state(struct rtnl_handle *rth, unsigned ifindex, __u16 vid, __u8 state);
+
+int vlan_notify(int if_index, bool newvlan, __u16 vid, __u8 state)
+{
+    per_tree_port_t *ptp;
+    bridge_t *br = NULL;
+    port_t *prt = NULL;
+    __u16 fid, mstid;
+
+    LOG("if_index %d, newvlan %d, vid %d, state %d",
+        if_index, newvlan, vid, state);
+
+    prt = find_if(NULL, if_index);
+    if (!prt)
+        return 0;
+
+    br = prt->bridge;
+    prt->sysdeps.vlan_state[vid] = state;
+
+    fid = br->vid2fid[vid];
+    mstid = br->fid2mstid[fid];
+
+    list_for_each_entry(ptp, &prt->trees, port_list)
+    {
+        if (ptp->MSTID != mstid)
+            continue;
+
+        if (ptp->state == state)
+	{
+            LOG_MSTINAME(br, prt, ptp, "VID %i: already in desired STP state %i", vid, ptp->state);
+            continue;
+	}
+
+        if (0 > br_set_vlan_state(&rth_state, if_index, vid, ptp->state))
+        {
+            ERROR_MSTINAME(br, prt, ptp, "VID %i: failed setting STP state %i in kernel", vid, ptp->state);
+        }
+
+    }
+
+    return 0;
+}
+
 struct llc_header
 {
     __u8 dest_addr[ETH_ALEN];
@@ -408,6 +468,46 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
     MSTP_IN_rx_bpdu(prt,
                     /* Don't include LLC header */
                     (bpdu_t *)(data + sizeof(*h)), l - LLC_PDU_LEN_U);
+}
+
+static int br_set_vlan_state(struct rtnl_handle *rth, unsigned ifindex, __u16 vid, __u8 state)
+{
+    struct
+    {
+        struct nlmsghdr n;
+        struct br_vlan_msg bvm;
+        char buf[256];
+    } req;
+    char entry_buf[256];
+    struct rtattr *rta = (void *)entry_buf;
+    struct bridge_vlan_info vlan_info;
+    struct rtattr *nest;
+
+    LOG("ifindex %d vid %d state %d", ifindex, vid, state);
+
+    memset(&req, 0, sizeof(req));
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct br_vlan_msg));
+    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_REPLACE;
+    req.n.nlmsg_type = RTM_NEWVLAN;
+    req.bvm.family = AF_BRIDGE;
+    req.bvm.ifindex = ifindex;
+
+    rta->rta_type = BRIDGE_VLANDB_ENTRY;
+    rta->rta_len = RTA_LENGTH(0);
+
+    vlan_info.vid = vid;
+    vlan_info.flags = BRIDGE_VLAN_INFO_ONLY_OPTS;
+
+    nest = rta_nest(rta, sizeof(entry_buf), BRIDGE_VLANDB_ENTRY);
+    rta_addattr_l(rta, sizeof(entry_buf), BRIDGE_VLANDB_ENTRY_INFO, &vlan_info, sizeof(vlan_info));
+    rta_addattr8(rta, sizeof(entry_buf), BRIDGE_VLANDB_ENTRY_STATE, state);
+
+    rta_nest_end(rta, nest);
+
+    addraw_l(&req.n, sizeof(req.buf), RTA_DATA(rta), RTA_PAYLOAD(rta));
+
+    return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
 }
 
 static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
@@ -493,9 +593,29 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
     }
     INFO_MSTINAME(br, prt, ptp, "entering %s state", state_name);
 
-    /* Translate new CIST state to the kernel bridge code */
-    if(0 == ptp->MSTID)
-    { /* CIST */
+    if(have_per_vlan_state)
+    {
+        int i;
+
+        for (i = 0; i <= MAX_VID; i++)
+        {
+            __u16 fid = br->vid2fid[i];
+
+            if (br->fid2mstid[fid] != ptp->MSTID)
+                continue;
+
+            if (prt->sysdeps.vlan_state[i] == VLAN_STATE_UNASSIGNED)
+                continue;
+
+            if(0 > br_set_vlan_state(&rth_state, prt->sysdeps.if_index, i, ptp->state))
+               ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s for vid %i",
+                             state_name, i);
+            prt->sysdeps.vlan_state[i] = new_state;
+        }
+    }
+    else if(0 == ptp->MSTID)
+    {
+        /* Translate new CIST state to the kernel bridge code */
         if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
             ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
                           state_name);
