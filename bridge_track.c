@@ -226,14 +226,27 @@ static void set_br_up(bridge_t * br, bool up)
     {
         MSTP_IN_set_bridge_enable(br, br->sysdeps.up);
 
-        if (!up && have_per_vlan_state)
+        if (have_per_vlan_state)
         {
             port_t *prt;
 
             list_for_each_entry(prt, &br->ports, br_list)
             {
-                br_set_state(&rth_state,  prt->sysdeps.if_index, BR_STATE_DISABLED);
-                /* TODO: vlans to forwarding? */
+	        __u8 state;
+
+                /* when the bridge transitions from down to up, the Linux
+		 * kernel will put all ports into the blocked state.
+		 * This blocks traffic on all vlans, so to make the per vlan
+		 * STP state effective, we will need to put them into forwarding
+		 * again.
+		 */
+		if (up && prt->sysdeps.up)
+                  state = BR_STATE_FORWARDING;
+		else
+                  state = BR_STATE_DISABLED;
+
+                br_set_state(&rth_state,  prt->sysdeps.if_index, state);
+                /* TODO: vlans? */
             }
         }
     }
@@ -295,8 +308,8 @@ static void set_if_up(port_t *prt, bool up)
     {
         MSTP_IN_set_port_enable(prt, prt->sysdeps.up, prt->sysdeps.speed,
                                 prt->sysdeps.duplex);
-        if (up && have_per_vlan_state)
-            br_set_state(&rth_state,  prt->sysdeps.if_index, BR_STATE_FORWARDING);
+        if (have_per_vlan_state)
+            br_set_state(&rth_state,  prt->sysdeps.if_index, up ? BR_STATE_FORWARDING : BR_STATE_DISABLED);
     }
 }
 
