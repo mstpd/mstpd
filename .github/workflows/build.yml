@@ -1,0 +1,15 @@
+name: build mstpd
+
+on: [ push, pull_request ]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: build
+      shell: bash
+      run: ./autogen.sh && ./configure --enable-devel && make V=s
+    - name: shellcheck
+      shell: bash
+      run: shellcheck utils/ifupdown.sh.in utils/mstp_config_bridge.in utils/mstpctl-utils-functions.sh
