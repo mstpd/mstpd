@@ -9,10 +9,10 @@ mstpctl_SOURCES = \
 	ctl_main.c ctl_socket_client.c
 
 mstpd_CFLAGS = \
-	-Os -Wall -Werror -D_REENTRANT -D__LINUX__ -I. \
+	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
 	-D_GNU_SOURCE
 if ENABLE_DEVEL
-  mstpd_CFLAGS += -g3 -O0
+  mstpd_CFLAGS += -g3 -O0 -Werror
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
