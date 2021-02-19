@@ -89,10 +89,8 @@ install-data-hook:
 	fi
 	mkdir -pv $(man8dest)
 	install -m 644 $(srcdir)/utils/mstpctl.8 $(man8dest)/mstpctl.8
-	gzip -f $(man8dest)/mstpctl.8
 	mkdir -pv $(man5dest)
 	install -m 644 $(srcdir)/utils/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
-	gzip -f $(man5dest)/mstpctl-utils-interfaces.5
 	mkdir -pv $(docdest)
 	install -m 644 $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
 
