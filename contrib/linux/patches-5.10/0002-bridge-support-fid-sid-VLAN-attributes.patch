@@ -1,0 +1,94 @@
+From f0094ece2811107aa47af36db7f7e58211d86316 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Pavel=20=C5=A0imerda?= <code@simerda.eu>
+Date: Wed, 17 Mar 2021 02:36:21 +0100
+Subject: [PATCH 2/3] bridge: support fid/sid VLAN attributes
+
+---
+ include/uapi/linux/if_bridge.h |  3 +++
+ net/bridge/br_vlan.c           | 35 ++++++++++++++++++++++++++++++++--
+ 2 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/include/uapi/linux/if_bridge.h b/include/uapi/linux/if_bridge.h
+index 4c687686aa8f..8e3e4f060f12 100644
+--- a/include/uapi/linux/if_bridge.h
++++ b/include/uapi/linux/if_bridge.h
+@@ -375,9 +375,12 @@ enum {
+ 	BRIDGE_VLANDB_ENTRY_STATE,
+ 	BRIDGE_VLANDB_ENTRY_TUNNEL_INFO,
+ 	BRIDGE_VLANDB_ENTRY_STATS,
++	BRIDGE_VLANDB_ENTRY_FID = 0x20,
++	BRIDGE_VLANDB_ENTRY_SID,
+ 	__BRIDGE_VLANDB_ENTRY_MAX,
+ };
+ #define BRIDGE_VLANDB_ENTRY_MAX (__BRIDGE_VLANDB_ENTRY_MAX - 1)
++#define HAVE_EXPERIMENTAL_KERNEL_VID_FID_SID_STATE_RELATION 1
+ 
+ /* [BRIDGE_VLANDB_ENTRY] = {
+  *     [BRIDGE_VLANDB_ENTRY_TUNNEL_INFO] = {
+diff --git a/net/bridge/br_vlan.c b/net/bridge/br_vlan.c
+index ab52cb967e8c..2bd4fb5ff0e6 100644
+--- a/net/bridge/br_vlan.c
++++ b/net/bridge/br_vlan.c
+@@ -1902,10 +1902,36 @@ static const struct nla_policy br_vlan_db_policy[BRIDGE_VLANDB_ENTRY_MAX + 1] =
+ 	[BRIDGE_VLANDB_ENTRY_INFO]	=
+ 		NLA_POLICY_EXACT_LEN(sizeof(struct bridge_vlan_info)),
+ 	[BRIDGE_VLANDB_ENTRY_RANGE]	= { .type = NLA_U16 },
++	[BRIDGE_VLANDB_ENTRY_FID]	= { .type = NLA_U16 },
++	[BRIDGE_VLANDB_ENTRY_SID]	= { .type = NLA_U16 },
+ 	[BRIDGE_VLANDB_ENTRY_STATE]	= { .type = NLA_U8 },
+ 	[BRIDGE_VLANDB_ENTRY_TUNNEL_INFO] = { .type = NLA_NESTED },
+ };
+ 
++static int br_vlan_bridge_notify(struct net_device *dev, struct nlattr **tb, struct netlink_ext_ack *extack)
++{
++	u16 vid = 0;
++	u16 fid = 0;
++	u16 sid = 0;
++	u8 state = 0;
++	int flags = 0;
++
++	if (tb[BRIDGE_VLANDB_ENTRY_INFO]) {
++		struct bridge_vlan_info *vinfo = nla_data(tb[BRIDGE_VLANDB_ENTRY_INFO]);
++
++		vid = vinfo->vid;
++		flags = vinfo->flags;
++	}
++	if (tb[BRIDGE_VLANDB_ENTRY_FID])
++		fid = nla_get_u16(tb[BRIDGE_VLANDB_ENTRY_FID]);
++	if (tb[BRIDGE_VLANDB_ENTRY_SID])
++		sid = nla_get_u16(tb[BRIDGE_VLANDB_ENTRY_SID]);
++	if (tb[BRIDGE_VLANDB_ENTRY_STATE])
++		state = nla_get_u16(tb[BRIDGE_VLANDB_ENTRY_STATE]);
++
++	return br_switchdev_port_vlan_add(dev, vid, fid, sid, state, flags, extack);
++}
++
+ static int br_vlan_rtm_process_one(struct net_device *dev,
+ 				   const struct nlattr *attr,
+ 				   int cmd, struct netlink_ext_ack *extack)
+@@ -1939,7 +1965,8 @@ static int br_vlan_rtm_process_one(struct net_device *dev,
+ 
+ 	if (!tb[BRIDGE_VLANDB_ENTRY_INFO]) {
+ 		NL_SET_ERR_MSG_MOD(extack, "Missing vlan entry info");
+-		return -EINVAL;
++		/* Handle SID-to-STATE requests gracefully */
++		return br_vlan_bridge_notify(dev, tb, extack);
+ 	}
+ 	memset(&vrange_end, 0, sizeof(vrange_end));
+ 
+@@ -2008,7 +2035,11 @@ static int br_vlan_rtm_process_one(struct net_device *dev,
+ 					      tb, extack);
+ 	}
+ 
+-	return err;
++	err = br_vlan_bridge_notify(dev, tb, extack);
++	if (err && err != -EOPNOTSUPP)
++		return err;
++
++	return 0;
+ }
+ 
+ static int br_vlan_rtm_process(struct sk_buff *skb, struct nlmsghdr *nlh,
+-- 
+2.30.1
+
