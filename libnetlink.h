@@ -1,9 +1,11 @@
 #ifndef __LIBNETLINK_H__
 #define __LIBNETLINK_H__
 
+#include <stdio.h>
 #include <asm/types.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <sys/types.h>
 
 struct rtnl_handle
 {
