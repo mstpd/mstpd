@@ -397,6 +397,7 @@ typedef struct
     unsigned int Migrate_Time;        /* 13.22.h */
     unsigned int Ageing_Time;  /* 8.8.3 */
 
+    bool vid_changed[MAX_VID + 1];
     __u16 vid2fid[MAX_VID + 1];
     __be16 fid2mstid[MAX_FID + 1];
 
