@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Crudely emulate ifquery on systems that don't have it.
 
 import sys
@@ -26,7 +26,7 @@ def parse_config(interfaces_file, interface):
         if intf != interface:
             continue
         # Print configuration.
-        print(str[0]+": "+" ".join(str[1:]))
+        print((str[0]+": "+" ".join(str[1:])))
     f.close()
     return
 
