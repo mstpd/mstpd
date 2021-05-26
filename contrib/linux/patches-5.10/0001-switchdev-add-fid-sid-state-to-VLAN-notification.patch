@@ -1,0 +1,117 @@
+From 27dd8764c2c9ada4d9de83ae8d9d242418286b11 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Pavel=20=C5=A0imerda?= <code@simerda.eu>
+Date: Wed, 17 Mar 2021 02:34:19 +0100
+Subject: [PATCH 1/3] switchdev: add fid/sid/state to VLAN notification
+
+---
+ include/net/switchdev.h   | 3 +++
+ net/bridge/br_private.h   | 4 ++--
+ net/bridge/br_switchdev.c | 7 ++++++-
+ net/bridge/br_vlan.c      | 8 ++++----
+ 4 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/include/net/switchdev.h b/include/net/switchdev.h
+index 53e8b4994296..ffbc7d9db571 100644
+--- a/include/net/switchdev.h
++++ b/include/net/switchdev.h
+@@ -97,6 +97,9 @@ struct switchdev_obj_port_vlan {
+ 	u16 flags;
+ 	u16 vid_begin;
+ 	u16 vid_end;
++	u16 fid;
++	u16 sid;
++	u16 state;
+ };
+ 
+ #define SWITCHDEV_OBJ_PORT_VLAN(OBJ) \
+diff --git a/net/bridge/br_private.h b/net/bridge/br_private.h
+index 8424464186a6..5b62367f4736 100644
+--- a/net/bridge/br_private.h
++++ b/net/bridge/br_private.h
+@@ -1509,7 +1509,7 @@ int br_switchdev_set_port_flag(struct net_bridge_port *p,
+ 			       unsigned long mask);
+ void br_switchdev_fdb_notify(const struct net_bridge_fdb_entry *fdb,
+ 			     int type);
+-int br_switchdev_port_vlan_add(struct net_device *dev, u16 vid, u16 flags,
++int br_switchdev_port_vlan_add(struct net_device *dev, u16 vid, u16 fid, u16 sid, u16 state, u16 flags,
+ 			       struct netlink_ext_ack *extack);
+ int br_switchdev_port_vlan_del(struct net_device *dev, u16 vid);
+ 
+@@ -1542,7 +1542,7 @@ static inline int br_switchdev_set_port_flag(struct net_bridge_port *p,
+ }
+ 
+ static inline int br_switchdev_port_vlan_add(struct net_device *dev,
+-					     u16 vid, u16 flags,
++					     u16 vid, u16 fid, u16 sid, u16 state, u16 flags,
+ 					     struct netlink_ext_ack *extack)
+ {
+ 	return -EOPNOTSUPP;
+diff --git a/net/bridge/br_switchdev.c b/net/bridge/br_switchdev.c
+index 015209bf44aa..513a3b6fd6c6 100644
+--- a/net/bridge/br_switchdev.c
++++ b/net/bridge/br_switchdev.c
+@@ -146,15 +146,20 @@ br_switchdev_fdb_notify(const struct net_bridge_fdb_entry *fdb, int type)
+ 	}
+ }
+ 
+-int br_switchdev_port_vlan_add(struct net_device *dev, u16 vid, u16 flags,
++int br_switchdev_port_vlan_add(struct net_device *dev, u16 vid, u16 fid, u16 sid, u16 state, u16 flags,
+ 			       struct netlink_ext_ack *extack)
+ {
++	int ret;
++
+ 	struct switchdev_obj_port_vlan v = {
+ 		.obj.orig_dev = dev,
+ 		.obj.id = SWITCHDEV_OBJ_ID_PORT_VLAN,
+ 		.flags = flags,
+ 		.vid_begin = vid,
+ 		.vid_end = vid,
++		.fid = fid,
++		.sid = sid,
++		.state = state,
+ 	};
+ 
+ 	return switchdev_port_obj_add(dev, &v.obj, extack);
+diff --git a/net/bridge/br_vlan.c b/net/bridge/br_vlan.c
+index 08c77418c687..ab52cb967e8c 100644
+--- a/net/bridge/br_vlan.c
++++ b/net/bridge/br_vlan.c
+@@ -92,7 +92,7 @@ static int __vlan_vid_add(struct net_device *dev, struct net_bridge *br,
+ 	/* Try switchdev op first. In case it is not supported, fallback to
+ 	 * 8021q add.
+ 	 */
+-	err = br_switchdev_port_vlan_add(dev, v->vid, flags, extack);
++	err = br_switchdev_port_vlan_add(dev, v->vid, 0, 0, 0, flags, extack);
+ 	if (err == -EOPNOTSUPP)
+ 		return vlan_vid_add(dev, br->vlan_proto, v->vid);
+ 	v->priv_flags |= BR_VLFLAG_ADDED_BY_SWITCHDEV;
+@@ -282,7 +282,7 @@ static int __vlan_add(struct net_bridge_vlan *v, u16 flags,
+ 			v->stats = masterv->stats;
+ 		}
+ 	} else {
+-		err = br_switchdev_port_vlan_add(dev, v->vid, flags, extack);
++		err = br_switchdev_port_vlan_add(dev, v->vid, 0, 0, 0, flags, extack);
+ 		if (err && err != -EOPNOTSUPP)
+ 			goto out;
+ 	}
+@@ -651,7 +651,7 @@ static int br_vlan_add_existing(struct net_bridge *br,
+ {
+ 	int err;
+ 
+-	err = br_switchdev_port_vlan_add(br->dev, vlan->vid, flags, extack);
++	err = br_switchdev_port_vlan_add(br->dev, vlan->vid, 0, 0, 0, flags, extack);
+ 	if (err && err != -EOPNOTSUPP)
+ 		return err;
+ 
+@@ -1209,7 +1209,7 @@ int nbp_vlan_add(struct net_bridge_port *port, u16 vid, u16 flags,
+ 	vlan = br_vlan_find(nbp_vlan_group(port), vid);
+ 	if (vlan) {
+ 		/* Pass the flags to the hardware bridge */
+-		ret = br_switchdev_port_vlan_add(port->dev, vid, flags, extack);
++		ret = br_switchdev_port_vlan_add(port->dev, vid, 0, 0, 0, flags, extack);
+ 		if (ret && ret != -EOPNOTSUPP)
+ 			return ret;
+ 		*changed = __vlan_add_flags(vlan, flags);
+-- 
+2.30.1
+

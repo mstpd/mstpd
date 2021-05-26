@@ -46,6 +46,7 @@
 #include "log.h"
 #include "driver.h"
 #include "clock_gettime.h"
+#include "platform/platform.h"
 
 static void PTSM_tick(port_t *prt);
 static bool TCSM_run(per_tree_port_t *ptp, bool dry_run);
@@ -243,6 +244,7 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     INIT_LIST_HEAD(&br->ports);
     INIT_LIST_HEAD(&br->trees);
     br->bridgeEnabled = false;
+    memset(br->vid_changed, 0, sizeof(br->vid_changed));
     memset(br->vid2fid, 0, sizeof(br->vid2fid));
     memset(br->fid2mstid, 0, sizeof(br->fid2mstid));
     assign(br->MstConfigId.s.selector, (__u8)0);
@@ -1305,6 +1307,7 @@ bool MSTP_IN_set_vid2fid(bridge_t *br, __u16 vid, __u16 fid)
     vid2mstid_changed =
         (br->fid2mstid[fid] != br->fid2mstid[br->vid2fid[vid]]);
     br->vid2fid[vid] = fid;
+    br->vid_changed[vid] = true;
     if(vid2mstid_changed)
     {
         RecalcConfigDigest(br);
@@ -1328,8 +1331,10 @@ bool MSTP_IN_set_all_vids2fids(bridge_t *br, __u16 *vids2fids)
             vids2fids[vid] = br->vid2fid[vid];
             continue;
         }
-        if(br->fid2mstid[vids2fids[vid]] != br->fid2mstid[br->vid2fid[vid]])
+        if(br->fid2mstid[vids2fids[vid]] != br->fid2mstid[br->vid2fid[vid]]) {
+            br->vid_changed[vid] = true;
             vid2mstid_changed = true;
+        }
     }
     memcpy(br->vid2fid, vids2fids, sizeof(br->vid2fid));
     if(vid2mstid_changed)
@@ -1432,6 +1437,7 @@ bool MSTP_IN_set_all_fids2mstids(bridge_t *br, __u16 *fids2mstids)
     {
         if(prev_vid2mstid[vid] != br->fid2mstid[br->vid2fid[vid]])
         {
+            br->vid_changed[vid] = true;
             vid2mstid_changed = true;
             break;
         }
@@ -4922,6 +4928,29 @@ static void tree_state_machines_begin(tree_t *tree)
     br_state_machines_run(br);
 }
 
+static void bridge_port_sync_config(port_t *prt, bool new)
+{
+    bridge_t *br = prt->bridge;
+    int vid;
+
+    /*
+     * Iterate over all VLAN IDs in order to get the kernel maps correct
+     * for all of them.
+     */
+    for(vid = 1; vid <= MAX_VID; ++vid) {
+        int fid = br->vid2fid[vid];
+        int mstid = __be16_to_cpu(br->fid2mstid[fid]);
+
+        /*
+         * 1) Synchronize all configured VLANs on a new port.
+         *
+         * 2) Synchronize all modified VLANS on an existing port.
+         */
+        if((new && (fid || mstid)) || br->vid_changed[vid])
+            bridge_port_vlan_configure(prt->sysdeps.if_index, vid, fid, mstid);
+    }
+}
+
 static void prt_state_machines_begin(port_t *prt)
 {
     bridge_t *br = prt->bridge;
@@ -4931,6 +4960,8 @@ static void prt_state_machines_begin(port_t *prt)
     if(!br->bridgeEnabled)
         return;
 
+    /* Sync with the kernel */
+    bridge_port_sync_config(prt, true);
     /* 13.28  Port Receive state machine */
     PRSM_begin(prt);
     /* 13.29  Port Protocol Migration state machine */
@@ -4973,6 +5004,10 @@ static void br_state_machines_begin(bridge_t *br)
     if(!br->bridgeEnabled)
         return;
 
+    /* Sync with the kernel */
+    FOREACH_PORT_IN_BRIDGE(prt, br)
+        bridge_port_sync_config(prt, false);
+    memset(br->vid_changed, 0, sizeof(br->vid_changed));
     /* 13.28  Port Receive state machine */
     FOREACH_PORT_IN_BRIDGE(prt, br)
         PRSM_begin(prt);

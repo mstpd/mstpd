@@ -33,7 +33,7 @@ test "x$exec_prefix" = x && test "x$localstatedir" = 'x${prefix}/var' && localst
 # manually.
 test "x$exec_prefix" = x && test "x$libexecdir" = 'x${exec_prefix}/libexec' && libexecdir='/lib'
 
-AM_INIT_AUTOMAKE([foreign -Wall])
+AM_INIT_AUTOMAKE([foreign -Wall subdir-objects])
 
 AC_CONFIG_MACRO_DIR([m4])
 

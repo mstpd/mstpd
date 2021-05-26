@@ -39,7 +39,7 @@
 #include "log.h"
 #include "mstp.h"
 #include "driver.h"
-#include "libnetlink.h"
+#include "platform/platform.h"
 
 #ifndef SYSFS_CLASS_NET
 #define SYSFS_CLASS_NET "/sys/class/net"
@@ -410,28 +410,6 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
                     (bpdu_t *)(data + sizeof(*h)), l - LLC_PDU_LEN_U);
 }
 
-static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
-{
-    struct
-    {
-        struct nlmsghdr n;
-        struct ifinfomsg ifi;
-        char buf[256];
-    } req;
-
-    memset(&req, 0, sizeof(req));
-
-    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_REPLACE;
-    req.n.nlmsg_type = RTM_SETLINK;
-    req.ifi.ifi_family = AF_BRIDGE;
-    req.ifi.ifi_index = ifindex;
-
-    addattr8(&req.n, sizeof(req.buf), IFLA_PROTINFO, state);
-
-    return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
-}
-
 static int br_flush_port(char *ifname)
 {
     char fname[128];
@@ -465,6 +443,7 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
     char * state_name;
     port_t *prt = ptp->port;
     bridge_t *br = prt->bridge;
+    __u16 mstid = __be16_to_cpu(ptp->MSTID);
 
     if(ptp->state == new_state)
         return;
@@ -493,13 +472,9 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
     }
     INFO_MSTINAME(br, prt, ptp, "entering %s state", state_name);
 
-    /* Translate new CIST state to the kernel bridge code */
-    if(0 == ptp->MSTID)
-    { /* CIST */
-        if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
-            ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
-                          state_name);
-    }
+    /* Translate new CIST/MST state to the kernel bridge code */
+    if(0 > bridge_port_tree_set_state(prt->sysdeps.if_index, mstid, ptp->state))
+        ERROR_PRTNAME(br, prt, "Couldn't update kernel bridge state");
 }
 
 /* This function initiates process of flushing
