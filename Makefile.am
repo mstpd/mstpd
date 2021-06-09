@@ -3,10 +3,14 @@ ACLOCAL_AMFLAGS = -I m4
 sbin_PROGRAMS = mstpd mstpctl
 
 mstpd_SOURCES = \
-	main.c epoll_loop.c brmon.c bridge_track.c libnetlink.c mstp.c \
-	packet.c netif_utils.c ctl_socket_server.c hmac_md5.c driver_deps.c
+	main.c epoll_loop.c epoll_loop.h clock_gettime.h brmon.c \
+	bridge_track.c bridge_track.h driver.h bridge_ctl.h libnetlink.c \
+	libnetlink.h mstp.c mstp.h packet.c packet.h netif_utils.c \
+	netif_utils.h ctl_socket_server.c ctl_socket_server.h hmac_md5.c \
+	list.h log.h driver_deps.c
+
 mstpctl_SOURCES = \
-	ctl_main.c ctl_socket_client.c
+	ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
 
 mstpd_CFLAGS = \
 	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
@@ -16,18 +20,36 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
+EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
+	utils/mstpd.service.in utils/bash_completion \
+	README.md README.VLANs.md rpm.spec autogen.sh
+
+CLEANFILES = bridge-stp utils/ifupdown.sh utils/mstp_config_bridge \
+	utils/mstpd.service
+dist_utilsexec_SCRIPTS = utils/ifquery
+dist_doc_DATA = LICENSE
+utilsexec_SCRIPTS = utils/ifupdown.sh utils/mstp_config_bridge
+dist_utilsexec_DATA = utils/mstpctl-utils-functions.sh
+sbin_SCRIPTS = bridge-stp
+dist_sysconf_DATA = bridge-stp.conf
+dist_man_MANS = utils/mstpctl.8 utils/mstpctl-utils-interfaces.5
+
+AM_DISTCHECK_CONFIGURE_FLAGS = --exec_prefix=$$dc_install_base \
+	--libexecdir=$$dc_install_base/lib \
+	--with-systemdunitdir=$$dc_install_base/usr/lib/systemd/system
+
 all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service
 
-utilsdir=$(libexecdir)/mstpctl-utils
+utilsexecdir=$(libexecdir)/mstpctl-utils
 
 mstpdfile=$(sbindir)/mstpd
 mstpctlfile=$(sbindir)/mstpctl
 mstpdpidfile=$(localstatedir)/run/mstpd.pid
 bridgestpconffile=$(sysconfdir)/bridge-stp.conf
-ifupdownfile=$(utilsdir)/ifupdown.sh
-utilsfuncfile=$(utilsdir)/mstpctl-utils-functions.sh
-configbridgefile=$(utilsdir)/mstp_config_bridge
-ifqueryfile=$(utilsdir)/ifquery
+ifupdownfile=$(utilsexecdir)/ifupdown.sh
+utilsfuncfile=$(utilsexecdir)/mstpctl-utils-functions.sh
+configbridgefile=$(utilsexecdir)/mstp_config_bridge
+ifqueryfile=$(utilsexecdir)/ifquery
 
 mstpd_CFLAGS += -DMSTPD_PID_FILE='"$(mstpdpidfile)"'
 
@@ -53,46 +75,50 @@ utils/ifupdown.sh: $(srcdir)/utils/ifupdown.sh.in
 utils/mstp_config_bridge: $(srcdir)/utils/mstp_config_bridge.in
 
 sbindest=$(DESTDIR)$(sbindir)
-utilsdest=$(DESTDIR)$(utilsdir)
+utilsdest=$(DESTDIR)$(utilsexecdir)
 etcdest=$(DESTDIR)$(sysconfdir)
+docdest=$(DESTDIR)$(docdir)
 bashcompdest=$(DESTDIR)$(bashcompletiondir)
 systemdunitdest=$(DESTDIR)$(systemdunitdir)
-man5dest=$(DESTDIR)$(mandir)/man5
-man8dest=$(DESTDIR)$(mandir)/man8
-docdest=$(DESTDIR)$(docdir)
 
-install-data-hook:
-	mkdir -pv $(sbindest)
-	install -m 755 bridge-stp $(sbindest)/bridge-stp
+install-exec-hook:
 	ln -sf $(sbindir)/bridge-stp $(sbindest)/mstp_restart
-	mkdir -pv $(etcdest)
-	install -m 644 $(srcdir)/bridge-stp.conf $(etcdest)/bridge-stp.conf
-	mkdir -pv $(utilsdest)
-	install -m 755 $(top_builddir)/utils/ifupdown.sh $(utilsdest)
-	install -m 644 $(srcdir)/utils/mstpctl-utils-functions.sh $(utilsdest)
 	ln -sf $(sbindir)/bridge-stp $(utilsdest)/mstpctl_restart_config
-	install -m 755 $(top_builddir)/utils/mstp_config_bridge $(utilsdest)
-	install -m 755 $(srcdir)/utils/ifquery $(utilsdest)
 	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
-	  mkdir -pv $(etcdest)/network/if-pre-up.d ; \
-	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
+	  $(MKDIR_P) $(etcdest)/network/if-pre-up.d ; \
+	  ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
 	fi
 	if [ -d $(sysconfdir)/network/if-post-down.d ]; then \
-	  mkdir -pv $(etcdest)/network/if-post-down.d ; \
-	  ln -sf $(utilsdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
+	  $(MKDIR_P) $(etcdest)/network/if-post-down.d ; \
+	  ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
 	fi
-	mkdir -pv $(bashcompdest)
-	install -m 644 $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
+	$(MKDIR_P) $(bashcompdest)
+	$(INSTALL_DATA) $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
 	if [ -n "$(systemdunitdir)" ]; then \
-	  mkdir -pv $(systemdunitdest) ; \
-	  install -m 644 $(top_builddir)/utils/mstpd.service $(systemdunitdest) ; \
+	  $(MKDIR_P) $(systemdunitdest) ; \
+	  $(INSTALL_DATA) $(top_builddir)/utils/mstpd.service $(systemdunitdest) ; \
 	fi
-	mkdir -pv $(man8dest)
-	install -m 644 $(srcdir)/utils/mstpctl.8 $(man8dest)/mstpctl.8
-	mkdir -pv $(man5dest)
-	install -m 644 $(srcdir)/utils/mstpctl-utils-interfaces.5 $(man5dest)/mstpctl-utils-interfaces.5
-	mkdir -pv $(docdest)
-	install -m 644 $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
+	$(MKDIR_P) $(docdest)
+	$(INSTALL_DATA) $(srcdir)/README.md $(docdest)/README
+	$(INSTALL_DATA) $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
+
+uninstall-hook:
+	-rm -f $(sbindest)/mstp_restart
+	-rm -f $(utilsdest)/mstpctl_restart_config
+	-rmdir $(utilsdest)
+	-rm -f $(bashcompdest)/mstpctl
+	-if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
+	  rm -f $(etcdest)/network/if-pre-up.d/mstpctl ; \
+	fi
+	-if [ -d $(sysconfdir)/network/if-post-down.d ]; then \
+	  rm -f $(etcdest)/network/if-post-down.d/mstpctl ; \
+	fi
+	-if [ -n "$(systemdunitdir)" ]; then \
+	  rm -f $(systemdunitdest)/mstpd.service ; \
+	fi
+	-rm -f $(docdest)/README
+	-rm -f $(docdest)/README.VLANs
+	-rmdir $(docdest)
 
 deb: debian/changelog
 #	# Build unsigned binary package
