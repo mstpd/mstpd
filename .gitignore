@@ -29,6 +29,7 @@ depcomp
 install-sh
 ltmain.sh
 missing
+/mstpd-*.tar.gz
 
 # configure files
 Makefile

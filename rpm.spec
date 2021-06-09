@@ -114,3 +114,5 @@ rm -rf %{buildroot}
 %doc %{_mandir}/man8/mstpctl.8.gz
 %doc %{_mandir}/man5/mstpctl-utils-interfaces.5.gz
 %doc %{_docdir}/mstpd/README.VLANs
+%doc %{_docdir}/mstpd/README
+%license %{_docdir}/mstpd/LICENSE
