@@ -11,6 +11,8 @@
 /utils/mstp_config_bridge.tmp
 /utils/mstpd.service
 /utils/mstpd.service.tmp
+/utils/nm-dispatcher
+/utils/nm-dispatcher.tmp
 
 # autotools files
 /m4/lt*.m4
