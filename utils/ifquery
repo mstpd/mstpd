@@ -8,6 +8,7 @@ import glob
 def parse_config(interfaces_file, interface):
     f = open(interfaces_file)
     intf = ''
+    found = False
     for line in f:
         str = line.strip().split(' ')
         len_str = len(str)
@@ -25,9 +26,13 @@ def parse_config(interfaces_file, interface):
         # Check if this is the relevant interface.
         if intf != interface:
             continue
+        found = True
         # Print configuration.
         print((str[0]+": "+" ".join(str[1:])))
     f.close()
+    if not found:
+        print("%s: unknown interface %s" % (sys.argv[0], interface))
+        sys.exit(1)
     return
 
 

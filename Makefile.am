@@ -21,11 +21,11 @@ endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
 EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
-	utils/mstpd.service.in utils/bash_completion \
-	README.md README.VLANs.md rpm.spec autogen.sh
+	utils/mstpd.service.in utils/bash_completion utils/nm-dispatcher.in \
+	README.md README.VLANs.md mstpd.spec autogen.sh
 
 CLEANFILES = bridge-stp utils/ifupdown.sh utils/mstp_config_bridge \
-	utils/mstpd.service
+	utils/mstpd.service utils/nm-dispatcher
 dist_utilsexec_SCRIPTS = utils/ifquery
 dist_doc_DATA = LICENSE
 utilsexec_SCRIPTS = utils/ifupdown.sh utils/mstp_config_bridge
@@ -38,9 +38,11 @@ AM_DISTCHECK_CONFIGURE_FLAGS = --exec_prefix=$$dc_install_base \
 	--libexecdir=$$dc_install_base/lib \
 	--with-systemdunitdir=$$dc_install_base/usr/lib/systemd/system
 
-all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service
+all-local: bridge-stp utils/ifupdown.sh utils/mstp_config_bridge \
+	utils/mstpd.service utils/nm-dispatcher
 
 utilsexecdir=$(libexecdir)/mstpctl-utils
+nmlibdir=$(prefix)/lib/NetworkManager/dispatcher.d
 
 mstpdfile=$(sbindir)/mstpd
 mstpctlfile=$(sbindir)/mstpctl
@@ -65,7 +67,7 @@ populate_template = sed \
 	-e 's|@utilsfuncfile[@]|$(utilsfuncfile)|g' \
 	-e 's|@configbridgefile[@]|$(configbridgefile)|g' \
 	-e 's|@ifqueryfile[@]|$(ifqueryfile)|g'
-bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service: Makefile
+bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service utils/nm-dispatcher: Makefile
 	rm -f $@ $@.tmp
 	mkdir -p $(@D)
 	srcdir=''; test -f ./$@.in || srcdir="$(srcdir)/"; \
@@ -75,6 +77,7 @@ bridge-stp utils/ifupdown.sh utils/mstp_config_bridge utils/mstpd.service: Makef
 bridge-stp: $(srcdir)/bridge-stp.in
 utils/ifupdown.sh: $(srcdir)/utils/ifupdown.sh.in
 utils/mstp_config_bridge: $(srcdir)/utils/mstp_config_bridge.in
+utils/nm-dispatcher: $(srcdir)/utils/nm-dispatcher.in
 
 sbindest=$(DESTDIR)$(sbindir)
 utilsdest=$(DESTDIR)$(utilsexecdir)
@@ -82,6 +85,7 @@ etcdest=$(DESTDIR)$(sysconfdir)
 docdest=$(DESTDIR)$(docdir)
 bashcompdest=$(DESTDIR)$(bashcompletiondir)
 systemdunitdest=$(DESTDIR)$(systemdunitdir)
+nmlibdest=$(DESTDIR)$(nmlibdir)
 
 install-exec-hook:
 	ln -sf $(sbindir)/bridge-stp $(sbindest)/mstp_restart
@@ -100,6 +104,10 @@ install-exec-hook:
 	  $(MKDIR_P) $(systemdunitdest) ; \
 	  $(INSTALL_DATA) $(top_builddir)/utils/mstpd.service $(systemdunitdest) ; \
 	fi
+	if [ -d $(nmlibdir) ]; then \
+	  $(MKDIR_P) $(nmlibdest) ; \
+	  $(INSTALL_SCRIPT) $(top_builddir)/utils/nm-dispatcher $(nmlibdest)/45-mstpd ; \
+	fi
 	$(MKDIR_P) $(docdest)
 	$(INSTALL_DATA) $(srcdir)/README.md $(docdest)/README
 	$(INSTALL_DATA) $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
@@ -109,14 +117,17 @@ uninstall-hook:
 	-rm -f $(utilsdest)/mstpctl_restart_config
 	-rmdir $(utilsdest)
 	-rm -f $(bashcompdest)/mstpctl
-	-if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
+	-if [ -d $(etcdest)/network/if-pre-up.d ]; then \
 	  rm -f $(etcdest)/network/if-pre-up.d/mstpctl ; \
 	fi
-	-if [ -d $(sysconfdir)/network/if-post-down.d ]; then \
+	-if [ -d $(etcdest)/network/if-post-down.d ]; then \
 	  rm -f $(etcdest)/network/if-post-down.d/mstpctl ; \
 	fi
 	-if [ -n "$(systemdunitdir)" ]; then \
 	  rm -f $(systemdunitdest)/mstpd.service ; \
+	fi
+	-if [ -d $(nmlibdest) ]; then \
+	  rm -f $(nmlibdest)/45-mstpd ; \
 	fi
 	-rm -f $(docdest)/README
 	-rm -f $(docdest)/README.VLANs
@@ -134,19 +145,21 @@ debian/changelog: configure.ac
 	[ -n "$$Version" ] || exit 3 ; \
 	perl -0777 -i -p -e "s/^mstpd \([^)]*\) /mstpd ($$Version) /m" debian/changelog
 
-rpm: rpm.spec
+rpm: mstpd.spec
 	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
 	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
 	[ -n "$$Version" ] || exit 3 ; SrcDir="$$(pwd)" ; \
-	mkdir -p "../rpmbuild/SOURCES" ; cd "../rpmbuild/SOURCES" ; \
-	git clone "$$SrcDir" "mstpd-$$Version" ; \
-	tar -cvjf "mstpd-$$Version.tar.bz2" "mstpd-$$Version" ; \
-	rm -rf "mstpd-$$Version" ; \
-	cd .. ; mkdir -p SPECS ; cp "$$SrcDir/rpm.spec" SPECS/mstpd.spec
+	mkdir -p "../rpmbuild/SOURCES" && cd "../rpmbuild/SOURCES" && \
+	git clone "$$SrcDir" "mstpd-$$Version" && \
+	rm -rf "mstpd-$$Version/.git" && \
+	tar -cvzf "mstpd-$$Version.tar.gz" "mstpd-$$Version" && \
+	rm -rf "mstpd-$$Version" && \
+	cd .. && mkdir -p SPECS && \
+	cp "$$SrcDir/mstpd.spec" SPECS/mstpd.spec && \
 	rpmbuild --define "_topdir $$(pwd)" -ba SPECS/mstpd.spec
 
-rpm.spec: configure.ac
+mstpd.spec: configure.ac
 	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
 	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
 	[ -n "$$Version" ] || exit 3 ; \
-	perl -i -p -e 's/^(\s*Version:\s+).*$$/$${1}'"$$Version/" rpm.spec
+	perl -i -p -e 's/^(\s*Version:\s+).*$$/$${1}'"$$Version/" mstpd.spec
