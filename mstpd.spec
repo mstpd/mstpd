@@ -2,12 +2,17 @@ Name:          mstpd
 Summary:       STP/RSTP/PVST+/MSTP Spanning Tree Protocol Daemon
 URL:           https://github.com/mstpd/mstpd
 Version:       0.0.9
-Release:       0%{?dist}
+Release:       1%{?dist}
 
 License:       GPLv2+
 Group:         System Environment/Daemons
 
-Source0:       %{name}-%{version}.tar.bz2
+Source0:       https://github.com/mstpd/mstpd/archive/%{version}/%{name}-%{version}.tar.gz
+%{?systemd_ordering}
+BuildRequires: gcc, make, systemd, pkgconfig, autoconf, automake
+Requires: bridge-utils
+Requires: iproute
+Requires: python3
 
 %description
 This package provides a user-space daemon which replaces the STP handling that
@@ -27,18 +32,21 @@ on Linux bridges when MSTP is used.
 ./autogen.sh
 %define _exec_prefix %{nil}
 %define _libexecdir /lib
-%configure
-make %{?_smp_mflags}
+%configure --with-systemdunitdir=%{_unitdir}
+%make_build
 
 %install
-rm -rf %{buildroot}
-make install DESTDIR=%{buildroot}
+%make_install
 
-sed -i -e 's|/etc/network/interfaces|/etc/sysconfig/network-scripts/bridge-stp|g' %{buildroot}/%{_libexecdir}/mstpctl-utils/ifquery
-sed -i -e 's|/etc/network/interfaces|/etc/sysconfig/network-scripts/bridge-stp|g' %{buildroot}/%{_libexecdir}/mstpctl-utils/mstp_config_bridge
+mkdir -p $RPM_BUILD_ROOT%{_prefix}/lib/NetworkManager/dispatcher.d
+install -m 755 -p utils/nm-dispatcher \
+  $RPM_BUILD_ROOT%{_prefix}/lib/NetworkManager/dispatcher.d/45-mstpd
 
-mkdir -p %{buildroot}/%{_sysconfdir}/sysconfig/network-scripts
-cat <<END > %{buildroot}/%{_sysconfdir}/sysconfig/network-scripts/bridge-stp
+sed -i -e 's|/etc/network/interfaces|%{_sysconfdir}/sysconfig/network-scripts/bridge-stp|g' $RPM_BUILD_ROOT%{_libexecdir}/mstpctl-utils/ifquery
+sed -i -e 's|/etc/network/interfaces|%{_sysconfdir}/sysconfig/network-scripts/bridge-stp|g' $RPM_BUILD_ROOT%{_libexecdir}/mstpctl-utils/mstp_config_bridge
+
+mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/network-scripts
+cat <<'END' > $RPM_BUILD_ROOT%{_sysconfdir}/sysconfig/network-scripts/bridge-stp
 # To automatically configure mstpd at boot in RHEL/Fedora:
 # * If you are bridging VLANs / trunk ports, see
 #   /usr/share/doc/mstpd/README.VLANs
@@ -65,7 +73,7 @@ cat <<END > %{buildroot}/%{_sysconfdir}/sysconfig/network-scripts/bridge-stp
 #   bridge, which will fail.
 #   https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/s2-networkscripts-interfaces_network-bridge.html
 # * Add the following line (uncommented) at the end of the bridge's ifcfg file:
-#   [ "\$0" = '/etc/sysconfig/network-scripts/ifup-eth' ] && /lib/mstpctl-utils/mstp_config_bridge "\$DEVICE"
+#   [ "$0" = '/etc/sysconfig/network-scripts/ifup-eth' ] && /lib/mstpctl-utils/mstp_config_bridge "$DEVICE"
 # * Replace "br0" in the "iface" line below with the bridge's DEVICE name, and
 #   adjust the mstpctl_* configuration options as needed.
 #   See `man mstpctl-utils-interfaces` for documentation on the options.
@@ -83,19 +91,25 @@ iface br0
     mstpctl_txholdcount 6
     mstpctl_maxhops 20
     mstpctl_treeprio 8
-    mstpctl_treeportprio swp3=8
-    mstpctl_portpathcost swp1=0 swp2=0
-    mstpctl_portadminedge swp1=no swp2=no
-    mstpctl_portautoedge swp1=yes swp2=yes
-    mstpctl_portp2p swp1=no swp2=no
-    mstpctl_portrestrrole swp1=no swp2=no
-    mstpctl_bpduguard swp1=no swp2=no
-    mstpctl_portrestrtcn swp1=no swp2=no
-    mstpctl_portnetwork swp1=no
+    #mstpctl_treeportprio eth2=8
+    #mstpctl_portpathcost eth1=0 eth2=0
+    #mstpctl_portadminedge eth1=no eth2=no
+    #mstpctl_portautoedge eth1=yes eth2=yes
+    #mstpctl_portp2p eth1=no eth2=no
+    #mstpctl_portrestrrole eth1=no eth2=no
+    #mstpctl_bpduguard eth1=no eth2=no
+    #mstpctl_portrestrtcn eth1=no eth2=no
+    #mstpctl_portnetwork eth1=no
 END
 
-%clean
-rm -rf %{buildroot}
+%post
+%systemd_post %{name}.service
+
+%preun
+%systemd_preun %{name}.service
+
+%postun
+%systemd_postun_with_restart %{name}.service
 
 %files
 %defattr(-,root,root,-)
@@ -106,6 +120,8 @@ rm -rf %{buildroot}
 %config(noreplace) %{_sysconfdir}/bridge-stp.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/network-scripts/bridge-stp
 %{_sysconfdir}/bash_completion.d/mstpctl
+%{_unitdir}/mstpd.service
+%{_prefix}/lib/NetworkManager/dispatcher.d/45-mstpd
 %{_libexecdir}/mstpctl-utils/mstpctl_restart_config
 %{_libexecdir}/mstpctl-utils/mstp_config_bridge
 %{_libexecdir}/mstpctl-utils/ifquery

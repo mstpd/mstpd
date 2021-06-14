@@ -1,12 +1,13 @@
 [Unit]
 Description=MSTP daemon
-Before=network.target
+Before=network-pre.target
 
 [Service]
 Type=forking
-ExecStart=@mstpdfile@
+ExecStart=@bridgestpfile@ restart
 PIDFile=@mstpdpidfile@
-Restart=on-failure
+ExecReload=@bridgestpfile@ restart_config
+Restart=always
 PrivateTmp=yes
 ProtectHome=yes
 
