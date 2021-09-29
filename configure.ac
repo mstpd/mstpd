@@ -45,10 +45,9 @@ PKG_PROG_PKG_CONFIG
 
 # Optional building of examples
 AC_ARG_ENABLE([devel],
-	[AC_HELP_STRING([--enable-devel], [build devel mode])],
-	[enable_devel=yes], [])
+	[AC_HELP_STRING([--enable-devel], [build devel mode])])
 
-AM_CONDITIONAL([ENABLE_DEVEL], [test "$enable_devel" = yes])
+AM_CONDITIONAL([ENABLE_DEVEL], [test "x$enable_devel" = "xyes"])
 
 AC_ARG_WITH([bashcompletiondir],
      [AS_HELP_STRING([--with-bashcompletiondir=DIR], [Directory for bash completion files.
