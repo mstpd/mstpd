@@ -49,6 +49,11 @@ AC_ARG_ENABLE([devel],
 
 AM_CONDITIONAL([ENABLE_DEVEL], [test "x$enable_devel" = "xyes"])
 
+AC_ARG_ENABLE([install-ifupdown-scripts],
+	[AC_HELP_STRING([--enable-install-ifupdown-scripts], [enable installation of ifupdown scripts])])
+
+AM_CONDITIONAL([ENABLE_INSTALL_IFUPDOWN_SCRIPTS], [test "x$enable_install_ifupdown_scripts" = "xyes"])
+
 AC_ARG_WITH([bashcompletiondir],
      [AS_HELP_STRING([--with-bashcompletiondir=DIR], [Directory for bash completion files.
      [default=${sysconfdir}/bash_completion.d]])],,

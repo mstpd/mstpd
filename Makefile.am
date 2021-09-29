@@ -87,17 +87,18 @@ bashcompdest=$(DESTDIR)$(bashcompletiondir)
 systemdunitdest=$(DESTDIR)$(systemdunitdir)
 nmlibdest=$(DESTDIR)$(nmlibdir)
 
+if ENABLE_INSTALL_IFUPDOWN_SCRIPTS
+IFUPDOWN_SCRIPT_INSTALL_CMDS = \
+	$(MKDIR_P) $(etcdest)/network/if-pre-up.d ; \
+	ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
+	$(MKDIR_P) $(etcdest)/network/if-post-down.d ; \
+	ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl
+endif
+
 install-exec-hook:
 	ln -sf $(sbindir)/bridge-stp $(sbindest)/mstp_restart
 	ln -sf $(sbindir)/bridge-stp $(utilsdest)/mstpctl_restart_config
-	if [ -d $(sysconfdir)/network/if-pre-up.d ]; then \
-	  $(MKDIR_P) $(etcdest)/network/if-pre-up.d ; \
-	  ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-pre-up.d/mstpctl ; \
-	fi
-	if [ -d $(sysconfdir)/network/if-post-down.d ]; then \
-	  $(MKDIR_P) $(etcdest)/network/if-post-down.d ; \
-	  ln -sf $(utilsexecdir)/ifupdown.sh $(etcdest)/network/if-post-down.d/mstpctl ; \
-	fi
+	$(IFUPDOWN_SCRIPT_INSTALL_CMDS)
 	$(MKDIR_P) $(bashcompdest)
 	$(INSTALL_DATA) $(srcdir)/utils/bash_completion $(bashcompdest)/mstpctl
 	if [ -n "$(systemdunitdir)" ]; then \
