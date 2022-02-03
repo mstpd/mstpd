@@ -90,18 +90,6 @@ install-data-hook:
 	mkdir -pv $(docdest)
 	install -m 644 $(srcdir)/README.VLANs.md $(docdest)/README.VLANs
 
-deb: debian/changelog
-#	# Build unsigned binary package
-	dpkg-buildpackage --build=binary -us -uc
-#	# Build signed binary and source packages
-#	#debuild
-
-debian/changelog: configure.ac
-	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
-	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
-	[ -n "$$Version" ] || exit 3 ; \
-	perl -0777 -i -p -e "s/^mstpd \([^)]*\) /mstpd ($$Version) /m" debian/changelog
-
 rpm: rpm.spec
 	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
 	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
