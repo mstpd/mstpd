@@ -9,6 +9,10 @@
 /utils/ifupdown.sh.tmp
 /utils/mstp_config_bridge
 /utils/mstp_config_bridge.tmp
+/utils/mstpd.service
+/utils/mstpd.service.tmp
+/utils/nm-dispatcher
+/utils/nm-dispatcher.tmp
 
 # autotools files
 /m4/lt*.m4
@@ -27,6 +31,7 @@ depcomp
 install-sh
 ltmain.sh
 missing
+/mstpd-*.tar.gz
 
 # configure files
 Makefile
