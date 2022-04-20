@@ -1257,7 +1257,8 @@ static int cmd_showportparams(int argc, char *const *argv)
             if(0 == strcmp(argv[argc - count + i], cist_port_params[j].str))
             {
                 param_id[i] = cist_port_params[j].id;
-                err = 0; break;
+                err = 0;
+                break;
             }
         }
         if (err)
