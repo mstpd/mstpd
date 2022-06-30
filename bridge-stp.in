@@ -81,7 +81,7 @@ MSTPD_ARGS=''
 # A space-separated list of bridges for which MSTP should be used in place of
 # the kernel's STP implementation.  If empty, MSTP will be used for all bridges.
 MSTP_BRIDGES=''
-LOGGER='logger --tag bridge-stp --stderr'
+LOGGER='logger -t bridge-stp -s'
 
 # Read the config.
 if [ -e '@bridgestpconffile@' ]; then
