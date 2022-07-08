@@ -83,6 +83,15 @@ MSTPD_ARGS=''
 MSTP_BRIDGES=''
 LOGGER='logger -t bridge-stp -s'
 
+# Set proper pidof command. Busybox doesn't support the -c argument, so test
+# for it and adjust our call accordingly
+pidof -c init
+if [[ $? -eq 0 ]] then
+    PIDOF="pidof -c"
+else
+    PIDOF="pidof"
+fi
+
 # Read the config.
 if [ -e '@bridgestpconffile@' ]; then
     . '@bridgestpconffile@'
@@ -139,7 +148,7 @@ case "$action" in
         fi
 
         # Start mstpd if necessary.
-        if ! pidof -c -s mstpd >/dev/null; then
+        if ! $PIDOF -s mstpd >/dev/null; then
             if [ "$MANAGE_MSTPD" != 'y' ]; then
                 errmsg 'mstpd is not running'
                 exit 3
@@ -212,12 +221,12 @@ case "$action" in
         done
 
         # Kill mstpd, since no bridges are currently using it.
-        kill $(pidof -c mstpd)
+        kill $($PIDOF mstpd)
         ;;
     restart|restart_config)
         if [ "$action" = 'restart' ]; then
             # Kill mstpd.
-            pids="$(pidof -c mstpd)" ; Err=$?
+            pids="$($PIDOF mstpd)" ; Err=$?
             if [ $Err -eq 0 ]; then
                 echo 'Stopping mstpd ...'
                 kill $pids
