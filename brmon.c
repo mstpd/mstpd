@@ -288,13 +288,13 @@ int fill_vlan_table(sysdep_if_data_t *if_data)
     /* For unknown reason setting ifindex to non-zero will cause the kernel
      * to flood us with the same message over and over again, so filter
      * within mstpd for now */
-    if(rtnl_dump_request(&rth, RTM_GETVLAN, &bvm, sizeof(bvm)) < 0)
+    if(rtnl_dump_request(&rth_state, RTM_GETVLAN, &bvm, sizeof(bvm)) < 0)
     {
         ERROR("Cannot send dump request: %m\n");
         return -1;
     }
 
-    if(rtnl_dump_filter(&rth, vlan_table_msg, if_data, NULL, NULL) < 0)
+    if(rtnl_dump_filter(&rth_state, vlan_table_msg, if_data, NULL, NULL) < 0)
     {
         ERROR("Dump terminated\n");
         return -1;
