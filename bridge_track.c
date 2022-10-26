@@ -309,7 +309,7 @@ static void set_if_up(port_t *prt, bool up)
         MSTP_IN_set_port_enable(prt, prt->sysdeps.up, prt->sysdeps.speed,
                                 prt->sysdeps.duplex);
         if (have_per_vlan_state)
-            br_set_state(&rth_state,  prt->sysdeps.if_index, up ? BR_STATE_FORWARDING : BR_STATE_DISABLED);
+            br_set_state(&rth_state,  prt->sysdeps.if_index, up && prt->bridge->sysdeps.up ? BR_STATE_FORWARDING : BR_STATE_DISABLED);
     }
 }
 
