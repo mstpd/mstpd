@@ -58,8 +58,8 @@ static struct epoll_event_handler nl_handler;
 
 struct rtnl_handle rth_state;
 
-static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
-                    void *arg)
+static int dump_br_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                       void *arg)
 {
     struct ifinfomsg *ifi = NLMSG_DATA(n);
     struct rtattr * tb[IFLA_MAX + 1];
@@ -166,6 +166,28 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     return 0;
 }
 
+static int dump_vlan_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                    void *arg)
+{
+    return 0;
+}
+
+static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
+                    void *arg)
+{
+    switch (n->nlmsg_type)
+    {
+        case RTM_NEWLINK:
+        case RTM_DELLINK:
+            return dump_br_msg(who, n, arg);
+        case RTM_NEWVLAN:
+        case RTM_DELVLAN:
+            return dump_vlan_msg(who, n, arg);
+        default:
+            return 0;
+    }
+}
+
 static inline void nl_ev_handler(uint32_t events, struct epoll_event_handler *h)
 {
     if(rtnl_listen(&rth, dump_msg, stdout) < 0)
@@ -186,6 +208,11 @@ int init_netlink_ops(void)
     {
         ERROR("Couldn't open rtnl socket for setting state\n");
         return -1;
+    }
+
+    if(rtnl_add_nl_group(&rth, RTNLGRP_BRVLAN) < 0)
+    {
+        ERROR("Couldn't join RTNLGRP_BRVLAN\n");
     }
 
     if(rtnl_wilddump_request(&rth, PF_BRIDGE, RTM_GETLINK) < 0)
