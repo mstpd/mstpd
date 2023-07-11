@@ -54,7 +54,7 @@ static const char *port_states[] =
 };
 
 static struct rtnl_handle rth;
-static struct epoll_event_handler br_handler;
+static struct epoll_event_handler nl_handler;
 
 struct rtnl_handle rth_state;
 
@@ -166,7 +166,7 @@ static int dump_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     return 0;
 }
 
-static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
+static inline void nl_ev_handler(uint32_t events, struct epoll_event_handler *h)
 {
     if(rtnl_listen(&rth, dump_msg, stdout) < 0)
     {
@@ -174,7 +174,7 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
     }
 }
 
-int init_bridge_ops(void)
+int init_netlink_ops(void)
 {
     if(rtnl_open(&rth, RTMGRP_LINK) < 0)
     {
@@ -206,11 +206,11 @@ int init_bridge_ops(void)
         return -1;
     }
 
-    br_handler.fd = rth.fd;
-    br_handler.arg = NULL;
-    br_handler.handler = br_ev_handler;
+    nl_handler.fd = rth.fd;
+    nl_handler.arg = NULL;
+    nl_handler.handler = nl_ev_handler;
 
-    if(add_epoll(&br_handler) < 0)
+    if(add_epoll(&nl_handler) < 0)
         return -1;
 
     return 0;
