@@ -174,7 +174,7 @@ static int dump_vlan_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
 {
     struct br_vlan_msg *bvm = NLMSG_DATA(n);
     struct rtattr *pos;
-    int len = n->nlmsg_len;
+    int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*bvm));
     bool newvlan = n->nlmsg_type == RTM_NEWVLAN;
 
     for (pos = NLMSG_DATA(n) + NLMSG_ALIGN(sizeof(*bvm)); RTA_OK(pos, len); pos = RTA_NEXT(pos, len))
@@ -220,7 +220,7 @@ static int vlan_table_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
 {
     struct br_vlan_msg *bvm = NLMSG_DATA(n);
     struct rtattr *pos;
-    int len = n->nlmsg_len;
+    int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*bvm));
     sysdep_if_data_t *if_data = arg;
 
     if (bvm->ifindex != if_data->if_index)
