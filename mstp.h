@@ -17,6 +17,7 @@
 
 #include "bridge_ctl.h"
 #include "list.h"
+#include "epoll_loop.h"
 
 /* #define HMAC_MDS_TEST_FUNCTIONS */
 
@@ -454,7 +455,8 @@ typedef struct
     list_entry((prt)->trees.next, per_tree_port_t, port_list)
 
     /* 13.21.(a,b,c) Per-port timers */
-    unsigned int mdelayWhile, helloWhen, edgeDelayWhile;
+    unsigned int mdelayWhile, helloWhen;
+    struct epoll_event_handler edgeDelayWhile;
 
     /* 13.24.(b,c,e,f,g,j,k,l,m,n,o,p,q,r,aw) Per-port variables */
     unsigned int txCount;
