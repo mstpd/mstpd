@@ -570,6 +570,7 @@ void MSTP_IN_set_bridge_address(bridge_t *br, __u8 *macaddr);
 void MSTP_IN_set_bridge_enable(bridge_t *br, bool up);
 void MSTP_IN_set_port_enable(port_t *prt, bool up, int speed, int duplex);
 void MSTP_IN_one_second(bridge_t *br);
+void MSTP_IN_timer_expired(bridge_t *br);
 void MSTP_IN_all_fids_flushed(per_tree_port_t *ptp);
 void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size);
 

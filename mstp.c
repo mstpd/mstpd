@@ -559,6 +559,30 @@ void MSTP_IN_one_second(bridge_t *br)
     br_state_machines_run(br);
 }
 
+void MSTP_IN_timer_expired(bridge_t *br)
+{
+    /* The MSTP_IN_one_second method above provides a simple one
+     * second tick-based mechanism to drive several timers. This
+     * mechanism is accurate to +/- one second depending on when the
+     * event being timed occurred. That accuracy is insufficient for a
+     * distributed protocol which relies on better-than one second
+     * timing between peers (e.g. for edge transitions).
+     */
+
+    /* The goal is to replace all the tick-based timers with timerfds
+     * that are monitored by the event loop. When any such timer
+     * expires it will trigger this function which will peform the
+     * equivalent of the tick but at precise times. When that is
+     * complete the time mechanism wil be removed.
+     */
+
+    /* The strategy is to replace one tick-based timer at a time,
+     * starting with the most critical ones.
+     */
+
+    br_state_machines_run(br);
+}
+
 void MSTP_IN_all_fids_flushed(per_tree_port_t *ptp)
 {
     bridge_t *br = ptp->port->bridge;
