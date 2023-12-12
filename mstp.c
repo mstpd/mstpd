@@ -271,6 +271,16 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
     return true;
 }
 
+static void mstp_timer_event_handler(uint32_t events, struct epoll_event_handler *p) {
+    MSTP_IN_timer_expired(p->arg);
+}
+
+static void mstp_timer_init(struct epoll_event_handler *p, bridge_t *br) {
+    epoll_timer_init(p);
+    p->arg = br;
+    p->handler = mstp_timer_event_handler;
+}
+
 bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
 {
     tree_t *tree;
@@ -305,6 +315,8 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->deleted = false;
 
     port_default_internal_vars(prt);
+
+    mstp_timer_init(&prt->edgeDelayWhile, br);
 
     /* Create PerTreePort structures for all existing trees */
     FOREACH_TREE_IN_BRIDGE(tree, br)
@@ -355,6 +367,8 @@ void MSTP_IN_delete_port(port_t *prt)
         list_del(&ptp->tree_list);
         free(ptp);
     }
+
+    epoll_timer_close(&prt->edgeDelayWhile);
 
     list_del(&prt->br_list);
     br_state_machines_run(br);
@@ -555,6 +569,30 @@ void MSTP_IN_one_second(bridge_t *br)
             }
         }
     }
+
+    br_state_machines_run(br);
+}
+
+void MSTP_IN_timer_expired(bridge_t *br)
+{
+    /* The MSTP_IN_one_second method above provides a simple one
+     * second tick-based mechanism to drive several timers. This
+     * mechanism is accurate to +/- one second depending on when the
+     * event being timed occurred. That accuracy is insufficient for a
+     * distributed protocol which relies on better-than one second
+     * timing between peers (e.g. for edge transitions).
+     */
+
+    /* The goal is to replace all the tick-based timers with timerfds
+     * that are monitored by the event loop. When any such timer
+     * expires it will trigger this function which will peform the
+     * equivalent of the tick but at precise times. When that is
+     * complete the time mechanism wil be removed.
+     */
+
+    /* The strategy is to replace one tick-based timer at a time,
+     * starting with the most critical ones.
+     */
 
     br_state_machines_run(br);
 }
@@ -2852,8 +2890,6 @@ static void PTSM_tick(port_t *prt)
         --(prt->helloWhen);
     if(prt->mdelayWhile)
         --(prt->mdelayWhile);
-    if(prt->edgeDelayWhile)
-        --(prt->edgeDelayWhile);
     if(prt->txCount)
         --(prt->txCount);
     if(prt->brAssuRcvdInfoWhile)
@@ -2885,7 +2921,7 @@ static bool PRSM_to_DISCARD(port_t *prt, bool dry_run)
     {
         return (prt->PRSM_state != PRSM_DISCARD)
                || prt->rcvdBpdu || prt->rcvdRSTP || prt->rcvdSTP
-               || (prt->edgeDelayWhile != prt->bridge->Migrate_Time)
+               || (epoll_timer_active(&prt->edgeDelayWhile))
                || clearAllRcvdMsgs(prt, dry_run);
     }
 
@@ -2895,7 +2931,7 @@ static bool PRSM_to_DISCARD(port_t *prt, bool dry_run)
     prt->rcvdRSTP = false;
     prt->rcvdSTP = false;
     clearAllRcvdMsgs(prt, false /* actual run */);
-    assign(prt->edgeDelayWhile, prt->bridge->Migrate_Time);
+    epoll_timer_start(&prt->edgeDelayWhile, prt->bridge->Migrate_Time);
 
     /* No need to run, no one condition will be met
      * if(!begin)
@@ -2912,7 +2948,7 @@ static void PRSM_to_RECEIVE(port_t *prt)
     setRcvdMsgs(prt);
     prt->operEdge = false;
     prt->rcvdBpdu = false;
-    assign(prt->edgeDelayWhile, prt->bridge->Migrate_Time);
+    epoll_timer_start(&prt->edgeDelayWhile, prt->bridge->Migrate_Time);
 
     /* No need to run, no one condition will be met
       PRSM_run(prt, false); */
@@ -2923,7 +2959,7 @@ static bool PRSM_run(port_t *prt, bool dry_run)
     per_tree_port_t *ptp;
     bool rcvdAnyMsg;
 
-    if((prt->rcvdBpdu || (prt->edgeDelayWhile != prt->bridge->Migrate_Time))
+    if((prt->rcvdBpdu || (epoll_timer_active(&prt->edgeDelayWhile)))
        && !prt->portEnabled)
     {
         return PRSM_to_DISCARD(prt, dry_run);
@@ -3106,7 +3142,7 @@ static bool BDSM_run(port_t *prt, bool dry_run)
              *  from CIST tree - it seems like a good bet.
              */
             if((!prt->portEnabled && prt->AdminEdgePort)
-               || ((0 == prt->edgeDelayWhile) && prt->AutoEdge && prt->sendRSTP
+               || (epoll_timer_expired(&prt->edgeDelayWhile) && prt->AutoEdge && prt->sendRSTP
                    && cist->proposing)
               )
             {
@@ -3955,7 +3991,7 @@ static void PRTSM_to_DESIGNATED_PROPOSE(per_tree_port_t *ptp)
         unsigned int EdgeDelay = prt->operPointToPointMAC ?
                                    prt->bridge->Migrate_Time
                                  : MaxAge;
-        assign(prt->edgeDelayWhile, EdgeDelay);
+        epoll_timer_start(&prt->edgeDelayWhile, EdgeDelay);
         prt->newInfo = true;
     }
     else
