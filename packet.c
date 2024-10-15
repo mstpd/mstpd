@@ -131,7 +131,7 @@ static void packet_rcv(uint32_t events, struct epoll_event_handler *h)
 
     dump_packet(buf, cc);
 #endif
-
+    printf("sll_ifindex = %d and cc = %d\n", sl.sll_ifindex, cc);
     bridge_bpdu_rcv(sl.sll_ifindex, buf, cc);
 }
 
