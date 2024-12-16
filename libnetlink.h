@@ -7,13 +7,18 @@
 #include <linux/rtnetlink.h>
 #include <sys/types.h>
 
-struct rtnl_handle
-{
-    int fd;
-    struct sockaddr_nl local;
-    struct sockaddr_nl peer;
-    __u32 seq;
-    __u32 dump;
+struct rtnl_handle {
+	int			fd;
+	struct sockaddr_nl	local;
+	struct sockaddr_nl	peer;
+	__u32			seq;
+	__u32			dump;
+	int			proto;
+	FILE		       *dump_fp;
+#define RTNL_HANDLE_F_LISTEN_ALL_NSID		0x01
+#define RTNL_HANDLE_F_SUPPRESS_NLERR		0x02
+#define RTNL_HANDLE_F_STRICT_CHK		0x04
+	int			flags;
 };
 
 int rtnl_open(struct rtnl_handle *rth, unsigned subscriptions);
@@ -33,9 +38,12 @@ int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
 int rtnl_send(struct rtnl_handle *rth, const char *buf, int);
 
 int addattr8(struct nlmsghdr *n, int maxlen, int type, __u8 data);
+int addattr16(struct nlmsghdr *n, int maxlen, int type, __u16 data);
 int addattr32(struct nlmsghdr *n, int maxlen, int type, __u32 data);
 int addattr_l(struct nlmsghdr *n, int maxlen, int type, const void *data,
               int alen);
+struct rtattr *addattr_nest(struct nlmsghdr *n, int maxlen, int type);
+int addattr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
 int addraw_l(struct nlmsghdr *n, int maxlen, const void *data, int len);
 int rta_addattr8(struct rtattr *rta, int maxlen, int type, __u8 data);
 int rta_addattr16(struct rtattr *rta, int maxlen, int type, __u16 data);
@@ -63,5 +71,22 @@ int rtnl_from_file(FILE *, rtnl_filter_t handler, void *jarg);
 
 #define NLMSG_TAIL(nmsg) \
     ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
+
+enum {
+	IFLA_BRIDGE_MST_UNSPEC,
+	IFLA_BRIDGE_MST_ENTRY,
+	__IFLA_BRIDGE_MST_MAX,
+};
+#define IFLA_BRIDGE_MST_MAX (__IFLA_BRIDGE_MST_MAX - 1)
+
+enum {
+	IFLA_BRIDGE_MST_ENTRY_UNSPEC,
+	IFLA_BRIDGE_MST_ENTRY_MSTI,
+	IFLA_BRIDGE_MST_ENTRY_STATE,
+	__IFLA_BRIDGE_MST_ENTRY_MAX,
+};
+#define IFLA_BRIDGE_MST_ENTRY_MAX (__IFLA_BRIDGE_MST_ENTRY_MAX - 1)
+
+#define IFLA_BRIDGE_MST		6
 
 #endif /* __LIBNETLINK_H__ */
