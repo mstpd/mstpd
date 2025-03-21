@@ -169,6 +169,55 @@ static int dump_br_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
 static int dump_vlan_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
                     void *arg)
 {
+    struct br_vlan_msg *bvm = NLMSG_DATA(n);
+    int len = n->nlmsg_len;
+    struct rtattr *pos;
+    int ifindex;
+
+    bool newvlan = n->nlmsg_type == RTM_NEWVLAN;
+
+    len -= NLMSG_LENGTH(sizeof(*bvm));
+    if(len < 0)
+        return -1;
+
+    if (bvm->family != AF_BRIDGE)
+        return 0;
+
+    ifindex = bvm->ifindex;
+
+    LOG("%d: %sVLAN ", ifindex, (newvlan ? "NEW" : "DEL"));
+
+    for(pos = BRVLAN_RTA(bvm); RTA_OK(pos, len); pos = RTA_NEXT(pos, len))
+    {
+        struct rtattr *tb[BRIDGE_VLANDB_ENTRY_MAX + 1];
+        struct bridge_vlan_info *info = NULL;
+        __u16 i, range = 0;
+	
+        if((pos->rta_type & NLA_TYPE_MASK) != BRIDGE_VLANDB_ENTRY)
+	  continue;
+
+        parse_rtattr_nested(tb, BRIDGE_VLANDB_ENTRY_MAX, pos);
+
+        if (tb[BRIDGE_VLANDB_ENTRY_INFO])
+            info = RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_INFO]);
+        if (tb[BRIDGE_VLANDB_ENTRY_RANGE])
+            range = *(__u16 *)RTA_DATA(tb[BRIDGE_VLANDB_ENTRY_RANGE]);
+
+        if(!info)
+        {
+            ERROR("BUG: nil bridge_vlan_info\n");
+            continue;
+        }
+
+        LOG("%d: info->vid %i, range %i", ifindex, info->vid, range);
+
+        if(!range)
+            range = info->vid;
+
+        for(i = info->vid; i <= range; i++)
+            bridge_vlan_notify(ifindex, newvlan, i);
+    }
+
     return 0;
 }
 
@@ -198,6 +247,8 @@ static inline void nl_ev_handler(uint32_t events, struct epoll_event_handler *h)
 
 int init_netlink_ops(void)
 {
+    bool have_vlandb = false;
+
     if(rtnl_open(&rth, RTMGRP_LINK) < 0)
     {
         ERROR("Couldn't open rtnl socket for monitoring\n");
@@ -214,6 +265,10 @@ int init_netlink_ops(void)
     {
         ERROR("Couldn't join RTNLGRP_BRVLAN\n");
     }
+    else
+    {
+        have_vlandb = true;
+    }
 
     if(rtnl_wilddump_request(&rth, PF_BRIDGE, RTM_GETLINK) < 0)
     {
@@ -225,6 +280,21 @@ int init_netlink_ops(void)
     {
         ERROR("Dump terminated\n");
         return -1;
+    }
+
+    if(have_vlandb)
+    {
+        if(rtnl_wilddump_request(&rth, PF_BRIDGE, RTM_GETVLAN) < 0)
+        {
+            ERROR("Cannot send vlandb dump request: %m\n");
+            return -1;
+        }
+
+        if(rtnl_dump_filter(&rth, dump_msg, stdout, NULL, NULL) < 0)
+        {
+            ERROR("Vlandb dump terminated\n");
+            return -1;
+        }
     }
 
     if(fcntl(rth.fd, F_SETFL, O_NONBLOCK) < 0)

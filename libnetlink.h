@@ -75,4 +75,9 @@ int rtnl_from_file(FILE *, rtnl_filter_t handler, void *jarg);
 #define NLMSG_TAIL(nmsg) \
     ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
+#ifndef BRVLAN_RTA
+#define BRVLAN_RTA(r) \
+	((struct rtattr *)(((char *)(r)) + NLMSG_ALIGN(sizeof(struct br_vlan_msg))))
+#endif
+
 #endif /* __LIBNETLINK_H__ */

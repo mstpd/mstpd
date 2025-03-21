@@ -362,6 +362,61 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
     return 0;
 }
 
+static inline void set_vlan(__u32 *vlans, __u16 vid)
+{
+    int offset = vid / 32;
+    int bit = vid % 32;
+
+    vlans[offset] |= (1u << bit);
+}
+
+static inline void clear_vlan(__u32 *vlans, __u16 vid)
+{
+    int offset = vid / 32;
+    int bit = vid % 32;
+
+    vlans[offset] &= ~(1u << bit);
+}
+
+static inline bool get_vlan(__u32 *vlans, __u16 vid)
+{
+    int offset = vid / 32;
+    int bit = vid % 32;
+
+    return !!(vlans[offset] & (1u << bit));
+}
+
+int bridge_vlan_notify(int if_index, bool newvlan, __u16 vid)
+{
+  bridge_t *br = NULL;
+  port_t *prt = NULL;
+  __u32 *vlans = NULL;
+
+  LOG("if_index %d, newvlan %d, vid %d", if_index, newvlan, vid);
+
+  br = find_br(if_index);
+  if(br)
+  {
+       vlans = br->sysdeps.vlans;
+  }
+  else
+  {
+      prt = find_if(NULL, if_index);
+      if(!prt)
+          return -2; /* unknown device */
+
+      br = prt->bridge;
+      vlans = prt->sysdeps.vlans;
+  }
+
+  if(newvlan)
+      set_vlan(vlans, vid);
+  else
+      clear_vlan(vlans, vid);
+
+  return 0;
+}
+
 struct llc_header
 {
     __u8 dest_addr[ETH_ALEN];
