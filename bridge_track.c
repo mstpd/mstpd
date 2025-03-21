@@ -362,6 +362,23 @@ int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags)
     return 0;
 }
 
+int bridge_mst_notify(int br_index, bool mst_en)
+{
+    bridge_t *br = NULL;
+
+    LOG("br_index %d, mst_en %d", br_index, mst_en);
+
+    if(br_index >= 0)
+    {
+        if(!(br = find_br(br_index)))
+            return -2; /* bridge not in list */
+    }
+
+    br->sysdeps.mst_en = mst_en;
+
+    return 0;
+}
+
 static inline void set_vlan(__u32 *vlans, __u16 vid)
 {
     int offset = vid / 32;

@@ -42,6 +42,7 @@ typedef struct
     bool up;
 
     __u32 vlans[VLAN_BITMAP_SIZE];
+    bool mst_en;
 } sysdep_br_data_t;
 
 typedef struct
@@ -88,6 +89,8 @@ extern struct rtnl_handle rth_state;
 int init_netlink_ops(void);
 
 int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags);
+
+int bridge_mst_notify(int if_index, bool mst_en);
 
 int bridge_vlan_notify(int if_index, bool newvlan, __u16 vid);
 

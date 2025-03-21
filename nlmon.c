@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
@@ -160,6 +161,37 @@ static int dump_br_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
         br_index = ifi->ifi_index;
     else
         br_index = -1;
+
+    if(br_index >= 0 && tb[IFLA_LINKINFO])
+    {
+        struct rtattr *tbli[__IFLA_INFO_MAX + 1];
+        char *kind = NULL;
+
+        parse_rtattr_nested(tbli, IFLA_INFO_MAX, tb[IFLA_LINKINFO]);
+        if (tbli[IFLA_INFO_KIND])
+        {
+            kind = (char *)RTA_DATA(tbli[IFLA_INFO_KIND]);
+        }
+
+        if (kind && !strcmp("bridge", kind) && tbli[IFLA_INFO_DATA])
+        {
+            struct rtattr *tbbr[__IFLA_BR_MAX + 1];
+
+            parse_rtattr_nested(tbbr, __IFLA_BR_MAX, tbli[IFLA_INFO_DATA]);
+
+            if (tbbr[IFLA_BR_MULTI_BOOLOPT])
+            {
+                struct br_boolopt_multi *bm;
+                bool mst_en;
+
+                bm = (struct br_boolopt_multi *)RTA_DATA(tbbr[IFLA_BR_MULTI_BOOLOPT]);
+                mst_en = !!(bm->optval & (1u << BR_BOOLOPT_MST_ENABLE));
+
+                bridge_mst_notify(br_index, mst_en);
+            }
+
+        }
+    }
 
     bridge_notify(br_index, ifi->ifi_index, newlink, ifi->ifi_flags);
 
