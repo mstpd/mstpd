@@ -46,6 +46,7 @@
 #endif
 
 static LIST_HEAD(bridges);
+static LIST_HEAD(ports);
 
 static bridge_t * create_br(int if_index)
 {
@@ -111,6 +112,8 @@ static port_t * create_if(bridge_t * br, int if_index)
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
         goto err;
 
+    list_add_tail(&prt->list, &ports);
+
     return prt;
 err:
     free(prt);
@@ -120,16 +123,28 @@ err:
 static port_t * find_if(bridge_t * br, int if_index)
 {
     port_t *prt;
-    list_for_each_entry(prt, &br->ports, br_list)
+
+    if (br) {
+        list_for_each_entry(prt, &br->ports, br_list)
+        {
+            if(prt->sysdeps.if_index == if_index)
+                return prt;
+        }
+    }
+    else
     {
-        if(prt->sysdeps.if_index == if_index)
-            return prt;
+        list_for_each_entry(prt, &ports, list)
+        {
+            if(prt->sysdeps.if_index == if_index)
+                return prt;
+        }
     }
     return NULL;
 }
 
 static inline void delete_if(port_t *prt)
 {
+    list_del(&prt->list);
     MSTP_IN_delete_port(prt);
     free(prt);
 }

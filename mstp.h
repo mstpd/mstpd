@@ -442,6 +442,7 @@ typedef struct
 
 typedef struct
 {
+    struct list_head list; /* anchor in global list of ports */
     struct list_head br_list; /* anchor in bridge's list of ports */
     bridge_t * bridge;
     __be16 port_number;
