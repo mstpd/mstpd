@@ -650,6 +650,33 @@ static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
     return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
 }
 
+static int br_flush_port_vlan(struct rtnl_handle *rth, unsigned ifindex, __u16 vid)
+{
+    struct
+    {
+        struct nlmsghdr n;
+        struct ndmsg ndm;
+        char buf[256];
+    } req;
+
+    memset(&req, 0, sizeof(req));
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ndmsg));
+    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_BULK;
+    req.n.nlmsg_type = RTM_DELNEIGH;
+    req.ndm.ndm_family = PF_BRIDGE;
+    req.ndm.ndm_ifindex = ifindex;
+
+    req.ndm.ndm_flags = NTF_MASTER;
+    /* only flush dynamic entries */
+    req.ndm.ndm_state = 0;
+    addattr16(&req.n, sizeof(req.buf), NDA_NDM_STATE_MASK,
+              NUD_NOARP | NUD_PERMANENT);
+    addattr16(&req.n, sizeof(req.buf), NDA_VLAN, vid);
+
+    return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
+}
+
 static int br_flush_port(char *ifname)
 {
     char fname[128];
@@ -781,14 +808,34 @@ void MSTP_OUT_flush_all_fids(per_tree_port_t * ptp)
 {
     port_t *prt = ptp->port;
     bridge_t *br = prt->bridge;
+    int vid;
 
-    /* Translate CIST flushing to the kernel bridge code */
-    if(0 == ptp->MSTID)
-    { /* CIST */
-        if(0 > br_flush_port(prt->sysdeps.name))
-            ERROR_PRTNAME(br, prt,
-                          "Couldn't flush kernel bridge forwarding database");
+    if (br->sysdeps.mst_en)
+    {
+        for(vid = 1; vid <= MAX_VID; ++vid)
+        {
+            if(br->fid2mstid[br->vid2fid[vid]] != ptp->MSTID)
+                continue;
+
+            if(!get_vlan(prt->sysdeps.vlans, vid))
+                continue;
+    
+            if(0 > br_flush_port_vlan(&rth_state, prt->sysdeps.if_index, vid))
+                ERROR_PRTNAME(br, prt,
+                              "Couldn't flush kernel bridge forwarding database for vid %i", vid);
+        }
     }
+    else
+    {
+        /* Translate CIST flushing to the kernel bridge code */
+        if(0 == ptp->MSTID)
+        { /* CIST */
+            if(0 > br_flush_port(prt->sysdeps.name))
+                ERROR_PRTNAME(br, prt,
+                              "Couldn't flush kernel bridge forwarding database");
+        }
+    }
+
     /* Completion signal MSTP_IN_all_fids_flushed will be called by driver */
     INFO_MSTINAME(br, prt, ptp, "Flushing forwarding database");
     driver_flush_all_fids(ptp);
