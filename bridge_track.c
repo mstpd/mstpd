@@ -609,33 +609,24 @@ static int br_set_ageing_time(char *brname, unsigned int ageing_time)
 
 void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
 {
-    char * state_name;
+    const char * state_name;
     port_t *prt = ptp->port;
     bridge_t *br = prt->bridge;
 
     if(ptp->state == new_state)
         return;
     ptp->state = driver_set_new_state(ptp, new_state);
+    state_name = stp_state_name(ptp->state);
 
     switch(ptp->state)
     {
-        case BR_STATE_LISTENING:
-            state_name = "listening";
-            break;
-        case BR_STATE_LEARNING:
-            state_name = "learning";
-            break;
         case BR_STATE_FORWARDING:
-            state_name = "forwarding";
             ++(prt->num_trans_fwd);
             break;
         case BR_STATE_BLOCKING:
-            state_name = "blocking";
             ++(prt->num_trans_blk);
             break;
         default:
-        case BR_STATE_DISABLED:
-            state_name = "disabled";
             break;
     }
     INFO_MSTINAME(br, prt, ptp, "entering %s state", state_name);

@@ -45,15 +45,6 @@ enum
     IF_LINK_MODE_DORMANT, /* limit upward transition to dormant */
 };
 
-static const char *port_states[] =
-{
-    [BR_STATE_DISABLED] = "disabled",
-    [BR_STATE_LISTENING] = "listening",
-    [BR_STATE_LEARNING] = "learning",
-    [BR_STATE_FORWARDING] = "forwarding",
-    [BR_STATE_BLOCKING] = "blocking",
-};
-
 static struct rtnl_handle rth;
 static struct epoll_event_handler nl_handler;
 
@@ -148,7 +139,7 @@ static int dump_br_msg(const struct sockaddr_nl *who, struct nlmsghdr *n,
     {
         uint8_t state = *(uint8_t *)RTA_DATA(tb[IFLA_PROTINFO]);
         if(state <= BR_STATE_BLOCKING)
-            LOG("state %s", port_states[state]);
+            LOG("state %s", stp_state_name(state));
         else
             LOG("state (%d)", state);
     }
