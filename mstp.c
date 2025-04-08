@@ -1981,7 +1981,7 @@ static port_info_t rcvInfo(per_tree_port_t *ptp)
                                   mTimes, &(ptp->portTimes),
                                   cist);
         if((!msg_SamePriorityAndTimers_port)
-           && betterorsamePriority(mPri, &(ptp->portPriority), 0, 0, cist)
+           && !betterorsamePriority(mPri, &(ptp->portPriority), 0, 0, cist)
           )
             return SuperiorDesignatedInfo;
 

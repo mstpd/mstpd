@@ -107,6 +107,12 @@ static port_t * create_if(bridge_t * br, int if_index)
 
     INFO("Add iface %s as port#%d to bridge %s", prt->sysdeps.name,
          portno, br->sysdeps.name);
+
+    if (packet_sock_init(&prt->packet_event, if_index) < 0) {
+         ERROR("Fialed to init STP sock for port %s", prt->sysdeps.name);
+         goto err;
+    }
+
     prt->bridge = br;
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
         goto err;
@@ -130,6 +136,13 @@ static port_t * find_if(bridge_t * br, int if_index)
 
 static inline void delete_if(port_t *prt)
 {
+   remove_epoll(&prt->packet_event);
+
+   if (prt->packet_event.fd != -1)
+       close(prt->packet_event.fd);
+
+    prt->packet_event.fd = -1;
+
     MSTP_IN_delete_port(prt);
     free(prt);
 }
@@ -146,10 +159,16 @@ static inline bool delete_if_byindex(bridge_t * br, int if_index)
 static bool delete_br_byindex(int if_index)
 {
     bridge_t *br;
+    port_t *prt, *nxt;
     if(!(br = find_br(if_index)))
         return false;
 
     INFO("Delete bridge %s (%d)", br->sysdeps.name, if_index);
+
+    list_for_each_entry_safe(prt, nxt, &br->ports, br_list)
+    {
+       delete_if(prt);
+    }
 
     list_del(&br->list);
     MSTP_IN_delete_bridge(br);
@@ -432,6 +451,44 @@ static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
     return rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
 }
 
+static int mst_set_state(struct rtnl_handle *rth, unsigned ifindex,
+			 __u16 msti, __u8 state)
+{
+    struct rtattr *af_spec, *mst, *entry;
+
+    struct {
+        struct nlmsghdr		n;
+        struct ifinfomsg	ifi;
+        char			buf[512];
+    } req = {
+        .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg)),
+        .n.nlmsg_flags = NLM_F_REQUEST | NLM_F_REPLACE | NLM_F_ROOT,
+        .n.nlmsg_type = RTM_SETLINK,
+        .ifi.ifi_family = PF_BRIDGE,
+    };
+
+    int ret;
+
+    req.ifi.ifi_index = ifindex;
+
+    af_spec = addattr_nest(&req.n, sizeof(req), IFLA_AF_SPEC);
+    mst = addattr_nest(&req.n, sizeof(req), IFLA_BRIDGE_MST);
+    entry = addattr_nest(&req.n, sizeof(req), IFLA_BRIDGE_MST_ENTRY);
+    entry->rta_type |= NLA_F_NESTED;
+
+    addattr16(&req.n, sizeof(req), IFLA_BRIDGE_MST_ENTRY_MSTI, msti);
+    addattr8(&req.n, sizeof(req), IFLA_BRIDGE_MST_ENTRY_STATE, state);
+
+    addattr_nest_end(&req.n, entry);
+    addattr_nest_end(&req.n, mst);
+    addattr_nest_end(&req.n, af_spec);
+
+    ret = rtnl_talk(rth, &req.n, 0, 0, NULL, NULL, NULL);
+
+    return ret;
+
+}
+
 static int br_flush_port(char *ifname)
 {
     char fname[128];
@@ -491,14 +548,20 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
             state_name = "disabled";
             break;
     }
-    INFO_MSTINAME(br, prt, ptp, "entering %s state", state_name);
+    INFO_MSTINAME(br, prt, ptp, "entering %s state on msti %d",
+                  state_name, ptp->MSTID);
 
     /* Translate new CIST state to the kernel bridge code */
     if(0 == ptp->MSTID)
     { /* CIST */
         if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
-            ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
+            ERROR_PRTNAME(br, prt, "Couldn't set kernel cist bridge, state %s",
                           state_name);
+    } else
+    {
+        if(0 > mst_set_state(&rth_state, prt->sysdeps.if_index, ptp->MSTID, ptp->state))
+            ERROR_PRTNAME(br, prt, "Couldn't set kernel msti '%d' bridge, state %s",
+                          ptp->MSTID, state_name);
     }
 }
 
@@ -602,7 +665,8 @@ void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
         { .iov_base = bpdu, .iov_len = size }
     };
 
-    packet_send(prt->sysdeps.if_index, iov, 2, sizeof(h) + size);
+    packet_send(prt->packet_event.fd, prt->sysdeps.if_index, iov, 2,
+                sizeof(h) + size);
 }
 
 void MSTP_OUT_shutdown_port(port_t *prt)

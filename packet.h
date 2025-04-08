@@ -27,7 +27,7 @@
 
 #include <sys/uio.h>
 
-void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len);
-int packet_sock_init(void);
+void packet_send(int fd, int ifindex, const struct iovec *iov, int iov_count, int len);
+int packet_sock_init(struct epoll_event_handler *packet_event, unsigned int ifindex);
 
 #endif /* PACKET_SOCK_H */
