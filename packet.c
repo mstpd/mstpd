@@ -40,8 +40,6 @@
 #include "packet.h"
 #include "log.h"
 
-static struct epoll_event_handler packet_event;
-
 #ifdef PACKET_DEBUG
 static void dump_packet(const unsigned char *buf, int cc)
 {
@@ -61,7 +59,7 @@ static void dump_packet(const unsigned char *buf, int cc)
  * To send/receive Spanning Tree packets we use PF_PACKET because
  * it allows the filtering we want but gives raw data
  */
-void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len)
+void packet_send(int fd, int ifindex, const struct iovec *iov, int iov_count, int len)
 {
     int l;
     struct sockaddr_ll sl =
@@ -98,7 +96,7 @@ void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len)
     }
 #endif
 
-    l = sendmsg(packet_event.fd, &msg, 0);
+    l = sendmsg(fd, &msg, 0);
 
     if(l < 0)
     {
@@ -154,7 +152,7 @@ static struct sock_filter stp_filter[] = {
  * Since any bridged devices are already in promiscious mode
  * no need to add multicast address.
  */
-int packet_sock_init(void)
+int packet_sock_init(struct epoll_event_handler *packet_event, unsigned int ifindex)
 {
     int s;
     struct sock_fprog prog =
@@ -162,11 +160,25 @@ int packet_sock_init(void)
         .len = sizeof(stp_filter) / sizeof(stp_filter[0]),
         .filter = stp_filter,
     };
+    struct sockaddr_ll sll;
 
-    s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_802_2));
+    packet_event->fd = -1;
+
+    s = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if(s < 0)
     {
         ERROR("socket failed: %m");
+        return -1;
+    }
+
+    memset(&sll, 0, sizeof(sll));
+    sll.sll_family = PF_PACKET;
+    sll.sll_ifindex = ifindex;
+    sll.sll_protocol = htons(ETH_P_ALL);
+
+    if (bind(s, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
+        ERROR( "bind() failed: %m")
+        close(s);
         return -1;
     }
 
@@ -176,11 +188,11 @@ int packet_sock_init(void)
         ERROR("fcntl set nonblock failed: %m");
     else
     {
-        packet_event.fd = s;
-        packet_event.handler = packet_rcv;
+        packet_event->fd = s;
+        packet_event->handler = packet_rcv;
 
-        if(0 == add_epoll(&packet_event))
-            return 0;
+        if(0 == add_epoll(packet_event))
+            return s;
     }
 
     close(s);
