@@ -13,10 +13,12 @@ mstpctl_SOURCES = \
 	ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
 
 mstpd_CFLAGS = \
-	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
+	-Wall -D_REENTRANT -D__LINUX__ -I. \
 	-D_GNU_SOURCE
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0 -Werror
+else
+  mstpd_CFLAGS += -O2 -s
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
@@ -133,6 +135,18 @@ uninstall-hook:
 	-rm -f $(docdest)/README
 	-rm -f $(docdest)/README.VLANs
 	-rmdir $(docdest)
+
+deb: debian/changelog
+#	# Build unsigned binary package
+	dpkg-buildpackage --build=binary -us -uc
+#	# Build signed binary and source packages
+#	#debuild
+
+debian/changelog: configure.ac
+	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
+	{ $$V=$$1; $$V=~s/-/_/g; print $$V; exit; }' configure.ac)" ; \
+	[ -n "$$Version" ] || exit 3 ; \
+	perl -0777 -i -p -e "s/^mstpd \([^)]*\) /mstpd ($$Version) /m" debian/changelog
 
 rpm: mstpd.spec
 	Version="$$(perl -n -e 'if(/AC_INIT[^,]+,\s+\[([^]]+)\]/) \
