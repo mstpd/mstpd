@@ -94,3 +94,42 @@ parts from):
 
   - rstplib by Alex Rozin `<alexr ? nbase DOT co DOT il>` and Michael
   Rozhavsky `<mike ? nbase DOT co DOT il>`
+
+
+COMPILATION
+------------
+
+To compile MSTPD from source, ensure you have the required build tools and dependencies installed, such as `autoconf`, `automake`, `libtool`, `pkg-config`, and a C compiler (e.g., `gcc`). On Debian/Ubuntu systems, you can install them with:
+
+```sh
+sudo apt-get update
+sudo apt-get install build-essential autoconf automake libtool pkg-config
+```
+
+Clone the repository and build the project:
+
+```sh
+git clone git@github.com:CC-SWITCH/mstpd.git
+cd mstpd
+./autogen.sh
+./configure --host=arm-linux-gnueabi --enable-install-ifupdown-scripts
+make
+```
+
+For cross-compilation or additional configuration options, adjust the `./configure` command as needed.
+
+DEB PACKAGE CREATION
+--------------------
+To create a Debian package for MSTPD, ensure you have `dpkg-dev` and other packaging tools installed:
+
+```sh
+sudo apt-get install dpkg-dev
+```
+
+Then, from the project root directory, simply run:
+
+```sh
+make deb
+```
+
+This will generate a `.deb` package in the current directory, which you can install using `dpkg -i`.

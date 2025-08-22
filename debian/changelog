@@ -1,0 +1,26 @@
+mstpd (0.1.0) unstable; urgency=medium
+
+  - libnetlink changes to start supporting Linux per-VLAN STP
+    - libnetlink: Set NLA_F_NESTED in rta_nest
+    - libnetlink: introduce rta_nest and u8, u16, u64 helpers for nesting within rtattr
+      - Jonas Gorski jonas.gorski@bisdn.de
+    - make libnetlink.h standalone
+      - Signed-off-by: Pavel Šimerda code@simerda.eu
+
+  - utils/ifquery: drop python2 support
+    - Jan Klare jan.klare@bisdn.de
+  - Replace brctl with ip and bridge commands
+    - Scott Shambarger devel@shambarger.net
+  - rpm.spec: Fix mock build, requires and quoting
+    - Scott Shambarger devel@shambarger.net
+  - build: add option to enable installation of ifupdown scripts
+    - Alexandru Ardelean ardeleanalex@gmail.com
+
+mstpd (0.0.9) unstable; urgency=medium
+
+  - Handle increasing/decreasing fdelay and maxage in sync in ifcfg files.
+    - Eemil Lagerspetz  <eemil.lagerspetz@lempea.com>  Thu, 28 May 2020 14:18:10 +0300
+mstpd (0.0.8) unstable; urgency=medium
+
+  - Build Debian package.
+    - Vitalii Demianets <vitalii@orsoc.se>  Tue, 10 Jan 2017 20:31:10 -0500
