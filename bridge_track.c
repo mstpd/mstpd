@@ -679,7 +679,8 @@ int CTL_get_cist_bridge_status(int br_index, CIST_BridgeStatus *status,
     list_for_each_entry(ptp, &cist->ports, tree_list)
         if(ptp->portId == status->root_port_id)
         {
-            strncpy(root_port_name, ptp->port->sysdeps.name, IFNAMSIZ);
+            strncpy(root_port_name, ptp->port->sysdeps.name, IFNAMSIZ - 1);
+            root_port_name[IFNAMSIZ - 1] = '\0';
             break;
         }
     return 0;
@@ -698,7 +699,8 @@ int CTL_get_msti_bridge_status(int br_index, __u16 mstid,
     list_for_each_entry(ptp, &tree->ports, tree_list)
         if(ptp->portId == status->root_port_id)
         {
-            strncpy(root_port_name, ptp->port->sysdeps.name, IFNAMSIZ);
+            strncpy(root_port_name, ptp->port->sysdeps.name, IFNAMSIZ - 1);
+            root_port_name[IFNAMSIZ - 1] = '\0';
             break;
         }
     return 0;
