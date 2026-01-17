@@ -1,0 +1,114 @@
+name: MSTPD Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y autoconf automake
+
+    - name: Build mstpd
+      run: ./autogen.sh && ./configure && make
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mstpd-build
+        path: |
+          mstpd
+          mstpctl
+        retention-days: 1
+
+  test:
+    name: "${{ matrix.name }}"
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - phase: phase1
+            name: "Phase 1: Core (T1, T2, T3, T20)"
+            suites: "T1 T2 T3 T20"
+          - phase: phase2
+            name: "Phase 2: STP/RSTP (T4, T5, T7, T8)"
+            suites: "T4 T5 T7 T8"
+          - phase: phase3
+            name: "Phase 3: Features (T9-T11, T13-T15)"
+            suites: "T9 T10 T11 T13 T14 T15"
+          - phase: phase4
+            name: "Phase 4: Advanced (T6, T12, T16)"
+            suites: "T6 T12 T16"
+          - phase: phase5
+            name: "Phase 5: Stability (T17, T18, T19)"
+            suites: "T17 T18 T19"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y autoconf automake
+
+    - name: Build mstpd
+      run: ./autogen.sh && ./configure && make
+
+    - name: Run ${{ matrix.name }}
+      id: test
+      run: |
+        mkdir -p test-results
+        echo "## ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        sudo ./tests/run_tests.sh ${{ matrix.suites }} --no-color --junit test-results/junit-${{ matrix.phase }}.xml 2>&1 | tee test-output.log
+        exit_code=${PIPESTATUS[0]}
+
+        # Extract summary from output
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        grep -A 10 "Test Suite Summary\|Overall Summary" test-output.log | head -20 >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
+        exit $exit_code
+
+    - name: Publish Test Results
+      uses: mikepenz/action-junit-report@v4
+      if: always()
+      with:
+        report_paths: 'test-results/*.xml'
+        check_name: '${{ matrix.name }}'
+        include_passed: true
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-${{ matrix.phase }}
+        path: |
+          tests/results/
+          test-results/
+          test-output.log
+        retention-days: 7
+
+  summary:
+    name: Test Summary
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Check test results
+      run: |
+        echo "## MSTPD Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase 1: Core | ${{ needs.test.result == 'success' && 'OK' || 'NOK' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase 2: STP/RSTP | ${{ needs.test.result == 'success' && 'OK' || 'NOK' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase 3: Features | ${{ needs.test.result == 'success' && 'OK' || 'NOK' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase 4: Advanced | ${{ needs.test.result == 'success' && 'OK' || 'NOK' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Phase 5: Stability | ${{ needs.test.result == 'success' && 'OK' || 'NOK' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Total: 155 tests across 20 suites**" >> $GITHUB_STEP_SUMMARY
