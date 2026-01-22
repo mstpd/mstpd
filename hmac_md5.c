@@ -111,7 +111,7 @@ Rotation is separate from addition to prevent recomputation.
  */
 static void Encode(output, input, len)
 unsigned char *output;
-UINT4 *input;
+const UINT4 *input;
 unsigned int len;
 {
     unsigned int i, j;
@@ -130,7 +130,7 @@ unsigned int len;
  */
 static void Decode(output, input, len)
 UINT4 *output;
-unsigned char *input;
+const unsigned char *input;
 unsigned int len;
 {
     unsigned int i, j;
@@ -144,7 +144,7 @@ unsigned int len;
  */
 static void MD5Transform(state, block)
 UINT4 state[4];
-unsigned char block[64];
+const unsigned char block[64];
 {
     UINT4 a = state[0], b = state[1], c = state[2], d = state[3], x[16];
 
@@ -251,7 +251,7 @@ MD5_CTX *context;                                        /* context */
  */
 static void MD5Update(context, input, inputLen)
 MD5_CTX *context;                                        /* context */
-unsigned char *input;                                /* input block */
+const unsigned char *input;                          /* input block */
 unsigned int inputLen;                     /* length of input block */
 {
     unsigned int i, index, partLen;
@@ -316,11 +316,11 @@ MD5_CTX *context;                                        /* context */
 ** Function: hmac_md5 from RFC-2104
 */
 void hmac_md5(text, text_len, key, key_len, digest)
-unsigned char*  text;       /* pointer to data stream */
-int             text_len;   /* length of data stream */
-unsigned char*  key;        /* pointer to authentication key */
-int             key_len;    /* length of authentication key */
-void*           digest;     /* caller digest to be filled in */
+const unsigned char*  text;       /* pointer to data stream */
+int                   text_len;   /* length of data stream */
+const unsigned char*  key;        /* pointer to authentication key */
+int                   key_len;    /* length of authentication key */
+void*                 digest;     /* caller digest to be filled in */
 {
     MD5_CTX context;
     unsigned char k_ipad[65];    /* inner padding -
@@ -389,14 +389,14 @@ void*           digest;     /* caller digest to be filled in */
 #ifdef HMAC_MDS_TEST_FUNCTIONS
 /* Digests a string */
 static void MD5String(string, digest)
-char *string;
+const char *string;
 void *digest;       /* caller digest to be filled in */
 {
     MD5_CTX context;
     unsigned int len = strlen(string);
 
     MD5Init(&context);
-    MD5Update(&context, string, len);
+    MD5Update(&context, (const unsigned char *)string, len);
     MD5Final(digest, &context);
 }
 
