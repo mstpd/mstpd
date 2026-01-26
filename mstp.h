@@ -44,8 +44,8 @@
 /* 13.7, Table 13-1 */
 #define HMAC_KEY    {0x13, 0xAC, 0x06, 0xA6, 0x2E, 0x47, 0xFD, 0x51, \
                      0xF9, 0x5D, 0x2B, 0xA2, 0x43, 0xCD, 0x03, 0x46}
-extern void hmac_md5(unsigned char * text, int text_len, unsigned char * key,
-                     int key_len, caddr_t digest);
+extern void hmac_md5(const unsigned char * text, int text_len,
+                     const unsigned char * key, int key_len, void * digest);
 #ifdef HMAC_MDS_TEST_FUNCTIONS
 extern bool MD5TestSuite(void);
 #endif /* HMAC_MDS_TEST_FUNCTIONS */
