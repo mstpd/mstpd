@@ -474,6 +474,7 @@ CTL_DECLARE(del_bridges);
             return -1;                                       \
         }                                                    \
         memcpy(in, inbuf, lin);                              \
+        memset(out, 0, lout);                                \
         int r = CTL_ ## name name ## _CALL;                  \
         if(r)                                                \
             return r;                                        \
