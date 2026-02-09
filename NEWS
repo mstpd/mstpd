@@ -1,6 +1,27 @@
 mstpd: Multiple Spanning Tree Protocol Daemon
 =============================================
 
+Version: 0.1.1
+---------------------------------------------
+- add showportparams command to show only specific params of a port
+  - Ali Forouzan <forouzan_a@office.zharfpoyan.net>
+- bridge-stp.in: support different versions of pidof
+  - Alexandru Ardelean <ardeleanalex@gmail.com>
+- mstpctl-utils-functions.sh: fix shellcheck warnings
+  - Jonas Gorski <jonas.gorski@bisdn.de>
+- fix printing error message in bridge_bpdu_rcv()
+  - QAQguowang <39701514+QAQguowang@users.noreply.github.com>
+- fix calculating costs for speeds > 65G
+  - Jonas Gorski <jonas.gorski@bisdn.de>
+- ifupdown.sh.in: fix new shellcheck warnings
+  - Jonas Gorski <jonas.gorski@gmail.com>
+- libnetlink: fix socket file descriptor leak on error paths
+  - Vincent Jardin <vjardin@free.fr>
+- Fix compilation with GCC 15 / gnu23
+  - Jonas Gorski <jonas.gorski@gmail.com>
+- Fix a stack memory information leak to client
+  - Jonas Gorski <jonas.gorski@gmail.com>
+
 Version: 0.1.0
 ---------------------------------------------
 - libnetlink changes to start supporting Linux per-VLAN STP
