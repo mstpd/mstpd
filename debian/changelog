@@ -1,3 +1,9 @@
+mstpd (0.1.1) unstable; urgency=medium
+
+  * debian: switch python dependency to python3
+
+ -- Jonas <jonas.gorski@gmail.com>  Thu, 12 Feb 2026 09:15:54 +0100
+
 mstpd (0.0.9) unstable; urgency=medium
 
   * Handle increasing/decreasing fdelay and maxage in sync in ifcfg files.
