@@ -453,7 +453,7 @@ CTL_DECLARE(set_fids2mstids);
 
 /* add bridges */
 #define CMD_CODE_add_bridges    (122 | RESPONSE_FIRST_HANDLE_LATER)
-#define add_bridges_ARGS (int *br_array, int* *ifaces_lists)
+#define add_bridges_ARGS (int *br_array)
 CTL_DECLARE(add_bridges);
 
 /* delete bridges */

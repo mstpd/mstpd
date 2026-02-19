@@ -402,6 +402,7 @@ typedef struct
 
     /* not in standard */
     unsigned int uptime;
+    bool stp_enabled;
 
     sysdep_br_data_t sysdeps;
 } bridge_t;
@@ -611,6 +612,7 @@ typedef struct
     bridge_identifier_t regional_root;
     unsigned int internal_path_cost;
     bool enabled; /* not in standard */
+    bool stp_enabled; /* not in standard */
     unsigned int Ageing_Time;
     __u8 max_hops;
     __u8 bridge_hello_time;

@@ -738,6 +738,7 @@ void MSTP_IN_get_cist_bridge_status(bridge_t *br, CIST_BridgeStatus *status)
     assign(status->tx_hold_count, br->Transmit_Hold_Count);
     status->protocol_version = br->ForceProtocolVersion;
     status->enabled = br->bridgeEnabled;
+    status->stp_enabled = br->stp_enabled;
     assign(status->bridge_hello_time, br->Hello_Time);
     assign(status->Ageing_Time, br->Ageing_Time);
 }
