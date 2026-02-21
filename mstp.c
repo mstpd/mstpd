@@ -842,9 +842,9 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
 
     if(cfg->set_bridge_hello_time)
     {
-        if((1 > cfg->bridge_hello_time) || (10 < cfg->bridge_hello_time))
+        if((2 != cfg->bridge_hello_time))
         {
-            ERROR_BRNAME(br, "Bridge Hello Time must be between 1 and 10");
+            ERROR_BRNAME(br, "Bridge Hello Time must be 2");
             r = -1;
         }
     }
@@ -901,17 +901,6 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         if(cfg->max_hops != br->MaxHops)
         {
             assign(br->MaxHops, cfg->max_hops);
-            changed = changedBridgeTimes = true;
-        }
-    }
-
-    if(cfg->set_bridge_hello_time)
-    {
-        if(cfg->bridge_hello_time != br->Hello_Time)
-        {
-            INFO_BRNAME(br, "bridge hello_time new=%hhu, old=%hhu",
-                        cfg->bridge_hello_time, br->Hello_Time);
-            assign(br->Hello_Time, cfg->bridge_hello_time);
             changed = changedBridgeTimes = true;
         }
     }
