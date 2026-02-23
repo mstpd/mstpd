@@ -4839,7 +4839,8 @@ static bool TCSM_run(per_tree_port_t *ptp, bool dry_run)
                 TCSM_to_DETECTED(ptp);
                 return false;
             }
-            if(ptp->rcvdTc || prt->rcvdTcn || prt->rcvdTcAck || ptp->tcProp)
+            if(ptp->rcvdTc || ptp->tcProp
+               || ((0 == ptp->MSTID) && (prt->rcvdTcn || prt->rcvdTcAck)))
             {
                 return TCSM_to_LEARNING(ptp, dry_run);
             }
@@ -4877,7 +4878,7 @@ static bool TCSM_run(per_tree_port_t *ptp, bool dry_run)
                 TCSM_to_LEARNING(ptp, false /* actual run */);
                 return false;
             }
-            if(prt->rcvdTcn)
+            if((0 == ptp->MSTID) && prt->rcvdTcn)
             {
                 if(dry_run) /* state change */
                     return true;
@@ -4898,7 +4899,7 @@ static bool TCSM_run(per_tree_port_t *ptp, bool dry_run)
                 TCSM_to_PROPAGATING(ptp);
                 return false;
             }
-            if(prt->rcvdTcAck)
+            if((0 == ptp->MSTID) && prt->rcvdTcAck)
             {
                 if(dry_run) /* state change */
                     return true;
