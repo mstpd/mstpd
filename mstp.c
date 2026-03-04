@@ -37,6 +37,7 @@
 
 #include <config.h>
 
+#include <stdint.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
@@ -2614,6 +2615,7 @@ static void updtRolesTree(tree_t *tree)
     port_priority_vector_t root_path_priority;
     bridge_identifier_t prevRRootID = tree->rootPriority.RRootID;
     __be32 prevExtRootPathCost = tree->rootPriority.ExtRootPathCost;
+    __u32 newRootPathCost;
     bool cist = (0 == tree->MSTID);
 
     /* a), b) Select new root priority vector = {rootPriority, rootPortId} */
@@ -2637,18 +2639,28 @@ static void updtRolesTree(tree_t *tree)
             root_path_priority = ptp->portPriority;
             if(prt->rcvdInternal)
             {
+                newRootPathCost = __be32_to_cpu(root_path_priority.IntRootPathCost);
+
+                if(newRootPathCost > (UINT32_MAX - ptp->InternalPortPathCost))
+                    newRootPathCost = UINT32_MAX;
+                else
+                    newRootPathCost += ptp->InternalPortPathCost;
+
                 assign(root_path_priority.IntRootPathCost,
-                       __cpu_to_be32(__be32_to_cpu(root_path_priority.IntRootPathCost)
-                                     + ptp->InternalPortPathCost)
-                      );
+                       __cpu_to_be32(newRootPathCost));
             }
             else if(cist) /* Yes, this check might be superfluous,
                            * but I want to be on the safe side */
             {
+                newRootPathCost = __be32_to_cpu(root_path_priority.ExtRootPathCost);
+
+                if(newRootPathCost > (UINT32_MAX - prt->ExternalPortPathCost))
+                    newRootPathCost = UINT32_MAX;
+                else
+                    newRootPathCost += prt->ExternalPortPathCost;
+
                 assign(root_path_priority.ExtRootPathCost,
-                       __cpu_to_be32(__be32_to_cpu(root_path_priority.ExtRootPathCost)
-                                     + prt->ExternalPortPathCost)
-                      );
+                       __be32_to_cpu(newRootPathCost));
                 assign(root_path_priority.RRootID, tree->BridgeIdentifier);
                 assign(root_path_priority.IntRootPathCost,
                        __constant_cpu_to_be32(0));
