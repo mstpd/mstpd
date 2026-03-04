@@ -1093,6 +1093,16 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
         }
     }
 
+    if(cfg->set_admin_external_port_path_cost)
+    {
+        if(MAX_PATH_COST < cfg->admin_external_port_path_cost)
+        {
+            ERROR_PRTNAME(br, prt,
+                          "Port Path Cost must be between 0 and 200000000");
+            return -1;
+        }
+    }
+
     /* Secondly, do set */
     changed = false;
 
@@ -1242,6 +1252,20 @@ int MSTP_IN_set_msti_port_config(per_tree_port_t *ptp, MSTI_PortConfig *cfg)
                            "Port Priority must be between 0 and 15");
             return -1;
         }
+    }
+
+    if(cfg->set_admin_internal_port_path_cost)
+    {
+        if (MAX_PATH_COST < cfg->admin_internal_port_path_cost)
+        {
+            ERROR_MSTINAME(br, prt, ptp,
+                           "Port Path Cost must be between 0 and 200000000");
+            return -1;
+        }
+    }
+
+    if(cfg->set_port_priority)
+    {
         valuePri = cfg->port_priority << 4;
         if(GET_PRIORITY_FROM_IDENTIFIER(ptp->portId) != valuePri)
         {
