@@ -16,7 +16,7 @@ situations. Don't use it in production!
 
 Official repository: https://github.com/mstpd/mstpd
 
-*IRC: Feel free to join and chat with us on #mstpd @ freenode!*
+*IRC: Feel free to join and chat with us on #mstpd @ OFTC!*
 
 Implementation Features
 -----------------------
