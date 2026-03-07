@@ -84,6 +84,15 @@ daemon can be successfully utilized. The daemon code has a few hooks
 where driver-specific code should be inserted to control the bridge
 hardware.
 
+Packaging
+---------
+
+MSTPD is currently packaged for the following distributions:
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/mstpd.svg)](https://repology.org/project/mstpd/versions)
+
+It is also available as a [recipe in Yocto](https://layers.openembedded.org/layerindex/recipe/340642/).
+
 ACKNOWLEDGEMENTS
 ----------------
 
