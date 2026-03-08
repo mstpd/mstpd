@@ -72,6 +72,9 @@ Enables/disables the restrictions on the <port>'s ability to take root role in <
 .B mstpctl setportrestrtcn <bridge> <port> {yes|no}
 Enables/disables the restrictions on the <port>'s ability to propagate received topology change notification in <bridge>, default is no (i.e. no restrictions on the TCN propagation).
 
+.B mstpctl setportenablebpdurx <bridge> <port> {yes|no}
+Enables/disables processing of received BPDUs on port <port> in bridge <bridge>, default is yes.
+
 .B mstpctl setbpduguard <bridge> <port> {yes|no}
 Enables/disables the bpduguard configuration of the <port> in <bridge>, default is no.
 
@@ -89,7 +92,7 @@ Enables/disables the bridge assurance capability for a <port> in <bridge>,
 default is no.
 
 .B mstpctl setportbpdufilter <bridge> <port> {yes|no}
-Enables/disables the BPDU filter capability for a port <port> in
+(Deprecated) Enables/disables the BPDU filter capability for a port <port> in
 bridge <bridge>, i.e. discard any ingress BPDUs and do not issue any
 BPDUs for this port. The default is no.
 

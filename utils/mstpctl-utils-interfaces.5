@@ -52,12 +52,12 @@ iface br0 inet static
     mstpctl_portp2p swp1=no swp2=no
     mstpctl_portrestrrole swp1=no swp2=no
     mstpctl_bpduguard swp1=no swp2=no swp4=yes
+    mstpctl_portenablebpdurx swp4=no
     mstpctl_portrestrtcn swp1=no swp2=no
     mstpctl_treeprio 8
     mstpctl_treeportprio swp3=8
     mstpctl_hello 2
     mstpctl_portnetwork swp1=no
-    mstpctl_portbpdufilter swp4=yes
 
 .EE
 .SH IFACE OPTIONS
@@ -130,6 +130,10 @@ default is no (i.e. no restrictions on the port's role).
 .BI mstpctl_portrestrtcn " port yes|no"
 Enables/disables the restrictions on the \fIport\fP's ability to propagate received topology change notification, default is no (i.e. no restrictions on the TCN propagation).
 .TP
+.BI mstpctl_portenablebpdurx " port yes|no"
+Enables/disables processing of received BPDUs on a \fIport\fP,
+default is yes.
+.TP
 .BI mstpctl_bpduguard " port yes|no"
 Enables/disables the bpduguard configuration of the \fIport\fP, default is no.
 .TP
@@ -147,7 +151,7 @@ Enables/disables the bridge assurance capability for a \fIport\fP,
 default is no.
 .TP
 .BI mstpctl_portbpdufilter " port yes|no"
-Enables/disables the bridge BPDU filter capability for a \fIport\fP,
+(Deprecated) Enables/disables the bridge BPDU filter capability for a \fIport\fP,
 default is no.
 .RE
 .SH FILES
