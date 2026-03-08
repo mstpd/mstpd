@@ -3096,7 +3096,8 @@ static void BDSM_begin(port_t *prt/*, bool begin*/)
 
 static bool BDSM_run(port_t *prt, bool dry_run)
 {
-    per_tree_port_t *cist;
+    per_tree_port_t *ptp;
+    bool proposing = false;
 
     switch(prt->BDSM_state)
     {
@@ -3111,16 +3112,18 @@ static bool BDSM_run(port_t *prt, bool dry_run)
             }
             return false;
         case BDSM_NOT_EDGE:
-             cist = GET_CIST_PTP_FROM_PORT(prt);
-            /* NOTE: 802.1Q-2005(-2011) is not clear, which of the per-tree
-             *  "proposing" flags to use here, or one should combine
-             *  them all for all trees?
-             * So, I decide that it will be the "proposing" flag
-             *  from CIST tree - it seems like a good bet.
-             */
+            FOREACH_PTP_IN_PORT(ptp, prt)
+            {
+                if(ptp->proposing)
+                {
+                    proposing = true;
+                    break;
+                }
+            }
+
             if((!prt->portEnabled && prt->AdminEdgePort)
                || ((0 == prt->edgeDelayWhile) && prt->AutoEdge && prt->sendRSTP
-                   && cist->proposing)
+                   && proposing)
               )
             {
                 if(dry_run) /* state change */
