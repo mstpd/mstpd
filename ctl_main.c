@@ -156,6 +156,7 @@ typedef enum {
     PARAM_PORTHELLOTIME,
     PARAM_DISPUTED,
     PARAM_ENABLEBPDURX,
+    PARAM_ENABLEBPDUTX,
     PARAM_BPDUGUARDPORT,
     PARAM_BPDUGUARDERROR,
     PARAM_BPDUFILTERPORT,
@@ -714,6 +715,7 @@ static const cmd_param_t cist_port_params[] = {
     { PARAM_PORTHELLOTIME,  "port-hello-time" },
     { PARAM_DISPUTED,       "disputed" },
     { PARAM_ENABLEBPDURX,   "enable-bpdu-rx" },
+    { PARAM_ENABLEBPDUTX,   "enable-bpdu-tx" },
     { PARAM_BPDUGUARDPORT,  "bpdu-guard-port" },
     { PARAM_BPDUGUARDERROR, "bpdu-guard-error" },
     { PARAM_BPDUFILTERPORT, "bpdu-filter-port" },
@@ -788,8 +790,10 @@ static int do_showport_fmt_plain(const CIST_PortStatus *s,
                        BOOL_STR(s->restricted_tcn));
                 printf("  port hello time    %-23hhu ", s->port_hello_time);
                 printf("disputed             %s\n", BOOL_STR(s->disputed));
-                printf("  enable BPDU rx       %s\n",
+                printf("  enable BPDU rx       %-23s ",
                        BOOL_STR(s->enable_bpdu_rx));
+                printf("enable BPDU tx       %s\n",
+                       BOOL_STR(s->enable_bpdu_tx));
                 printf("  bpdu guard port    %-23s ",
                        BOOL_STR(s->bpdu_guard_port));
                 printf("bpdu guard error     %s\n",
@@ -901,6 +905,9 @@ static int do_showport_fmt_plain(const CIST_PortStatus *s,
             break;
         case PARAM_ENABLEBPDURX:
             printf("%s\n", BOOL_STR(s->enable_bpdu_rx));
+            break;
+        case PARAM_ENABLEBPDUTX:
+            printf("%s\n", BOOL_STR(s->enable_bpdu_tx));
             break;
         case PARAM_BPDUGUARDPORT:
             printf("%s\n", BOOL_STR(s->bpdu_guard_port));
@@ -1023,6 +1030,8 @@ static int do_showport_fmt_json(const CIST_PortStatus *s,
                        BOOL_STR(s->disputed));
                 printf("\"enable-bpdu-rx\":\"%s\",",
                        BOOL_STR(s->enable_bpdu_rx));
+                printf("\"enable-bpdu-tx\":\"%s\",",
+                       BOOL_STR(s->enable_bpdu_tx));
                 printf("\"bpdu-guard-port\":\"%s\",",
                        BOOL_STR(s->bpdu_guard_port));
                 printf("\"bpdu-guard-error\":\"%s\",",
@@ -1682,6 +1691,17 @@ static int cmd_setportenablebpdurx(int argc, char *const *argv)
     return set_port_cfg(enable_bpdu_rx, getyesno(argv[3], "yes", "no"));
 }
 
+static int cmd_setportenablebpdutx(int argc, char *const *argv)
+{
+    int br_index = get_index(argv[1], "bridge");
+    if (0 > br_index)
+        return br_index;
+    int port_index = get_index(argv[2], "port");
+    if (0 > port_index)
+        return port_index;
+    return set_port_cfg(enable_bpdu_tx, getyesno(argv[3], "yes", "no"));
+}
+
 static int cmd_setportbpduguard(int argc, char *const *argv)
 {
     int br_index = get_index(argv[1], "bridge");
@@ -1723,7 +1743,7 @@ static int cmd_setportdonttxmt(int argc, char *const *argv)
     int port_index = get_index(argv[2], "port");
     if (0 > port_index)
         return port_index;
-    return set_port_cfg(dont_txmt, getyesno(argv[3], "yes", "no"));
+    return set_port_cfg(enable_bpdu_tx, !getyesno(argv[3], "yes", "no"));
 }
 
 static int cmd_settreeportprio(int argc, char *const *argv)
@@ -2296,6 +2316,8 @@ static const struct command commands[] =
      "Restrict port ability to propagate received TCNs"},
     {3, 0, "setportenablebpdurx", cmd_setportenablebpdurx,
      "<bridge> <port> {yes|no}", "Disable/Enable receiving BPDUs"},
+    {3, 0, "setportenablebpdutx", cmd_setportenablebpdutx,
+     "<bridge> <port> {yes|no}", "Disable/Enable sending BPDUs"},
     {2, 0, "portmcheck", cmd_portmcheck,
      "<bridge> <port>", "Try to get back from STP to rapid (RSTP/MSTP) mode"},
     {3, 0, "setbpduguard", cmd_setportbpduguard,
@@ -2310,7 +2332,7 @@ static const struct command commands[] =
     {3, 0, "setportnetwork", cmd_setportnetwork,
      "<bridge> <port> {yes|no}", "Set port network state"},
     {3, 0, "setportdonttxmt", cmd_setportdonttxmt,
-     "<bridge> <port> {yes|no}", "Disable/Enable sending BPDU"},
+     "<bridge> <port> {yes|no}", "Disable/Enable sending BPDU (deprecated)"},
     {3, 0, "setportbpdufilter", cmd_setportbpdufilter,
      "<bridge> <port> {yes|no}", "Set BPDU filter state (deprecated)"},
 

@@ -225,6 +225,17 @@ if [ "$MODE" = 'start' ]; then
     done
   fi
 
+  if [ "$IF_MSTPCTL_ENABLEBPDUTX" ]; then
+    portenablebpdutxs="$(echo "$IF_MSTPCTL_ENABLEBPDUTX" | tr '\n' ' ' | tr -s ' ')"
+    for portenablebpdutx in $portenablebpdutxs; do
+      port="$(echo "$portenablebpdutx" | cut -d '=' -f1)"
+      enablebpdutx="$(echo "$portenablebpdutx" | cut -d '=' -f2)"
+      if [ -n "$port" ] && [ -n "$enablebpdutx" ]; then
+        "$mstpctl" setenablebpdutx "$IFACE" "$port" "$enablebpdutx"
+      fi
+    done
+  fi
+
   if [ "$IF_MSTPCTL_BPDUGUARD" ]; then
     portbpduguards="$(echo "$IF_MSTPCTL_BPDUGUARD" | tr '\n' ' ' | tr -s ' ')"
     for portbpduguard in $portbpduguards; do

@@ -299,10 +299,10 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     prt->AdminEdgePort = false; /* 13.25 */
     prt->AutoEdge = true;       /* 13.25 */
     prt->enableBPDUrx = true;
+    prt->enableBPDUtx = true;
     prt->BpduGuardPort = false;
     prt->BpduGuardError = false;
     prt->NetworkPort = false;
-    prt->dontTxmtBpdu = false;
     prt->deleted = false;
 
     port_default_internal_vars(prt);
@@ -1019,6 +1019,7 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     status->role = cist->role;
     status->disputed = cist->disputed;
     status->enable_bpdu_rx = prt->enableBPDUrx;
+    status->enable_bpdu_tx = prt->enableBPDUtx;
     assign(status->admin_internal_port_path_cost,
            cist->AdminInternalPortPathCost);
     assign(status->internal_port_path_cost, cist->InternalPortPathCost);
@@ -1183,6 +1184,15 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
             INFO_PRTNAME(br, prt,"enableBPDUrx new=%d", prt->enableBPDUrx);
         }
     }
+    
+    if(cfg->set_enable_bpdu_tx)
+    {
+        if(prt->enableBPDUtx != cfg->enable_bpdu_tx)
+        {
+            prt->enableBPDUtx = cfg->enable_bpdu_tx;
+            INFO_PRTNAME(br, prt, "enableBPDUtx new=%d", prt->enableBPDUtx);
+        }
+    }
 
     if(cfg->set_bpdu_guard_port)
     {
@@ -1208,15 +1218,6 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
                 INFO_PRTNAME(br, prt, "Clear Bridge assurance inconsistency");
             }
             changed = true;
-        }
-    }
-
-    if(cfg->set_dont_txmt)
-    {
-        if(prt->dontTxmtBpdu != cfg->dont_txmt)
-        {
-            prt->dontTxmtBpdu = cfg->dont_txmt;
-            INFO_PRTNAME(br, prt, "donttxmt new=%d", prt->dontTxmtBpdu);
         }
     }
 
@@ -2362,7 +2363,7 @@ static void txConfig(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
@@ -2423,7 +2424,7 @@ static void txMstp(port_t *prt)
     per_tree_port_t *ptp;
     msti_configuration_message_t *msti_msg;
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
@@ -2521,7 +2522,7 @@ static void txTcn(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
