@@ -86,6 +86,12 @@ AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_CHECK_TYPES(struct timespec)
 AC_CHECK_FUNCS(clock_gettime)
 
+PKG_CHECK_MODULES([CMOCKA], [cmocka], [has_cmocka="yes"], [has_cmocka="no"])
+AM_CONDITIONAL(WITH_CMOCKA, [test "$has_cmocka" = 'yes'])
+
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
+AC_PROG_AWK
+
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 

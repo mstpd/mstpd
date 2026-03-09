@@ -20,6 +20,14 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
+# unit testing
+LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/tap-driver.sh
+AM_TESTS_ENVIRONMENT = CMOCKA_MESSAGE_OUTPUT=TAP
+
+check_PROGRAMS = \
+	$(NULL)
+TESTS = $(check_PROGRAMS)
+
 EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
 	utils/mstpd.service.in utils/bash_completion utils/nm-dispatcher.in \
 	README.md README.VLANs.md mstpd.spec autogen.sh
