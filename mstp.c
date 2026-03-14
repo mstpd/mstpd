@@ -833,9 +833,9 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
 
     if(cfg->set_max_hops)
     {
-        if((6 > cfg->max_hops) || (40 < cfg->max_hops))
+        if((6 > cfg->max_hops) || (100 < cfg->max_hops))
         {
-            ERROR_BRNAME(br, "Bridge Max Hops must be between 6 and 40");
+            ERROR_BRNAME(br, "Bridge Max Hops must be between 6 and 100");
             r = -1;
         }
     }
