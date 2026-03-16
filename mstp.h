@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #include "bridge_ctl.h"
+#include "epoll_loop.h"
 #include "list.h"
 
 /* #define HMAC_MDS_TEST_FUNCTIONS */
@@ -502,6 +503,7 @@ typedef struct
     unsigned int num_tx_tcn;
     unsigned int num_trans_fwd;
     unsigned int num_trans_blk;
+    struct epoll_event_handler packet_event;
 } port_t;
 
 typedef struct

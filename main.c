@@ -181,7 +181,6 @@ int main(int argc, char *argv[])
     TST(driver_mstp_init() == 0, -1);
     TST(init_epoll() == 0, -1);
     TST(ctl_socket_init() == 0, -1);
-    TST(packet_sock_init() == 0, -1);
     TST(netsock_init() == 0, -1);
     TST(init_bridge_ops() == 0, -1);
 

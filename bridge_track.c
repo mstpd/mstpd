@@ -107,6 +107,12 @@ static port_t * create_if(bridge_t * br, int if_index)
 
     INFO("Add iface %s as port#%d to bridge %s", prt->sysdeps.name,
          portno, br->sysdeps.name);
+
+    if (packet_sock_init(&prt->packet_event, if_index) < 0) {
+         ERROR("Failed to init STP sock for port %s", prt->sysdeps.name);
+         goto err;
+    }
+
     prt->bridge = br;
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
         goto err;
@@ -130,6 +136,13 @@ static port_t * find_if(bridge_t * br, int if_index)
 
 static inline void delete_if(port_t *prt)
 {
+   remove_epoll(&prt->packet_event);
+
+   if (prt->packet_event.fd != -1)
+       close(prt->packet_event.fd);
+
+    prt->packet_event.fd = -1;
+
     MSTP_IN_delete_port(prt);
     free(prt);
 }
@@ -146,10 +159,16 @@ static inline bool delete_if_byindex(bridge_t * br, int if_index)
 static bool delete_br_byindex(int if_index)
 {
     bridge_t *br;
+    port_t *prt, *nxt;
     if(!(br = find_br(if_index)))
         return false;
 
     INFO("Delete bridge %s (%d)", br->sysdeps.name, if_index);
+
+    list_for_each_entry_safe(prt, nxt, &br->ports, br_list)
+    {
+       delete_if(prt);
+    }
 
     list_del(&br->list);
     MSTP_IN_delete_bridge(br);
@@ -602,7 +621,8 @@ void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
         { .iov_base = bpdu, .iov_len = size }
     };
 
-    packet_send(prt->sysdeps.if_index, iov, 2, sizeof(h) + size);
+    packet_send(prt->packet_event.fd, prt->sysdeps.if_index, iov, 2,
+                sizeof(h) + size);
 }
 
 void MSTP_OUT_shutdown_port(port_t *prt)
