@@ -32,6 +32,7 @@
 #include <netinet/in.h>
 #include <linux/if_packet.h>
 #include <linux/filter.h>
+#include <linux/pkt_sched.h>
 #include <asm/byteorder.h>
 
 #include "epoll_loop.h"
@@ -176,6 +177,11 @@ int packet_sock_init(void)
         ERROR("fcntl set nonblock failed: %m");
     else
     {
+        int prio = TC_PRIO_CONTROL;
+
+        if(setsockopt(s, SOL_SOCKET, SO_PRIORITY, &prio, sizeof(prio)) < 0)
+            ERROR("setsockopt priority failed, BPDU delivery may be unreliable: %m");
+
         packet_event.fd = s;
         packet_event.handler = packet_rcv;
 
