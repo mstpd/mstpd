@@ -59,13 +59,13 @@ in-kernel stp!).
 MSTP standard (802.1Q-2005) requires from the bridge to be heavily
 interconnected with the VLANs infrastructure, namely:
 
-  - Support several (2 .. 65) independent FIDs (Forwarding Information
+  - Support several (2 .. 4094) independent FIDs (Forwarding Information
   Databases). Each VLAN belongs to the one of FIDs, and learning of the
   MAC addresses is done independently in the each FID (independent
   learning as opposed to shared learning in the current Linux bridges);
 
-  - Support several (2 .. 65) Multiple Spanning Tree Instances. Each FID
-  belongs to the one of MSTIs;
+  - Support several (2 .. 64) Multiple Spanning Tree Instances in
+    addition to the CIST. Each FID belongs to the one of MSTIs or CIST;
 
   - Support per-MSTI port states (Discarding / Learning / Forwarding) so
   that each bridge port can have different states for different MSTIs.
