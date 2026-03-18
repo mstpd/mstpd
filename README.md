@@ -70,13 +70,25 @@ interconnected with the VLANs infrastructure, namely:
   - Support per-MSTI port states (Discarding / Learning / Forwarding) so
   that each bridge port can have different states for different MSTIs.
 
-This is a big flaw in Linux. Actually, in Linux bridge code is totally
-independent from VLAN code and given wide deployment of the 802.1Q-2005
-compatible bridges this is wrong approach. Bridge and VLAN code should
-be merged together.
+Linux bridging supports either IVL or SVL, but does not support dynamic
+allocation of VIDs to FIDs.
 
-Anyway, this is not true for now, so MSTP daemon is not as useful for
-the bare Linux box (except for the (R)STP case - as stated above it
+This is controlled via the VLAN filtering attribute:
+
+  - When VLAN filtering is enabled, the bridge supports 4094 VLANs with
+    IVL, and requires configuration of all VLANs permitted;
+  - When VLAN filtering is disabled, the bridge is not VLAN aware and only
+    learns via the MAC address (into a separate "untagged" FID), so it does
+    SVL.
+
+Additionally Linux bridging gained support for MSTIs in version 5.18:
+
+  - VLANs configured on the bridge can be assigned to MSTIs;
+  - Once a VLANs is assigned to a MSTI, the port states of ports that are
+    members of that VLAN can be configured
+
+MSTPD currently does not handle this, so MSTP daemon is not as useful
+for the bare Linux box (except for the (R)STP case - as stated above it
 works with the kernel bridge well enough in this case). But there are
 plenty embedded cases where bridging functions are implemented by
 specialized hardware with support of custom drivers. For such cases MSTP
