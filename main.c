@@ -34,6 +34,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/file.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
 #include "epoll_loop.h"
 #include "bridge_ctl.h"
@@ -167,14 +171,28 @@ int main(int argc, char *argv[])
             ERROR("can't open "MSTPD_PID_FILE);
             return -1;
         }
+        /* Check if another instance is already running */
+        if(flock(fileno(f), LOCK_EX | LOCK_NB) < 0)
+        {
+            ERROR("another mstpd instance is running ("MSTPD_PID_FILE" is locked)");
+            fclose(f);
+            return -1;
+        }
         if(daemon(0, 0))
         {
             ERROR("can't daemonize");
             fclose(f);
             return -1;
         }
-        fprintf(f, "%d", getpid());
-        fclose(f);
+        /* Re-lock after fork (flock is not inherited across daemon()) */
+        f = fopen(MSTPD_PID_FILE, "w");
+        if(f)
+        {
+            flock(fileno(f), LOCK_EX | LOCK_NB);
+            fprintf(f, "%d", getpid());
+            fflush(f);
+            /* Keep f open to hold the lock until exit */
+        }
     }
 
     TST(signal_init() == 0, -1);
@@ -189,6 +207,10 @@ int main(int argc, char *argv[])
     bridge_track_fini();
     ctl_socket_cleanup();
     driver_mstp_fini();
+
+    /* Clean up PID file on exit */
+    if(daemonize)
+        unlink(MSTPD_PID_FILE);
 
     return c;
 }
