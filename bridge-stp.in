@@ -73,6 +73,17 @@ config_cmd='@configbridgefile@'
 pid_file='@mstpdpidfile@'
 net_dir='/sys/class/net'
 
+# Fallback: if configured paths don't exist, look relative to this script's
+# directory. This handles cases where bridge-stp is copied to a different
+# location but the binaries are co-located in the same directory.
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+if [ ! -x "$mstpctl" ] && [ -x "${script_dir}/mstpctl" ]; then
+    mstpctl="${script_dir}/mstpctl"
+fi
+if [ ! -x "$mstpd" ] && [ -x "${script_dir}/mstpd" ]; then
+    mstpd="${script_dir}/mstpd"
+fi
+
 # Set default config values.
 # If 'y', mstpd will be automatically started/stopped as needed.
 MANAGE_MSTPD='y'
