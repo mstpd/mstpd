@@ -28,6 +28,8 @@ check_PROGRAMS = \
 	$(NULL)
 TESTS = $(check_PROGRAMS)
 
+TEST_COMMON = tests/common.c tests/common.h hmac_md5.c mstp.c mstp.h
+
 EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
 	utils/mstpd.service.in utils/bash_completion utils/nm-dispatcher.in \
 	README.md README.VLANs.md mstpd.spec autogen.sh
