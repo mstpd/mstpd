@@ -484,7 +484,6 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
 {
     char * state_name;
     port_t *prt = ptp->port;
-    bridge_t *br = prt->bridge;
 
     if(ptp->state == new_state)
         return;
@@ -511,13 +510,13 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
             state_name = "disabled";
             break;
     }
-    INFO_MSTINAME(br, prt, ptp, "entering %s state", state_name);
+    INFO_MSTINAME(ptp, "entering %s state", state_name);
 
     /* Translate new CIST state to the kernel bridge code */
     if(0 == ptp->MSTID)
     { /* CIST */
         if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
-            ERROR_PRTNAME(br, prt, "Couldn't set kernel bridge state %s",
+            ERROR_PRTNAME(prt, "Couldn't set kernel bridge state %s",
                           state_name);
     }
 }
@@ -531,17 +530,16 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
 void MSTP_OUT_flush_all_fids(per_tree_port_t * ptp)
 {
     port_t *prt = ptp->port;
-    bridge_t *br = prt->bridge;
 
     /* Translate CIST flushing to the kernel bridge code */
     if(0 == ptp->MSTID)
     { /* CIST */
         if(0 > br_flush_port(prt->sysdeps.name))
-            ERROR_PRTNAME(br, prt,
+            ERROR_PRTNAME(prt,
                           "Couldn't flush kernel bridge forwarding database");
     }
     /* Completion signal MSTP_IN_all_fids_flushed will be called by driver */
-    INFO_MSTINAME(br, prt, ptp, "Flushing forwarding database");
+    INFO_MSTINAME(ptp, "Flushing forwarding database");
     driver_flush_all_fids(ptp);
 }
 
@@ -551,7 +549,7 @@ void MSTP_OUT_set_ageing_time(port_t *prt, unsigned int ageingTime)
     bridge_t *br = prt->bridge;
 
     actual_ageing_time = driver_set_ageing_time(prt, ageingTime);
-    INFO_PRTNAME(br, prt, "Setting new ageing time to %u", actual_ageing_time);
+    INFO_PRTNAME(prt, "Setting new ageing time to %u", actual_ageing_time);
 
     /*
      * Translate new ageing time to the kernel bridge code.
@@ -565,7 +563,6 @@ void MSTP_OUT_set_ageing_time(port_t *prt, unsigned int ageingTime)
 void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
 {
     char *bpdu_type, *tcflag;
-    bridge_t *br = prt->bridge;
 
     switch(bpdu->protocolVersion)
     {
@@ -596,7 +593,7 @@ void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
     if((protoSTP == bpdu->protocolVersion) && (bpduTypeTCN == bpdu->bpduType))
     {
         ++(prt->num_tx_tcn);
-        LOG_PRTNAME(br, prt, "sending %s BPDU", bpdu_type);
+        LOG_PRTNAME(prt, "sending %s BPDU", bpdu_type);
     }
     else
     {
@@ -606,7 +603,7 @@ void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
             ++(prt->num_tx_tcn);
             tcflag = ", tcFlag";
         }
-        LOG_PRTNAME(br, prt, "sending %s BPDU%s", bpdu_type, tcflag);
+        LOG_PRTNAME(prt, "sending %s BPDU%s", bpdu_type, tcflag);
     }
 
     struct llc_header h;
@@ -628,7 +625,7 @@ void MSTP_OUT_tx_bpdu(port_t *prt, bpdu_t * bpdu, int size)
 void MSTP_OUT_shutdown_port(port_t *prt)
 {
     if(0 > if_shutdown(prt->sysdeps.name))
-        ERROR_PRTNAME(prt->bridge, prt, "Couldn't shutdown port");
+        ERROR_PRTNAME(prt, "Couldn't shutdown port");
 }
 
 /* User interface commands */
@@ -680,7 +677,7 @@ void MSTP_OUT_shutdown_port(port_t *prt)
         }                                                                \
     if(!found)                                                           \
     {                                                                    \
-        ERROR_PRTNAME(br, prt, "Couldn't find MSTI with ID %hu", mstid); \
+        ERROR_PRTNAME(prt, "Couldn't find MSTI with ID %hu", mstid);     \
         return -1;                                                       \
     }
 
