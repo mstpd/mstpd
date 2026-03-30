@@ -1,3 +1,9 @@
+mstpd (0.2.0) unstable; urgency=medium
+
+  * debian: new upstream version
+
+ -- Jonas Gorski <jonas.gorski@gmail.com>  Mon, 30 Mar 2026 09:37:13 +0200
+
 mstpd (0.1.1) unstable; urgency=medium
 
   * debian: switch python dependency to python3
