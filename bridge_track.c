@@ -31,6 +31,7 @@
 #include <netinet/in.h>
 #include <linux/if_bridge.h>
 #include <asm/byteorder.h>
+#include <dirent.h>
 
 #include "bridge_ctl.h"
 #include "ctl_functions.h"
@@ -611,6 +612,22 @@ void MSTP_OUT_shutdown_port(port_t *prt)
         ERROR_PRTNAME(prt->bridge, prt, "Couldn't shutdown port");
 }
 
+static int not_dot_dotdot(const struct dirent *entry)
+{
+        const char *n = entry->d_name;
+
+        return strcmp(n, ".") || strcmp(n, "..");
+}
+
+static int get_port_list(const char *br_ifname, struct dirent ***namelist)
+{
+        char buf[256];
+
+        snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%.230s/brif", br_ifname);
+
+        return scandir(buf, namelist, not_dot_dotdot, versionsort);
+}
+
 /* User interface commands */
 
 #define CTL_CHECK_BRIDGE                                       \
@@ -916,6 +933,90 @@ int CTL_del_bridges(int *br_array)
         delete_br_byindex(br_array[i]);
 
     return 0;
+}
+
+int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
+{
+    struct dirent **namelist;
+    int *port_list, n_ports;
+    bridge_t *br, *other_br;
+    port_t *port, *tmp;
+    int flags;
+    bool found;
+    int i;
+
+    br = find_br(bridge_idx);
+    if(!br)
+        br = create_br(bridge_idx);
+    if(!br)
+        return -1;
+
+    MSTP_IN_set_cist_bridge_config(br, cfg);
+
+    flags = get_flags(br->sysdeps.name);
+    if(flags >= 0)
+        set_br_up(br, !!(flags & IFF_UP));
+
+    n_ports = get_port_list(br->sysdeps.name, &namelist);
+    port_list = alloca(n_ports * sizeof(*port_list));
+
+    for(i = 0; i < n_ports; i++) 
+    {
+        port_list[i] = if_nametoindex(namelist[i]->d_name);
+        free(namelist[i]);
+    }
+    free(namelist);
+
+    list_for_each_entry_safe(port, tmp, &br->ports, br_list) 
+    {
+        found = false;
+        for(i = 0; i < n_ports; i++) 
+        {
+            if(port->sysdeps.if_index != port_list[i])
+                continue;
+            found = true;
+            break;
+        }
+
+        if(found)
+            continue;
+
+        delete_if(port);
+    }
+
+    for(i = 0; i < n_ports; i++) 
+    {
+        port = find_if(br, port_list[i]);
+        if(port)
+            continue;
+
+        list_for_each_entry(other_br, &bridges, list) 
+        {
+            if(br == other_br)
+                continue;
+
+            delete_if_byindex(other_br, port_list[i]);
+        }
+
+        port = find_if(br, port_list[i]);
+        if(!port)
+            port = create_if(br, port_list[i]);
+        if(!port)
+            continue;
+
+        flags = get_flags(port->sysdeps.name);
+        if(flags < 0)
+            continue;
+
+        set_if_up(port, !(~flags & (IFF_UP | IFF_RUNNING)));
+    }
+
+    return 0;
+}
+
+void bridge_delete(int index)
+{
+    delete_br_byindex(index);
 }
 
 int bridge_track_fini(void)

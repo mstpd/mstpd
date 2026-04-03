@@ -9,6 +9,10 @@ mstpd_SOURCES = \
 	netif_utils.h ctl_socket_server.c ctl_socket_server.h hmac_md5.c \
 	list.h log.h driver_deps.c
 
+if ENABLE_UBUS
+mstpd_SOURCES += ubus.c ubus.h bridge_config.c bridge_config.h
+endif
+
 mstpctl_SOURCES = \
 	ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
 
@@ -17,6 +21,9 @@ mstpd_CFLAGS = \
 	-D_GNU_SOURCE
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0 -Werror
+endif
+if ENABLE_UBUS
+mstpd_LDADD = $(LIBUBOX_LIBS) $(LIBUBUS_LIBS)
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 

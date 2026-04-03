@@ -1,12 +1,12 @@
 /**
- * 
+ *
  * I grub it from linux kernel source code and fix it for user space
  * program. Of course, this is a GPL licensed header file.
  *
  * Here is a recipe to cook list.h for user space program
  *
  * 1. copy list.h from linux/include/list.h
- * 2. remove 
+ * 2. remove
  *     - #ifdef __KERNE__ and its #endif
  *     - all #include line
  *     - prefetch() and rcu related functions
@@ -16,6 +16,9 @@
  */
 #ifndef _LINUX_LIST_H
 #define _LINUX_LIST_H
+
+/* If libubox list.h is already included (uses _LINUX_LIST_H_), use that instead */
+#ifndef _LINUX_LIST_H_
 
 /**
  * @name from other kernel headers
@@ -515,5 +518,6 @@ static inline void hlist_add_after(struct hlist_node *n,
 		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
 	     pos = n)
 
+#endif /* !_LINUX_LIST_H_ (libubox not included) */
 
-#endif
+#endif /* _LINUX_LIST_H */
