@@ -44,6 +44,9 @@
 #include "ctl_socket_server.h"
 #include "driver.h"
 #include "bridge_track.h"
+#ifdef HAVE_UBUS
+#include "ubus.h"
+#endif
 
 #define APP_NAME    "mstpd"
 
@@ -180,14 +183,22 @@ int main(int argc, char *argv[])
     TST(signal_init() == 0, -1);
     TST(driver_mstp_init() == 0, -1);
     TST(init_epoll() == 0, -1);
-    TST(ctl_socket_init() == 0, -1);
     TST(packet_sock_init() == 0, -1);
+#ifdef HAVE_UBUS
+    mstpd_ubus_init();
+#else
+    TST(ctl_socket_init() == 0, -1);
+#endif
     TST(netsock_init() == 0, -1);
     TST(init_bridge_ops() == 0, -1);
 
     c = epoll_main_loop(&quit);
     bridge_track_fini();
-    ctl_socket_cleanup();
+#ifdef HAVE_UBUS
+    mstpd_ubus_exit();
+#else
+   ctl_socket_cleanup();
+#endif
     driver_mstp_fini();
 
     return c;
