@@ -64,7 +64,7 @@ AS_IF([test "x$with_bashcompletiondir" != "xdefault"],
       [AC_SUBST([bashcompletiondir], [$with_bashcompletiondir])])
 
 AC_ARG_WITH([systemdunitdir],
-     [AS_HELP_STRING([--with-systemunitdir=DIR], [Directory for systemd unit files.])],,
+     [AS_HELP_STRING([--with-systemdunitdir=DIR], [Directory for systemd unit files.])],,
      [with_systemdunitdir=default])
 AS_IF([test "x$with_systemdunitdir" = "xdefault"],
      [AC_SUBST([systemdunitdir], [$($PKG_CONFIG --variable=systemdsystemunitdir systemd 2> /dev/null)])])
