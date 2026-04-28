@@ -174,6 +174,12 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
     }
 }
 
+void bridge_event_handler(void)
+{
+    if(br_handler.fd >= 0)
+        br_ev_handler(EPOLLIN, &br_handler);
+}
+
 int init_bridge_ops(void)
 {
     if(rtnl_open(&rth, RTMGRP_LINK) < 0)

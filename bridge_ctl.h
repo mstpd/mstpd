@@ -80,6 +80,7 @@ typedef struct
 extern struct rtnl_handle rth_state;
 
 int init_bridge_ops(void);
+void bridge_event_handler(void);
 
 int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags);
 

@@ -57,6 +57,16 @@ int rtnl_open_byproto(struct rtnl_handle *rth, unsigned subscriptions,
 		return -1;
 	}
 
+#ifdef NETLINK_NO_ENOBUFS
+	{
+		int yes = 1;
+
+		if (setsockopt(rth->fd, SOL_NETLINK, NETLINK_NO_ENOBUFS, &yes,
+			       sizeof(yes)) < 0)
+			ERROR("NETLINK_NO_ENOBUFS");
+	}
+#endif
+
 	if (setsockopt(rth->fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf))
 	    < 0) {
 		ERROR("SO_SNDBUF");

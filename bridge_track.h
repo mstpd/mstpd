@@ -21,6 +21,10 @@
 #ifndef MSTPD_BRIDGE_TRACK_H
 #define MSTPD_BRIDGE_TRACK_H
 
+#include "mstp.h"
+
+int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg);
+void bridge_delete(int bridge_idx);
 int bridge_track_fini(void);
 
 #endif

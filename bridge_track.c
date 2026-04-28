@@ -26,6 +26,8 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <alloca.h>
 #include <fcntl.h>
 #include <linux/param.h>
 #include <netinet/in.h>
@@ -217,6 +219,7 @@ static void set_if_up(port_t *prt, bool up)
     int speed = -1;
     int duplex = -1;
     bool changed = false;
+    int bpdu_filter;
 
     if(check_mac_address(prt->sysdeps.name, prt->sysdeps.macaddr))
     {
@@ -260,6 +263,18 @@ static void set_if_up(port_t *prt, bool up)
         {
             prt->sysdeps.up = true;
             changed = true;
+        }
+
+        bpdu_filter = get_bpdu_filter(prt->sysdeps.name);
+        if((bpdu_filter >= 0) && (bpdu_filter != prt->bpduFilterPort))
+        {
+            CIST_PortConfig cfg =
+            {
+                .bpdu_filter_port = bpdu_filter,
+                .set_bpdu_filter_port = true,
+            };
+
+            MSTP_IN_set_cist_port_config(prt, &cfg);
         }
     }
     if(changed && prt->bridge->stp_enabled)
@@ -917,6 +932,115 @@ int CTL_del_bridges(int *br_array)
     }
 
     return 0;
+}
+
+static int not_dot_dotdot(const struct dirent *entry)
+{
+    const char *n = entry->d_name;
+
+    return strcmp(n, ".") || strcmp(n, "..");
+}
+
+static int get_port_list(const char *br_ifname, struct dirent ***namelist)
+{
+    char buf[256];
+
+    snprintf(buf, sizeof(buf), SYSFS_CLASS_NET "/%.230s/brif", br_ifname);
+
+    return scandir(buf, namelist, not_dot_dotdot, alphasort);
+}
+
+int bridge_create(int bridge_idx, CIST_BridgeConfig *cfg)
+{
+    struct dirent **namelist;
+    int *port_list;
+    int n_ports;
+    bridge_t *br, *other_br;
+    port_t *port, *tmp;
+    int flags;
+    bool found;
+    int i;
+
+    br = find_br(bridge_idx);
+    if(!br)
+        br = create_br(bridge_idx);
+    if(!br)
+        return -1;
+
+    if(cfg)
+        MSTP_IN_set_cist_bridge_config(br, cfg);
+
+    if(!br->stp_enabled)
+    {
+        br->stp_enabled = true;
+        MSTP_IN_set_bridge_enable(br, br->sysdeps.up);
+    }
+
+    flags = get_flags(br->sysdeps.name);
+    if(flags >= 0)
+        set_br_up(br, !!(flags & IFF_UP));
+
+    n_ports = get_port_list(br->sysdeps.name, &namelist);
+    if(n_ports < 0)
+        return 0;
+
+    port_list = alloca(n_ports * sizeof(*port_list));
+
+    for(i = 0; i < n_ports; i++)
+    {
+        port_list[i] = if_nametoindex(namelist[i]->d_name);
+        free(namelist[i]);
+    }
+    free(namelist);
+
+    list_for_each_entry_safe(port, tmp, &br->ports, br_list)
+    {
+        found = false;
+        for(i = 0; i < n_ports; i++)
+        {
+            if(port->sysdeps.if_index != port_list[i])
+                continue;
+            found = true;
+            break;
+        }
+
+        if(!found)
+            delete_if(port);
+    }
+
+    for(i = 0; i < n_ports; i++)
+    {
+        port = find_if(br, port_list[i]);
+        if(port)
+            continue;
+
+        list_for_each_entry(other_br, &bridges, list)
+        {
+            if(br == other_br)
+                continue;
+
+            delete_if_byindex(other_br, port_list[i]);
+        }
+
+        port = find_if(br, port_list[i]);
+        if(!port)
+            port = create_if(br, port_list[i]);
+        if(!port)
+            continue;
+
+        flags = get_flags(port->sysdeps.name);
+        if(flags < 0)
+            continue;
+
+        set_if_up(port, !(~flags & (IFF_UP | IFF_RUNNING)));
+    }
+
+    return 0;
+}
+
+void bridge_delete(int index)
+{
+    delete_br_byindex(index);
 }
 
 int bridge_track_fini(void)

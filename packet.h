@@ -29,5 +29,6 @@
 
 void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len);
 int packet_sock_init(void);
+void packet_rcv(void);
 
 #endif /* PACKET_SOCK_H */

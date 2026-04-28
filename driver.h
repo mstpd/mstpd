@@ -12,6 +12,8 @@
 #ifndef _MSTP_DRIVER_H
 #define _MSTP_DRIVER_H
 
+#include "mstp.h"
+
 int driver_set_new_state(per_tree_port_t *ptp, int new_state);
 void driver_flush_all_fids(per_tree_port_t *ptp);
 unsigned int driver_set_ageing_time(port_t *prt, unsigned int ageingTime);

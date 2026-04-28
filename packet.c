@@ -110,7 +110,7 @@ void packet_send(int ifindex, const struct iovec *iov, int iov_count, int len)
         ERROR("short write in sendto: %d instead of %d", l, len);
 }
 
-static void packet_rcv(uint32_t events, struct epoll_event_handler *h)
+static void packet_rcv_epoll(uint32_t events, struct epoll_event_handler *h)
 {
     int cc;
     unsigned char buf[2048];
@@ -134,6 +134,12 @@ static void packet_rcv(uint32_t events, struct epoll_event_handler *h)
 #endif
 
     bridge_bpdu_rcv(sl.sll_ifindex, buf, cc);
+}
+
+void packet_rcv(void)
+{
+    if(packet_event.fd >= 0)
+        packet_rcv_epoll(EPOLLIN, &packet_event);
 }
 
 /* Berkeley Packet filter code to filter out spanning tree packets.
@@ -183,7 +189,7 @@ int packet_sock_init(void)
             ERROR("setsockopt priority failed, BPDU delivery may be unreliable: %m");
 
         packet_event.fd = s;
-        packet_event.handler = packet_rcv;
+        packet_event.handler = packet_rcv_epoll;
 
         if(0 == add_epoll(&packet_event))
             return 0;

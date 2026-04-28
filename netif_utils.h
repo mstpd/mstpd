@@ -42,5 +42,5 @@ int get_bridge_portno(char *if_name);
 
 char *index_to_name(int index, char *name);
 char *index_to_port_name(int index, char *name);
-
+int get_bpdu_filter(char *if_name);
 #endif /* NETIF_UTILS_H */

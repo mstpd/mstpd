@@ -177,3 +177,38 @@ out:
     close(fd);
     return res;
 }
+
+int get_bpdu_filter(char *if_name)
+{
+    char path[32 + IFNAMSIZ];
+    sprintf(path, SYSFS_CLASS_NET "/%s/brport/bpdu_filter", if_name);
+    char buf[128];
+    int fd;
+    long res = -1;
+    TSTM((fd = open(path, O_RDONLY)) >= 0, -1, "%m");
+    int l;
+    TSTM((l = read(fd, buf, sizeof(buf) - 1)) >= 0, -1, "%m");
+    if(0 == l)
+    {
+        ERROR("Empty bpdu_filter file");
+        goto out;
+    }
+    else if((sizeof(buf) - 1) == l)
+    {
+        ERROR("bpdu_filter file too long");
+        goto out;
+    }
+    buf[l] = 0;
+    if('\n' == buf[l - 1])
+        buf[l - 1] = 0;
+    char *end;
+    res = strtoul(buf, &end, 0);
+    if(0 != *end || INT_MAX < res)
+    {
+        ERROR("Invalid bpdu_filter value %s", buf);
+        res = -1;
+    }
+out:
+    close(fd);
+    return res;
+}

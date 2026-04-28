@@ -74,7 +74,6 @@ extern int log_level;
         ctl_err_log(_fmt "\n", ##_args);                                \
     })
 #endif
-
 static inline void dump_hex(void *b, int l)
 {
     unsigned char *buf = b;

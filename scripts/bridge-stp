@@ -1,0 +1,16 @@
+#!/bin/sh
+bridge="$1"
+cmd="$2"
+
+export PATH='/sbin:/usr/sbin:/bin:/usr/bin'
+
+case "$cmd" in
+	start) enabled=true ;;
+	stop) enabled=false ;;
+	*)
+		echo "Usage: $0 <bridge> {start|stop}"
+		exit 1
+	;;
+esac
+
+ubus call ustp bridge_state '{ "name": "'"$bridge"'", "enabled": '$enabled' }'
