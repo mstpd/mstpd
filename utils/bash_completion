@@ -24,8 +24,8 @@ _mstpctl()
                 debuglevel|showall)
                     ;;
                 *)
-                    COMPREPLY=( $( compgen -W "$( brctl show | \
-                        grep 'yes\|no' | awk '{print $1}')" -- "$cur" ) )
+                    COMPREPLY=( $( compgen -W "$( ip -br link show type bridge | \
+                        awk '{print $1}')" -- "$cur" ) )
             esac
             ;;
         3)
