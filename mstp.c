@@ -1629,8 +1629,13 @@ void MSTP_IN_set_mst_config_id(bridge_t *br, __u16 revision, __u8 *name)
         assign(br->MstConfigId.s.revision_level, valueRevision);
         memset(br->MstConfigId.s.configuration_name, 0,
                sizeof(br->MstConfigId.s.configuration_name));
+        /* configuration_name can be non NUL terminated cf 802.1Q-2022 section 13.8
+         * copy everything and ignore GCC warning */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
         strncpy((char *)br->MstConfigId.s.configuration_name, (char *)name,
-                sizeof(br->MstConfigId.s.configuration_name) - 1);
+                sizeof(br->MstConfigId.s.configuration_name));
+#pragma GCC diagnostic pop
         br_state_machines_begin(br);
     }
 }
