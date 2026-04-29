@@ -60,18 +60,21 @@ typedef struct
     _br->sysdeps.name, ##_args)
 #define LOG_BRNAME(_br, _fmt, _args...)     LOG("%s " _fmt, \
     _br->sysdeps.name, ##_args)
-#define ERROR_PRTNAME(_br, _prt, _fmt, _args...) ERROR("%s:%s " _fmt, \
-    _br->sysdeps.name, _prt->sysdeps.name, ##_args)
-#define INFO_PRTNAME(_br, _prt, _fmt, _args...)   INFO("%s:%s " _fmt, \
-    _br->sysdeps.name, _prt->sysdeps.name, ##_args)
-#define LOG_PRTNAME(_br, _prt, _fmt, _args...)    LOG("%s:%s " _fmt,  \
-    _br->sysdeps.name, _prt->sysdeps.name, ##_args)
-#define ERROR_MSTINAME(_br,_prt,_ptp,_fmt,_args...) ERROR("%s:%s:%hu " _fmt, \
-    _br->sysdeps.name, _prt->sysdeps.name, __be16_to_cpu(ptp->MSTID), ##_args)
-#define INFO_MSTINAME(_br,_prt,_ptp,_fmt,_args...)  INFO("%s:%s:%hu " _fmt,  \
-    _br->sysdeps.name, _prt->sysdeps.name, __be16_to_cpu(ptp->MSTID), ##_args)
-#define LOG_MSTINAME(_br,_prt,_ptp,_fmt,_args...)    LOG("%s:%s:%hu " _fmt,  \
-    _br->sysdeps.name, _prt->sysdeps.name, __be16_to_cpu(ptp->MSTID), ##_args)
+#define ERROR_PRTNAME(_prt, _fmt, _args...) ERROR("%s:%s " _fmt, \
+    _prt->bridge->sysdeps.name, _prt->sysdeps.name, ##_args)
+#define INFO_PRTNAME(_prt, _fmt, _args...)   INFO("%s:%s " _fmt, \
+    _prt->bridge->sysdeps.name, _prt->sysdeps.name, ##_args)
+#define LOG_PRTNAME(_prt, _fmt, _args...)    LOG("%s:%s " _fmt,  \
+    _prt->bridge->sysdeps.name, _prt->sysdeps.name, ##_args)
+#define ERROR_MSTINAME(_ptp,_fmt,_args...) ERROR("%s:%s:%hu " _fmt, \
+    _ptp->port->bridge->sysdeps.name, _ptp->port->sysdeps.name,     \
+    __be16_to_cpu(ptp->MSTID), ##_args)
+#define INFO_MSTINAME(_ptp,_fmt,_args...)  INFO("%s:%s:%hu " _fmt,  \
+    _ptp->port->bridge->sysdeps.name, _ptp->port->sysdeps.name,     \
+    __be16_to_cpu(ptp->MSTID), ##_args)
+#define LOG_MSTINAME(_ptp,_fmt,_args...)    LOG("%s:%s:%hu " _fmt,  \
+    _ptp->port->bridge->sysdeps.name, _ptp->port->sysdeps.name,     \
+    __be16_to_cpu(ptp->MSTID), ##_args)
 #define SMLOG_MSTINAME(_ptp, _fmt, _args...)                         \
     PRINT(LOG_LEVEL_STATE_MACHINE_TRANSITION, "%s: %s:%s:%hu " _fmt, \
           __PRETTY_FUNCTION__, _ptp->port->bridge->sysdeps.name,     \
