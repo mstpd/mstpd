@@ -14,10 +14,10 @@ _mstpctl()
                 setfid2mstid setmaxage setfdelay setmaxhops setforcevers \
                 settxholdcount settreeprio setportpathcost setportadminedge \
                 setportautoedge setportp2p setportrestrrole setportrestrtcn \
-                setbpduguard settreeportprio settreeportcost showbridge \
-                showmstilist showmstconfid showvid2fid showfid2mstid showport \
-                showportdetail showtree showtreeport sethello \
-                setageing setportnetwork setportbpdufilter" -- "$cur" ) )
+                setenablebpdurx setenablebpdutx setbpduguard settreeportprio \
+                settreeportcost showbridge showmstilist showmstconfid \
+                showvid2fid showfid2mstid showport showportdetail showtree \
+               showtreeport sethello setageing setportnetwork" -- "$cur" ) )
             ;;
         2)
             case $command in
@@ -47,7 +47,8 @@ _mstpctl()
         4)
             case $command in
                 setportadminedge|setportautoedge|setportrestrrole|\
-                setportrestrtcn|setbpduguard|setportnetwork|setportbpdufilter)
+                setportrestrtcn|setportenablebpdurx|setportenablebpdutx|\
+                setbpduguard|setportnetwork)
                     COMPREPLY=( $( compgen -W 'yes no' -- "$cur" ) )
                     ;;
                 setportp2p)

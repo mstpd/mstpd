@@ -473,12 +473,12 @@ typedef struct
     admin_p2p_t AdminP2P; /* 6.4.3 */
     bool AdminEdgePort; /* 13.22.k */
     bool AutoEdge; /* 13.22.m */
+    bool enableBPDUrx;
+    bool enableBPDUtx;
     bool BpduGuardPort;
     bool BpduGuardError;
     bool NetworkPort;
     bool BaInconsistent;
-    bool dontTxmtBpdu;
-    bool bpduFilterPort;
 
     unsigned int rapidAgeingWhile;
     unsigned int brAssuRcvdInfoWhile;
@@ -698,13 +698,14 @@ typedef struct
     bool restricted_tcn;
     port_role_t role;
     bool disputed;
+    bool enable_bpdu_rx;
+    bool enable_bpdu_tx;
     bridge_identifier_t designated_regional_root; /* from portPriority */
     __u32 designated_internal_cost; /* from portPriority */
     __u32 admin_internal_port_path_cost; /* not in standard. 0 = auto */
     __u32 internal_port_path_cost; /* not in standard */
     bool bpdu_guard_port;
     bool bpdu_guard_error;
-    bool bpdu_filter_port;
     bool network_port;
     bool ba_inconsistent;
     unsigned int num_rx_bpdu_filtered;
@@ -772,17 +773,18 @@ typedef struct
     bool restricted_tcn;
     bool set_restricted_tcn;
 
+    bool enable_bpdu_rx;
+    bool set_enable_bpdu_rx;
+
+    bool enable_bpdu_tx;
+    bool set_enable_bpdu_tx;
+
     bool bpdu_guard_port;
     bool set_bpdu_guard_port;
 
     bool network_port;
     bool set_network_port;
 
-    bool dont_txmt;
-    bool set_dont_txmt;
-
-    bool bpdu_filter_port;
-    bool set_bpdu_filter_port;
 } CIST_PortConfig;
 
 int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg);

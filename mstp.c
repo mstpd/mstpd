@@ -298,11 +298,11 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     assign(prt->ExternalPortPathCost, MAX_PATH_COST); /* 13.37.1 */
     prt->AdminEdgePort = false; /* 13.25 */
     prt->AutoEdge = true;       /* 13.25 */
+    prt->enableBPDUrx = true;
+    prt->enableBPDUtx = true;
     prt->BpduGuardPort = false;
     prt->BpduGuardError = false;
     prt->NetworkPort = false;
-    prt->dontTxmtBpdu = false;
-    prt->bpduFilterPort = false;
     prt->deleted = false;
 
     port_default_internal_vars(prt);
@@ -592,7 +592,7 @@ void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size)
         return;
     }
 
-    if(prt->bpduFilterPort)
+    if(!prt->enableBPDUrx)
     {
         LOG_PRTNAME(br, prt,
                    "Received BPDU on BPDU Filtered Port - discarded");
@@ -1018,6 +1018,8 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     status->restricted_tcn = prt->restrictedTcn;
     status->role = cist->role;
     status->disputed = cist->disputed;
+    status->enable_bpdu_rx = prt->enableBPDUrx;
+    status->enable_bpdu_tx = prt->enableBPDUtx;
     assign(status->admin_internal_port_path_cost,
            cist->AdminInternalPortPathCost);
     assign(status->internal_port_path_cost, cist->InternalPortPathCost);
@@ -1025,7 +1027,6 @@ void MSTP_IN_get_cist_port_status(port_t *prt, CIST_PortStatus *status)
     status->bpdu_guard_error = prt->BpduGuardError;
     status->network_port = prt->NetworkPort;
     status->ba_inconsistent = prt->BaInconsistent;
-    status->bpdu_filter_port = prt->bpduFilterPort;
     status->num_rx_bpdu_filtered = prt->num_rx_bpdu_filtered;
     status->num_rx_bpdu = prt->num_rx_bpdu;
     status->num_rx_tcn = prt->num_rx_tcn;
@@ -1174,6 +1175,25 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
         }
     }
 
+    if(cfg->set_enable_bpdu_rx)
+    {
+        if (prt->enableBPDUrx != cfg->enable_bpdu_rx)
+        {
+            prt->enableBPDUrx = cfg->enable_bpdu_rx;
+            prt->num_rx_bpdu_filtered = 0;
+            INFO_PRTNAME(br, prt,"enableBPDUrx new=%d", prt->enableBPDUrx);
+        }
+    }
+    
+    if(cfg->set_enable_bpdu_tx)
+    {
+        if(prt->enableBPDUtx != cfg->enable_bpdu_tx)
+        {
+            prt->enableBPDUtx = cfg->enable_bpdu_tx;
+            INFO_PRTNAME(br, prt, "enableBPDUtx new=%d", prt->enableBPDUtx);
+        }
+    }
+
     if(cfg->set_bpdu_guard_port)
     {
         if(prt->BpduGuardPort != cfg->bpdu_guard_port)
@@ -1198,25 +1218,6 @@ int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg)
                 INFO_PRTNAME(br, prt, "Clear Bridge assurance inconsistency");
             }
             changed = true;
-        }
-    }
-
-    if(cfg->set_dont_txmt)
-    {
-        if(prt->dontTxmtBpdu != cfg->dont_txmt)
-        {
-            prt->dontTxmtBpdu = cfg->dont_txmt;
-            INFO_PRTNAME(br, prt, "donttxmt new=%d", prt->dontTxmtBpdu);
-        }
-    }
-
-    if(cfg->set_bpdu_filter_port)
-    {
-        if (prt->bpduFilterPort != cfg->bpdu_filter_port)
-        {
-            prt->bpduFilterPort = cfg->bpdu_filter_port;
-            prt->num_rx_bpdu_filtered = 0;
-            INFO_PRTNAME(br, prt,"bpduFilterPort new=%d", prt->bpduFilterPort);
         }
     }
 
@@ -2362,7 +2363,7 @@ static void txConfig(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
@@ -2423,7 +2424,7 @@ static void txMstp(port_t *prt)
     per_tree_port_t *ptp;
     msti_configuration_message_t *msti_msg;
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
@@ -2521,7 +2522,7 @@ static void txTcn(port_t *prt)
     bpdu_t b;
     per_tree_port_t *cist = GET_CIST_PTP_FROM_PORT(prt);
 
-    if(prt->deleted || (roleDisabled == cist->role) || prt->dontTxmtBpdu)
+    if(prt->deleted || (roleDisabled == cist->role) || !prt->enableBPDUtx)
         return;
 
     b.protocolIdentifier = 0;
@@ -3302,7 +3303,7 @@ static bool PTSM_run(port_t *prt, bool dry_run)
             if(!(prt->txCount < prt->bridge->Transmit_Hold_Count))
                 return false;
 
-            if(prt->bpduFilterPort)
+            if(!prt->enableBPDUrx)
                 return false;
 
             if(prt->sendRSTP)
