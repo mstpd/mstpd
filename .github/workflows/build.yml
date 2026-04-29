@@ -5,11 +5,42 @@ on: [ push, pull_request ]
 jobs:
   linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config:
+          - name: "default"
+            flags: "--enable-devel"
+            install_ubus: false
+          - name: "with-ubus"
+            flags: "--enable-devel --enable-ubus"
+            install_ubus: true
     steps:
-    - uses: actions/checkout@v2
-    - name: build
+    - uses: actions/checkout@v6
+    - name: Install ubus dependencies
+      if: matrix.config.install_ubus
       shell: bash
-      run: ./autogen.sh && ./configure --enable-devel && make V=s
+      run: |
+        sudo apt update
+        sudo apt install -y libjson-c-dev cmake liblua5.1-0-dev lua5.1
+
+        # Build libubox
+        git clone https://git.openwrt.org/project/libubox.git
+        cd libubox
+        cmake .
+        make
+        sudo make install
+        cd ..
+
+        # Build libubus
+        git clone https://git.openwrt.org/project/ubus.git
+        cd ubus
+        cmake .
+        make
+        sudo make install
+        sudo ldconfig
+    - name: build (${{ matrix.config.name }})
+      shell: bash
+      run: ./autogen.sh && ./configure ${{ matrix.config.flags }} && make V=s
     - name: shellcheck
       shell: bash
       run: shellcheck utils/ifupdown.sh.in utils/mstp_config_bridge.in utils/mstpctl-utils-functions.sh
