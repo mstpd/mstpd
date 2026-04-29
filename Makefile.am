@@ -20,6 +20,31 @@ if ENABLE_DEVEL
 endif
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
 
+# unit testing
+LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) $(top_srcdir)/tap-driver.sh
+AM_TESTS_ENVIRONMENT = CMOCKA_MESSAGE_OUTPUT=TAP
+
+check_PROGRAMS = \
+	tests/test_digest \
+	tests/test_portcost \
+	tests/test_mst_tcn_discarding \
+	$(NULL)
+TESTS = $(check_PROGRAMS)
+
+TEST_COMMON = tests/common.c tests/common.h hmac_md5.c mstp.c mstp.h
+
+tests_test_digest_SOURCES = $(TEST_COMMON) tests/test_digest.c
+tests_test_digest_CFLAGS = $(CMOCKA_CFLAGS) $(mstpd_CFLAGS)
+tests_test_digest_LDADD = $(CMOCKA_LIBS)
+
+tests_test_portcost_SOURCES = $(TEST_COMMON) tests/test_portcost.c
+tests_test_portcost_CFLAGS = $(CMOCKA_CFLAGS) $(mstpd_CFLAGS)
+tests_test_portcost_LDADD = $(CMOCKA_LIBS)
+
+tests_test_mst_tcn_discarding_SOURCES = $(TEST_COMMON) tests/test_mst_tcn_discarding.c
+tests_test_mst_tcn_discarding_CFLAGS = $(CMOCKA_CFLAGS) $(mstpd_CFLAGS)
+tests_test_mst_tcn_discarding_LDADD = $(CMOCKA_LIBS)
+
 EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
 	utils/mstpd.service.in utils/bash_completion utils/nm-dispatcher.in \
 	README.md README.VLANs.md mstpd.spec autogen.sh

@@ -45,7 +45,6 @@
 
 #include "mstp.h"
 #include "log.h"
-#include "driver.h"
 #include "clock_gettime.h"
 
 static void PTSM_tick(port_t *prt);
@@ -237,9 +236,6 @@ bool MSTP_IN_bridge_create(bridge_t *br, __u8 *macaddr)
 {
     tree_t *cist;
 
-    if (!driver_create_bridge(br, macaddr))
-        return false;
-
     /* Initialize all fields except sysdeps and anchor */
     INIT_LIST_HEAD(&br->ports);
     INIT_LIST_HEAD(&br->trees);
@@ -277,9 +273,6 @@ bool MSTP_IN_port_create_and_add_tail(port_t *prt, __u16 portno)
     tree_t *tree;
     per_tree_port_t *ptp, *nxt;
     bridge_t *br = prt->bridge;
-
-    if (!driver_create_port(prt, portno))
-        return false;
 
     /* Initialize all fields except sysdeps and bridge */
     INIT_LIST_HEAD(&prt->trees);
@@ -341,8 +334,6 @@ void MSTP_IN_delete_port(port_t *prt)
     per_tree_port_t *ptp, *nxt;
     bridge_t *br = prt->bridge;
 
-    driver_delete_port(prt);
-
     prt->deleted = true;
     if(prt->portEnabled)
     {
@@ -365,8 +356,6 @@ void MSTP_IN_delete_bridge(bridge_t *br)
 {
     tree_t *tree, *nxt_tree;
     port_t *prt, *nxt_prt;
-
-    driver_delete_bridge(br);
 
     br->bridgeEnabled = false;
 
