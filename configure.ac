@@ -86,6 +86,30 @@ AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_CHECK_TYPES(struct timespec)
 AC_CHECK_FUNCS(clock_gettime)
 
+# Optional ubus support
+AC_ARG_ENABLE([ubus],
+	[AC_HELP_STRING([--enable-ubus], [enable ubus support (default: disabled)])],
+	[enable_ubus=$enableval],
+	[enable_ubus=no])
+
+AS_IF([test "x$enable_ubus" = "xyes"], [
+	# Check for libubox
+	AC_CHECK_LIB([ubox], [uloop_init],
+		[LIBUBOX_LIBS="-lubox"],
+		[AC_MSG_ERROR([libubox not found. Please install libubox development package or compile without ubus support.])])
+
+	# Check for libubus
+	AC_CHECK_LIB([ubus], [ubus_connect],
+		[LIBUBUS_LIBS="-lubus"],
+		[AC_MSG_ERROR([libubus not found. Please install libubus development package or compile without ubus support.])])
+
+	AC_DEFINE([HAVE_UBUS], [1], [Define to 1 if ubus support is enabled])
+])
+
+AM_CONDITIONAL([ENABLE_UBUS], [test "x$enable_ubus" = "xyes"])
+AC_SUBST(LIBUBOX_LIBS)
+AC_SUBST(LIBUBUS_LIBS)
+
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 

@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-sbin_PROGRAMS = mstpd mstpctl
+sbin_PROGRAMS = mstpd
 
 mstpd_SOURCES = \
 	main.c epoll_loop.c epoll_loop.h clock_gettime.h brmon.c \
@@ -9,8 +9,13 @@ mstpd_SOURCES = \
 	netif_utils.h ctl_socket_server.c ctl_socket_server.h hmac_md5.c \
 	list.h log.h driver_deps.c
 
+if ENABLE_UBUS
+mstpd_SOURCES += ubus.c ubus.h bridge_config.c bridge_config.h
+else
 mstpctl_SOURCES = \
-	ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
+        ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
+sbin_PROGRAMS += mstpctl
+endif
 
 mstpd_CFLAGS = \
 	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
@@ -18,7 +23,11 @@ mstpd_CFLAGS = \
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0 -Werror
 endif
+if ENABLE_UBUS
+mstpd_LDADD = $(LIBUBOX_LIBS) $(LIBUBUS_LIBS)
+else
 mstpctl_CFLAGS = $(mstpd_CFLAGS)
+endif
 
 EXTRA_DIST = bridge-stp.in utils/ifupdown.sh.in utils/mstp_config_bridge.in \
 	utils/mstpd.service.in utils/bash_completion utils/nm-dispatcher.in \
