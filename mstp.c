@@ -803,7 +803,7 @@ int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg)
         if((2 * (new_forward_delay - 1)) < new_max_age)
         {
             ERROR_BRNAME(br, "Configured Bridge Times don't meet "
-                "2 * (Bridge Foward Delay - 1 second) >= Bridge Max Age");
+                "2 * (Bridge Forward Delay - 1 second) >= Bridge Max Age");
             r = -1;
         }
     }
