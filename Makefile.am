@@ -57,7 +57,7 @@ utilsexec_SCRIPTS = utils/ifupdown.sh utils/mstp_config_bridge
 dist_utilsexec_DATA = utils/mstpctl-utils-functions.sh
 sbin_SCRIPTS = bridge-stp
 dist_sysconf_DATA = bridge-stp.conf
-dist_man_MANS = utils/mstpctl.8 utils/mstpctl-utils-interfaces.5
+dist_man_MANS = utils/bridge-stp.8 utils/mstpctl.8 utils/mstpctl-utils-interfaces.5
 
 AM_DISTCHECK_CONFIGURE_FLAGS = --exec_prefix=$$dc_install_base \
 	--libexecdir=$$dc_install_base/lib \
