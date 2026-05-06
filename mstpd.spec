@@ -129,6 +129,7 @@ END
 %{_libexecdir}/mstpctl-utils/mstpctl-utils-functions.sh
 %doc %{_mandir}/man5/bridge-stp.8
 %doc %{_mandir}/man5/mstpctl-utils-interfaces.5.gz
+%doc %{_mandir}/man8/mstp_restart.8
 %doc %{_mandir}/man8/mstpctl.8.gz
 %doc %{_docdir}/mstpd/README.VLANs
 %doc %{_docdir}/mstpd/README
