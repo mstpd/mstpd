@@ -94,7 +94,7 @@ static int listen_msg(struct rtnl_ctrl_data *data, struct nlmsghdr *n,
 
     if(tb[IFLA_IFNAME] == NULL)
     {
-        ERROR("BUG: nil ifname\n");
+        ERROR("BUG: nil ifname");
         return -1;
     }
 
@@ -174,7 +174,7 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
 {
     if(rtnl_listen(&rth, listen_msg, stdout) < 0)
     {
-        ERROR("Error on bridge monitoring socket\n");
+        ERROR("Error on bridge monitoring socket");
     }
 }
 
@@ -182,31 +182,31 @@ int init_bridge_ops(void)
 {
     if(rtnl_open(&rth, RTMGRP_LINK) < 0)
     {
-        ERROR("Couldn't open rtnl socket for monitoring\n");
+        ERROR("Couldn't open rtnl socket for monitoring");
         return -1;
     }
 
     if(rtnl_open(&rth_state, 0) < 0)
     {
-        ERROR("Couldn't open rtnl socket for setting state\n");
+        ERROR("Couldn't open rtnl socket for setting state");
         return -1;
     }
 
     if(rtnl_linkdump_req(&rth, PF_BRIDGE) < 0)
     {
-        ERROR("Cannot send dump request: %m\n");
+        ERROR("Cannot send dump request: %m");
         return -1;
     }
 
     if(rtnl_dump_filter(&rth, dump_msg, stdout) < 0)
     {
-        ERROR("Dump terminated\n");
+        ERROR("Dump terminated");
         return -1;
     }
 
     if(fcntl(rth.fd, F_SETFL, O_NONBLOCK) < 0)
     {
-        ERROR("Error setting O_NONBLOCK: %m\n");
+        ERROR("Error setting O_NONBLOCK: %m");
         return -1;
     }
 

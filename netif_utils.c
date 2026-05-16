@@ -50,7 +50,7 @@ int netsock_init(void)
     netsock = socket(AF_INET, SOCK_DGRAM, 0);
     if(0 > netsock)
     {
-        ERROR("Couldn't open inet socket for ioctls: %m\n");
+        ERROR("Couldn't open inet socket for ioctls: %m");
         return -1;
     }
     return 0;
@@ -114,7 +114,7 @@ int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex)
     ifr.ifr_data = (caddr_t)&ecmd;
     if(0 > ioctl(netsock, SIOCETHTOOL, &ifr))
     {
-        ERROR("Cannot get speed/duplex for %s: %m\n", ifname);
+        ERROR("Cannot get speed/duplex for %s: %m", ifname);
         return -1;
     }
     *speed = ethtool_cmd_speed(&ecmd); /* Ethtool speed is in Mbps */

@@ -161,7 +161,7 @@ int send_ctl_message(int cmd, void *inbuf, int lin, void *outbuf, int lout,
     }
     if(mhdr.lout != lout)
     {
-        ERROR("Error, unexpected result length %d, expected %d\n",
+        ERROR("Error, unexpected result length %d, expected %d",
               mhdr.lout, lout);
         return -1;
     }

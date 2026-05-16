@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
     if(print_to_syslog)
         openlog(APP_NAME, LOG_PID, LOG_DAEMON);
 
-    INFO("Version - " PACKAGE_VERSION "\n");
+    INFO("Version - " PACKAGE_VERSION);
 
     if (sanity_check() < 0)
 	return EXIT_FAILURE;
