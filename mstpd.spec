@@ -1,5 +1,5 @@
 Name:          mstpd
-Summary:       STP/RSTP/PVST+/MSTP Spanning Tree Protocol Daemon
+Summary:       STP/RSTP/MSTP Spanning Tree Protocol Daemon
 URL:           https://github.com/mstpd/mstpd
 Version:       0.2.0
 Release:       1%{?dist}
@@ -16,8 +16,7 @@ Requires: python3
 
 %description
 This package provides a user-space daemon which replaces the STP handling that
-is built into the Linux kernel Ethernet bridge and adds support for RSTP and
-PVST+.
+is built into the Linux kernel Ethernet bridge and adds support for RSTP.
 
 This daemon also supports participating in MSTP.  However, due to the way the
 Linux kernel implements its FIBs, it is not currently possible to map MSTP
