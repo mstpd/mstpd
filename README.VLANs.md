@@ -5,7 +5,7 @@ There are currently two different ways to implement spanning tree on
 trunk ports using Linux bridging and mstpd:
 
 1. Single Spanning Tree (RSTP/STP)
-2. Per-VLAN Spanning Tree (PVST+)
+2. Per-VLAN Spanning Tree
 
 Single Spanning Tree (RSTP/STP)
 -------------------------------
@@ -28,8 +28,10 @@ with Cisco switches, you must put the Cisco switches in 'mst' mode
 (`spanning-tree mode mst`).  Cisco switches in 'mst' mode will fall back
 to PVST+ on ports connected to other switches that speak PVST+.
 
-Per-VLAN Spanning Tree (PVST+)
+Per-VLAN Spanning Tree
 ------------------------------
+
+**Note** this is not PVST+, which is a proprietary Cisco protocol.
 
 * Create Linux VLAN interfaces on top of each trunk interface.
 * For each VLAN, create a Linux bridge and attach the relevant VLAN
@@ -44,4 +46,8 @@ Per-VLAN Spanning Tree (PVST+)
 * Force mstpd to use RSTP on each bridge
   (`mstpctl setforcevers <bridge> rstp`).
 
-This is only compatible with other switches that speak PVST+.
+This is only compatible with other switches that run (R)STP in a similar
+manner, but is not compatible with switches running (rapid) PVST+.
+
+This is also not compatible with switchdev and by extension DSA backed
+switches, which do not support per-VLAN STP states.
