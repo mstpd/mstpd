@@ -111,7 +111,10 @@ ACKNOWLEDGEMENTS
 Initial code was written by looking at (and shamelessly stealing some
 parts from):
 
-  - rstpd by Srinivas Aji `<Aji_Srinivas ? emc DOT com>`
+  - [rstpd](https://github.com/shemminger/RSTP) by Srinivas Aji `<Aji_Srinivas
+    ? emc DOT com>` and Stephen Hemminger `<stephen ? networkplumber DOT org> ,
+    used as the base of `mstpd`
 
-  - rstplib by Alex Rozin `<alexr ? nbase DOT co DOT il>` and Michael
-  Rozhavsky `<mike ? nbase DOT co DOT il>`
+  - [rstplib](https://sourceforge.net/projects/rstplib/) by Alex Rozin `<alexr
+    ? nbase DOT co DOT il>` and Michael Rozhavsky `<mike ? nbase DOT co DOT
+    il>`, as inspiration for `mstp.{c,h}`
