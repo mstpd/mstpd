@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
 ACLOCAL_AMFLAGS = -I m4
 
 sbin_PROGRAMS = mstpd mstpctl
