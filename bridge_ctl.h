@@ -64,9 +64,9 @@ typedef struct
           __PRETTY_FUNCTION__, _ptp->port->bridge->sysdeps.name,     \
          _ptp->port->sysdeps.name, __be16_to_cpu(ptp->MSTID), ##_args)
 
-extern struct rtnl_handle rth_state;
-
 int init_bridge_ops(void);
+
+int br_set_state(unsigned ifindex, __u8 state);
 
 int bridge_notify(int br_index, int if_index, bool newlink, unsigned flags);
 

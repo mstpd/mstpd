@@ -23,7 +23,6 @@
 #include "log.h"
 #include "mstp.h"
 #include "driver.h"
-#include "libnetlink.h"
 
 #ifndef SYSFS_CLASS_NET
 #define SYSFS_CLASS_NET "/sys/class/net"
@@ -426,28 +425,6 @@ void bridge_bpdu_rcv(int if_index, const unsigned char *data, int len)
                     (bpdu_t *)(data + sizeof(*h)), l - LLC_PDU_LEN_U);
 }
 
-static int br_set_state(struct rtnl_handle *rth, unsigned ifindex, __u8 state)
-{
-    struct
-    {
-        struct nlmsghdr n;
-        struct ifinfomsg ifi;
-        char buf[256];
-    } req;
-
-    memset(&req, 0, sizeof(req));
-
-    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_REPLACE;
-    req.n.nlmsg_type = RTM_SETLINK;
-    req.ifi.ifi_family = AF_BRIDGE;
-    req.ifi.ifi_index = ifindex;
-
-    addattr8(&req.n, sizeof(req.buf), IFLA_PROTINFO, state);
-
-    return rtnl_talk(rth, &req.n, NULL);
-}
-
 static int br_flush_port(char *ifname)
 {
     char fname[128];
@@ -522,7 +499,7 @@ void MSTP_OUT_set_state(per_tree_port_t *ptp, int new_state)
         /* we can only modify STP states of up ports */
         if(prt->sysdeps.up)
         {
-            if(0 > br_set_state(&rth_state, prt->sysdeps.if_index, ptp->state))
+            if(0 > br_set_state(prt->sysdeps.if_index, ptp->state))
                 ERROR_PRTNAME(prt, "Couldn't set kernel bridge state %s",
                               state_name);
         }

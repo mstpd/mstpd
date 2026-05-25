@@ -52,7 +52,29 @@ static const char *port_states[] =
 static struct rtnl_handle rth;
 static struct epoll_event_handler br_handler;
 
-struct rtnl_handle rth_state;
+static struct rtnl_handle rth_state;
+
+int br_set_state(unsigned ifindex, __u8 state)
+{
+    struct
+    {
+        struct nlmsghdr n;
+        struct ifinfomsg ifi;
+        char buf[256];
+    } req;
+
+    memset(&req, 0, sizeof(req));
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_REPLACE;
+    req.n.nlmsg_type = RTM_SETLINK;
+    req.ifi.ifi_family = AF_BRIDGE;
+    req.ifi.ifi_index = ifindex;
+
+    addattr8(&req.n, sizeof(req.buf), IFLA_PROTINFO, state);
+
+    return rtnl_talk(&rth_state, &req.n, NULL);
+}
 
 static int listen_msg(struct rtnl_ctrl_data *data, struct nlmsghdr *n,
                     void *arg)
