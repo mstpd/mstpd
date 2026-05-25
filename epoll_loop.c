@@ -29,6 +29,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <sys/timerfd.h>
+#include <unistd.h>
 
 #include "log.h"
 #include "epoll_loop.h"
@@ -159,4 +161,69 @@ int epoll_main_loop(volatile bool *quit)
     }
 
     return 0;
+}
+
+int epoll_timer_init(struct epoll_event_handler* timer) {
+    timer->arg = NULL;
+    timer->handler = NULL;
+    timer->priv = 0;
+    timer->fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
+
+    if(timer->fd < 0) {
+        ERROR("timerfd_create: %m\n");
+        return -1;
+    }
+
+    return add_epoll(timer);
+};
+
+void epoll_timer_close(struct epoll_event_handler* timer) {
+    close(timer->fd);
+    timer->fd = -1;
+};
+
+void epoll_timer_start(struct epoll_event_handler* timer, int seconds) {
+    const struct itimerspec new_value = {
+        .it_interval = {0},
+        .it_value = {
+            .tv_sec = seconds,
+            .tv_nsec = 0},
+    };
+    // Starting clears the "expired" flag
+    timer->priv = 0;
+    timerfd_settime(timer->fd, 0, &new_value, NULL);
+}
+
+int epoll_timer_expired(struct epoll_event_handler* timer) {
+    uint64_t expirations;
+    ssize_t s;
+    // This check must be idempotent to support dry_run code. If we
+    // already found the timer to be expired, keep returning true
+    // without reading the timerfd.
+    if(timer->priv) {
+            return 1;
+    }
+    // If we did not find the timer to be expired already, check
+    // it. Set flag if it expired.
+    s = read(timer->fd, &expirations, sizeof(expirations));
+    if(s == sizeof(expirations)) {
+            return timer->priv = 1;
+    }
+    // Log any errors
+    if(s < 0) {
+        if(errno != EAGAIN) {
+            ERROR("timerfd read(): %m\n");
+        }
+    } else if(s != sizeof(expirations)) {
+        ERROR("timerfd read() returned %d bytes", s);
+    }
+    // If the timer isn't readable for any reason, assume it is still
+    // running
+    return 0;
+}
+
+int epoll_timer_active(struct epoll_event_handler* timer) {
+    struct itimerspec current_value;
+    timerfd_gettime(timer->fd, &current_value);
+    return !(current_value.it_value.tv_sec == 0 && current_value.it_value.tv_nsec == 0);
 }
