@@ -4,7 +4,7 @@ URL:           https://github.com/mstpd/mstpd
 Version:       0.2.0
 Release:       1%{?dist}
 
-License:       GPLv2+
+License:       GPL-2.0-or-later AND GPL-2.0 AND RSA-MD
 Group:         System Environment/Daemons
 
 Source0:       https://github.com/mstpd/mstpd/archive/%{version}/%{name}-%{version}.tar.gz
