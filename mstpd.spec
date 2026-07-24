@@ -9,9 +9,10 @@ Group:         System Environment/Daemons
 
 Source0:       https://github.com/mstpd/mstpd/archive/%{version}/%{name}-%{version}.tar.gz
 %{?systemd_ordering}
-BuildRequires: gcc, make, systemd, pkgconfig, autoconf, automake
+BuildRequires: gcc, make, systemd, pkgconfig, autoconf, automake, libmnl-devel
 Requires: bridge-utils
 Requires: iproute
+Requires: libmnl
 Requires: python3
 
 %description

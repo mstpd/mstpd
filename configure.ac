@@ -89,6 +89,7 @@ AC_CHECK_FUNCS(clock_gettime)
 PKG_CHECK_MODULES([CMOCKA], [cmocka], [has_cmocka="yes"], [has_cmocka="no"])
 AM_CONDITIONAL(WITH_CMOCKA, [test "$has_cmocka" = 'yes'])
 
+PKG_CHECK_MODULES([LIBMNL], [libmnl])
 AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_PROG_AWK
 

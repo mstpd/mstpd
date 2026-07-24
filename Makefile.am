@@ -16,6 +16,9 @@ mstpctl_SOURCES = \
 mstpd_CFLAGS = \
 	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
 	-D_GNU_SOURCE
+
+mstpd_LDADD = $(LIBMNL_LIBS)
+
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0 -Werror
 endif
