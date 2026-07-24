@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: install cmocka
       shell: bash
-      run: sudo apt -y install libcmocka-dev
+      run: sudo apt -y install libcmocka-dev libmnl-dev
     - name: build
       shell: bash
       run: ./autogen.sh && ./configure --enable-devel && make V=s
