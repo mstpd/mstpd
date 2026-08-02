@@ -116,6 +116,29 @@ int br_set_state(unsigned ifindex, __u8 state)
     return mnl_talk(mnl_state, n, NULL);
 }
 
+static const enum mnl_attr_data_type linkinfo_policy[IFLA_MAX + 1] =
+{
+    [IFLA_INFO_KIND] = MNL_TYPE_STRING,
+    [IFLA_INFO_DATA] = MNL_TYPE_NESTED,
+    [IFLA_INFO_SLAVE_KIND] = MNL_TYPE_STRING,
+    [IFLA_INFO_SLAVE_DATA] = MNL_TYPE_NESTED,
+};
+
+static int linkinfo_cb(const struct nlattr *attr, void *data)
+{
+    const struct nlattr **tb = data;
+    int type = mnl_attr_get_type(attr);
+
+    if(mnl_attr_type_valid(attr, IFLA_INFO_MAX) < 0)
+        return MNL_CB_OK;
+
+    if(mnl_attr_validate(attr, linkinfo_policy[type]) < 0)
+        return MNL_CB_ERROR;
+
+    tb[type] = attr;
+    return MNL_CB_OK;
+}
+
 static const enum mnl_attr_data_type link_policy[IFLA_MAX + 1] =
 {
     [IFLA_ADDRESS] = MNL_TYPE_BINARY,
@@ -124,6 +147,7 @@ static const enum mnl_attr_data_type link_policy[IFLA_MAX + 1] =
     [IFLA_MASTER] = MNL_TYPE_U32,
     [IFLA_PROTINFO] = MNL_TYPE_U8,
     [IFLA_OPERSTATE] = MNL_TYPE_U8,
+    [IFLA_LINKINFO] = MNL_TYPE_NESTED,
 };
 
 static int link_attr_cb(const struct nlattr *attr, void *data)
@@ -147,7 +171,7 @@ static int link_cb(const struct nlmsghdr *n, void *data)
     struct nlattr * tb[IFLA_MAX + 1] = { };
     char b1[IFNAMSIZ];
     int af_family;
-    bool newlink;
+    bool newlink, bridge = false;
     int br_index;
 
     if(n->nlmsg_type == NLMSG_DONE)
@@ -168,10 +192,6 @@ static int link_cb(const struct nlmsghdr *n, void *data)
 
     mnl_attr_parse(n, sizeof(*ifi), link_attr_cb, tb);
 
-    /* Check if we got this from bonding */
-    if(tb[IFLA_MASTER] && af_family != AF_BRIDGE)
-        return 0;
-
     if(tb[IFLA_IFNAME] == NULL)
     {
         ERROR("BUG: nil ifname");
@@ -182,6 +202,22 @@ static int link_cb(const struct nlmsghdr *n, void *data)
         LOG("Deleted ");
 
     LOG("%d: %s ", ifi->ifi_index, mnl_attr_get_str(tb[IFLA_IFNAME]));
+
+    if(tb[IFLA_LINKINFO])
+    {
+        struct nlattr *tb_info[IFLA_INFO_MAX + 1] = { };
+
+        mnl_attr_parse_nested(tb[IFLA_LINKINFO], linkinfo_cb, tb_info);
+
+        if (tb_info[IFLA_INFO_KIND]
+            && !strcmp("bridge", mnl_attr_get_str(tb[IFLA_INFO_KIND])))
+        {
+            bridge = true;
+        }
+    }
+
+    if(!bridge && af_family != AF_BRIDGE)
+        return 0;
 
     if(tb[IFLA_OPERSTATE])
     {
@@ -234,10 +270,10 @@ static int link_cb(const struct nlmsghdr *n, void *data)
 
     newlink = (n->nlmsg_type == RTM_NEWLINK);
 
-    if(tb[IFLA_MASTER])
-        br_index = mnl_attr_get_u32(tb[IFLA_MASTER]);
-    else if(is_bridge((char*)mnl_attr_get_str(tb[IFLA_IFNAME])))
+    if (bridge)
         br_index = ifi->ifi_index;
+    else if(tb[IFLA_MASTER])
+        br_index = mnl_attr_get_u32(tb[IFLA_MASTER]);
     else
         br_index = -1;
 
