@@ -20,8 +20,6 @@ int if_shutdown(char *ifname);
 
 int ethtool_get_speed_duplex(char *ifname, int *speed, int *duplex);
 
-bool is_bridge(char *if_name);
-
 int get_bridge_portno(char *if_name);
 
 char *index_to_name(int index, char *name);

@@ -120,13 +120,6 @@ char *index_to_port_name(int index, char *name)
 /********* Sysfs based utility functions *************/
 
 /* This sysfs stuff might break with interface renames */
-bool is_bridge(char *if_name)
-{
-    char path[32 + IFNAMSIZ];
-    sprintf(path, SYSFS_CLASS_NET "/%s/bridge", if_name);
-    return (0 == access(path, R_OK));
-}
-
 int get_bridge_portno(char *if_name)
 {
     char path[32 + IFNAMSIZ];
