@@ -10,6 +10,7 @@
 .Op Fl d
 .Op Fl s
 .Op Fl v Ar level
+.Op Fl c Ar file
 .Nm
 .Fl V
 .Sh DESCRIPTION
@@ -51,6 +52,18 @@ under the
 facility.
 .Sh OPTIONS
 .Bl -tag -width Ds
+.It Fl c Ar file
+Load the persistent JSON configuration from
+.Ar file .
+If the file cannot be read,
+.Nm
+exits with an error.
+Without this option, the first readable file of
+.Pa /etc/mstpd/config.json
+and
+.Pa /usr/lib/mstpd/config.json
+is used.
+If none exists, the built-in defaults apply.
 .It Fl d
 Do not daemonize.
 .Nm
@@ -101,6 +114,11 @@ Ignored.
 .Bl -tag -width Ds
 .It Pa /var/run/mstpd.pid
 PID file written when running as a daemon.
+.It Pa /etc/mstpd/config.json
+.It Pa /usr/lib/mstpd/config.json
+Persistent JSON configuration, searched in this order when
+.Fl c
+is not given.
 .It Pa /etc/bridge-stp.conf
 Configuration file read by
 .Xr bridge-stp 8 ;
@@ -118,7 +136,8 @@ not over a socket file in the filesystem.
 exits
 .Cm 0
 on a clean shutdown and non-zero on a fatal error (failure to daemonize,
-to create the PID file, to open the control socket, or to attach to
+to create the PID file, to read the file given with
+.Fl c, to open the control socket, or to attach to
 .Xr netlink 7 ) .
 .Sh EXAMPLES
 Run in the foreground with debug logging, for troubleshooting:

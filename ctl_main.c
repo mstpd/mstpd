@@ -12,6 +12,7 @@
 #include <getopt.h>
 #include <dirent.h>
 #include <errno.h>
+#include <unistd.h>
 #include <limits.h>
 #include <sys/stat.h>
 
@@ -1740,6 +1741,141 @@ static int cmd_debuglevel(int argc, char *const *argv)
     return CTL_set_debug_level(getuint(argv[1]));
 }
 
+/** Create an empty temporary configuration file that mstpd can read.
+ *
+ * The file is created with mkstemp() (mode 0600) in the first usable
+ * directory of /run, /dev/shm and /tmp. /tmp is only tried last because the
+ * mstpd systemd unit uses PrivateTmp=yes, so a file in the client's /tmp is
+ * not visible to a daemon started by systemd.
+ *
+ * @param path     Buffer that receives the path of the created file. Set to
+ *                 an empty string on failure.
+ * @param path_len Size of @p path in bytes, including the terminating NUL.
+ * @return Open file descriptor of the created file on success (the caller
+ *         must close it and unlink @p path); -1 if no file could be created.
+ *         On failure, an error message is printed to stderr.
+ */
+static int config_tmpfile_create(char *path, size_t path_len)
+{
+    static const char *const dirs[] = { "/run", "/dev/shm", "/tmp" };
+    size_t i;
+
+    for(i = 0; i < COUNT_OF(dirs); ++i)
+    {
+        snprintf(path, path_len, "%s/mstpctl-config-XXXXXX", dirs[i]);
+        int fd = mkstemp(path);
+        if(0 <= fd)
+            return fd;
+    }
+    fprintf(stderr, "Can't create temporary config file: %s\n",
+            strerror(errno));
+    path[0] = '\0';
+    return -1;
+}
+
+/** Write a complete buffer to a file descriptor.
+ *
+ * Repeats write() until all bytes are written, so that short writes are
+ * handled, and retries writes interrupted by a signal (EINTR).
+ *
+ * @param fd  File descriptor to write to.
+ * @param buf Data to write.
+ * @param len Number of bytes from @p buf to write.
+ * @return 0 if all @p len bytes were written; -1 on error, with errno set by
+ *         the failing write().
+ */
+static int write_all(int fd, const char *buf, size_t len)
+{
+    while(len > 0)
+    {
+        ssize_t l = write(fd, buf, len);
+        if(0 > l)
+        {
+            if(EINTR == errno)
+                continue;
+            return -1;
+        }
+        buf += l;
+        len -= (size_t)l;
+    }
+    return 0;
+}
+
+/** Copy the configuration read from stdin into a temporary file.
+ *
+ * mstpd only accepts a path to a configuration file, so the configuration
+ * piped into mstpctl (e.g. "cat config.json | mstpctl reload -") is stored in
+ * a temporary file created by config_tmpfile_create(). The content is not
+ * validated here; mstpd parses and validates it when loading the file.
+ *
+ * @param path     Buffer that receives the path of the temporary file. Set to
+ *                 an empty string on failure.
+ * @param path_len Size of @p path in bytes, including the terminating NUL.
+ * @return 0 on success (the caller must unlink @p path once mstpd has read
+ *         it); -1 if the file could not be created or written. On failure,
+ *         the file is removed and an error message is printed to stderr.
+ */
+static int config_tmpfile_from_stdin(char *path, size_t path_len)
+{
+    int fd = config_tmpfile_create(path, path_len);
+    if(0 > fd)
+        return -1;
+
+    int ret = 0;
+    char buf[4096];
+    size_t l;
+    while(0 == ret && 0 < (l = fread(buf, 1, sizeof(buf), stdin)))
+        ret = write_all(fd, buf, l);
+    if(ferror(stdin))
+        ret = -1;
+    if(0 != close(fd))
+        ret = -1;
+    if(0 != ret)
+    {
+        fprintf(stderr, "Can't write temporary config file %s: %s\n",
+                path, strerror(errno));
+        unlink(path);
+        path[0] = '\0';
+        return -1;
+    }
+    return 0;
+}
+
+static int cmd_config(int argc, char *const *argv)
+{
+    char resolved[PATH_MAX] = "";
+    bool is_tmpfile = false;
+    if(argc > 1 && 0 == strcmp(argv[1], "-"))
+    {
+        if(0 != config_tmpfile_from_stdin(resolved, sizeof(resolved)))
+            return -1;
+        is_tmpfile = true;
+    }
+    else if(argc > 1) {
+        if(!realpath(argv[1], resolved))
+        {
+            fprintf(stderr, "Can't resolve path %s: %s\n", argv[1],
+                    strerror(errno));
+            return -1;
+        }
+        if(strlen(resolved) >= CONFIG_PATH_LEN)
+        {
+            fprintf(stderr, "Path %s is too long (max %d characters)\n",
+                    resolved, CONFIG_PATH_LEN - 1);
+            return -1;
+        }
+    }
+    int ret;
+    if(0 == strcmp(argv[0], "reload"))
+        ret = CTL_reload_config(resolved);
+    else
+        ret = CTL_reapply_config(resolved);
+    /* mstpd has finished reading the file once the reply arrived */
+    if(is_tmpfile)
+        unlink(resolved);
+    return ret;
+}
+
 static int do_showmstilist_fmt_plain(const char *br_name,
                                      int num_mstis,
                                      const __u16 *mstids)
@@ -2171,6 +2307,11 @@ static int cmd_setfid2mstid(int argc, char *const *argv)
     return CTL_set_fids2mstids(br_index, fids2mstids);
 }
 
+/* Text shared by all config load commands (see mstpctl.8) */
+#define CONFIG_LOAD_COMMON_HELP \
+    "Use '-' to read the configuration from stdin. " \
+    "(See man page for details)"
+
 struct command
 {
     int nargs;
@@ -2185,9 +2326,12 @@ static const struct command commands[] =
 {
     /* Add/delete bridges */
     {1, 32, "addbridge", cmd_addbridge,
-     "<bridge> [<bridge> ...]", "Add bridges to the mstpd's list"},
+     "<bridge> [<bridge> ...]", "Enable STP on bridges: re-apply the loaded "
+     "persistent configuration and start the protocol (no-op if STP is "
+     "already enabled)"},
     {1, 32, "delbridge", cmd_delbridge,
-     "<bridge> [<bridge> ...]", "Remove bridges from the mstpd's list"},
+     "<bridge> [<bridge> ...]", "Disable STP on bridges: stop the protocol "
+     "and put all ports into disabled state (bridges stay monitored)"},
 
     /* Show global bridge */
     {0, 32, "showbridge", cmd_showbridge,
@@ -2281,6 +2425,15 @@ static const struct command commands[] =
 
     /* Other */
     {1, 0, "debuglevel", cmd_debuglevel, "<level>", "Level of verbosity"},
+    {0, 1, "reapply", cmd_config, "[<config-file>|-]",
+     "Load the persistent JSON configuration and apply it to all active "
+     "bridges and ports; also used for bridges and ports created later. "
+     CONFIG_LOAD_COMMON_HELP},
+    {0, 1, "reload", cmd_config, "[<config-file>|-]",
+     "Load the persistent JSON configuration without changing existing "
+     "bridges or ports; used for bridges and ports created later, including "
+     "new ports added to existing bridges. "
+     CONFIG_LOAD_COMMON_HELP},
 };
 
 static const struct command *command_lookup(const char *cmd)
@@ -2577,6 +2730,8 @@ CLIENT_SIDE_FUNCTION(set_vid2fid)
 CLIENT_SIDE_FUNCTION(set_fid2mstid)
 CLIENT_SIDE_FUNCTION(set_vids2fids)
 CLIENT_SIDE_FUNCTION(set_fids2mstids)
+CLIENT_SIDE_FUNCTION(reapply_config)
+CLIENT_SIDE_FUNCTION(reload_config)
 
 CTL_DECLARE(add_bridges)
 {

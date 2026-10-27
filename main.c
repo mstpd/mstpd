@@ -19,6 +19,8 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <errno.h>
+
 #include "epoll_loop.h"
 #include "bridge_ctl.h"
 #include "netif_utils.h"
@@ -28,6 +30,7 @@
 #include "ctl_socket_server.h"
 #include "driver.h"
 #include "bridge_track.h"
+#include "persistent_config.h"
 
 #define APP_NAME    "mstpd"
 
@@ -100,11 +103,15 @@ int main(int argc, char *argv[])
 {
     int c;
     int daemonize = 1;
+    static const char *config_path = NULL;
 
-    while((c = getopt(argc, argv, "Vdsv:")) != -1)
+    while((c = getopt(argc, argv, "Vdsc:v:")) != -1)
     {
         switch (c)
         {
+            case 'c':
+                config_path = optarg;
+                break;
             case 'd':
                 daemonize = 0;
                 break;
@@ -143,6 +150,21 @@ int main(int argc, char *argv[])
     if (sanity_check() < 0)
 	return EXIT_FAILURE;
 
+    if(config_path && 0 != access(config_path, R_OK))
+    {
+        ERROR("Can't read configuration file %s: %s", config_path, strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    const char *cfg = persistent_config_resolve(config_path);
+    if(cfg)
+    {
+        if(0 != persistent_config_load(cfg))
+            return EXIT_FAILURE;
+    }
+    else
+        INFO("No configuration file found, using defaults");
+
     if(daemonize)
     {
         FILE *f = fopen(MSTPD_PID_FILE, "w");
@@ -167,6 +189,7 @@ int main(int argc, char *argv[])
     TST(ctl_socket_init() == 0, -1);
     TST(packet_sock_init() == 0, -1);
     TST(netsock_init() == 0, -1);
+
     TST(init_bridge_ops() == 0, -1);
 
     c = epoll_main_loop(&quit);

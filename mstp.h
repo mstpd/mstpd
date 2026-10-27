@@ -568,6 +568,30 @@ void MSTP_IN_all_fids_flushed(per_tree_port_t *ptp);
 void MSTP_IN_rx_bpdu(port_t *prt, bpdu_t *bpdu, int size);
 
 bool MSTP_IN_set_vid2fid(bridge_t *br, __u16 vid, __u16 fid);
+
+/** Check whether a FID is within the supported range.
+ * @param fid FID value to validate.
+ * @return true when fid is at most MAX_FID; otherwise false.
+ */
+bool MSTP_IN_validate_fid(__u16 fid);
+
+/** Check whether an MSTID is within the supported range.
+ * @param mstid MSTID value to validate.
+ * @return true when mstid is at most MAX_MSTID; otherwise false.
+ */
+bool MSTP_IN_validate_mstid(__u16 mstid);
+
+/** Check whether a bridge or port priority is supported.
+ * @param priority Priority value to validate.
+ * @return true when priority is between 0 and 15 inclusive; otherwise false.
+ */
+bool MSTP_IN_validate_priority(__u8 priority);
+
+/** Check whether an administrative path cost is supported.
+ * @param path_cost Path cost to validate; zero requests automatic cost.
+ * @return true when path_cost is at most MAX_PATH_COST; otherwise false.
+ */
+bool MSTP_IN_validate_path_cost(__u32 path_cost);
 bool MSTP_IN_set_all_vids2fids(bridge_t *br, __u16 *vids2fids);
 bool MSTP_IN_set_fid2mstid(bridge_t *br, __u16 fid, __u16 mstid);
 bool MSTP_IN_set_all_fids2mstids(bridge_t *br, __u16 *fids2mstids);
@@ -658,7 +682,39 @@ typedef struct
     bool set_bridge_ageing_time;
 } CIST_BridgeConfig;
 
+typedef struct
+{
+    CIST_BridgeConfig cist_cfg;
+    __u8 bridge_priority;
+    __u16 mst_config_id_revision;
+    __u8 mst_config_id_name[CONFIGURATION_NAME_LEN];
+    __u16 vid2fid[MAX_VID + 1];
+    __u16 fid2mstid[MAX_FID + 1];
+} MSTP_BridgeDefaultConfig;
+
+void MSTP_IN_get_bridge_default_config(MSTP_BridgeDefaultConfig *cfg,
+                                       const __u8 *macaddr);
+
+/** Apply CIST bridge configuration to a bridge.
+ * @param br Bridge whose CIST parameters are updated.
+ * @param cfg Configuration fields and set flags to apply.
+ * @return 0 if the configuration was applied; -1 if validation fails.
+ */
 int MSTP_IN_set_cist_bridge_config(bridge_t *br, CIST_BridgeConfig *cfg);
+
+/** Validate CIST bridge parameters without changing bridge state.
+ *
+ * Unspecified max-age and forward-delay values are taken from the supplied
+ * current values so their combined constraint can be checked.
+ *
+ * @param cfg Configuration fields and their set flags.
+ * @param current_max_age Current bridge max-age when it is not being changed.
+ * @param current_forward_delay Current forward delay when it is not changed.
+ * @return NULL when valid, otherwise a pointer to a static error description.
+ */
+const char *MSTP_IN_validate_cist_bridge_config(
+    const CIST_BridgeConfig *cfg, __u8 current_max_age,
+    __u8 current_forward_delay);
 
 /* 12.8.1.4 Set MSTI Bridge Protocol Parameters */
     /* No need in special structure for single parameter Bridge Priority */
@@ -780,6 +836,12 @@ typedef struct
 
 int MSTP_IN_set_cist_port_config(port_t *prt, CIST_PortConfig *cfg);
 
+/** Validate CIST port parameters without changing port state.
+ * @param cfg CIST port fields and their set flags.
+ * @return NULL when valid, otherwise a pointer to a static error description.
+ */
+const char *MSTP_IN_validate_cist_port_config(const CIST_PortConfig *cfg);
+
 /* 12.8.2.4 Set MSTI port parameters */
 typedef struct
 {
@@ -790,7 +852,21 @@ typedef struct
     bool set_port_priority;
 } MSTI_PortConfig;
 
+typedef struct
+{
+    CIST_PortConfig cist_cfg;
+    MSTI_PortConfig msti_cfg;
+} MSTP_PortDefaultConfig;
+
+void MSTP_IN_get_port_default_config(MSTP_PortDefaultConfig *cfg);
+
 int MSTP_IN_set_msti_port_config(per_tree_port_t *ptp, MSTI_PortConfig *cfg);
+
+/** Validate MSTI port parameters without changing port state.
+ * @param cfg MSTI port fields and their set flags.
+ * @return NULL when valid, otherwise a pointer to a static error description.
+ */
+const char *MSTP_IN_validate_msti_port_config(const MSTI_PortConfig *cfg);
 
 /* 12.8.2.5 Force BPDU Migration Check */
 int MSTP_IN_port_mcheck(port_t *prt);

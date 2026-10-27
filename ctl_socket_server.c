@@ -74,6 +74,8 @@ static int handle_message(int cmd, void *inbuf, int lin,
         SERVER_MESSAGE_CASE(set_fid2mstid);
         SERVER_MESSAGE_CASE(set_vids2fids);
         SERVER_MESSAGE_CASE(set_fids2mstids);
+        SERVER_MESSAGE_CASE(reapply_config);
+        SERVER_MESSAGE_CASE(reload_config);
 
         case CMD_CODE_add_bridges:
         {

@@ -8,16 +8,17 @@ mstpd_SOURCES = \
 	bridge_track.c bridge_track.h driver.h bridge_ctl.h \
 	mstp.c mstp.h packet.c packet.h netif_utils.c \
 	netif_utils.h ctl_socket_server.c ctl_socket_server.h hmac_md5.c \
-	list.h log.h driver_deps.c
+	list.h log.h driver_deps.c persistent_config.c persistent_config.h \
+	json_utils.c json_utils.h config_apply.c config_apply.h
 
 mstpctl_SOURCES = \
 	ctl_main.c ctl_socket_client.c ctl_socket_client.h ctl_functions.h
 
 mstpd_CFLAGS = \
 	-Os -Wall -D_REENTRANT -D__LINUX__ -I. \
-	-D_GNU_SOURCE
+	-D_GNU_SOURCE $(CJSON_CFLAGS)
 
-mstpd_LDADD = $(LIBMNL_LIBS)
+mstpd_LDADD = $(LIBMNL_LIBS) $(CJSON_LIBS) -lm
 
 if ENABLE_DEVEL
   mstpd_CFLAGS += -g3 -O0 -Werror

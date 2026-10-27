@@ -157,5 +157,8 @@ int send_ctl_message(int cmd, void *inbuf, int lin, void *outbuf, int lout,
     if(res)
         *res = mhdr.res;
     log->buf[mhdr.llog] = 0;
+    if(0 == mhdr.res && mhdr.llog > 0
+       && (cmd == CMD_CODE_reapply_config || cmd == CMD_CODE_reload_config))
+        fputs(log->buf, stdout);
     return 0;
 }
