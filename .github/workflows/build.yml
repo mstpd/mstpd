@@ -7,15 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: install cmocka
+    - name: install dependencies
       shell: bash
-      run: sudo apt -y install libcmocka-dev libmnl-dev
-    - name: build
+      run: sudo apt -y install libcmocka-dev libmnl-dev clang-tidy bear
+    - name: strict build and unit tests
       shell: bash
-      run: ./autogen.sh && ./configure --enable-devel && make V=s
-    - name: unit tests
+      run: .devcontainer/scripts/build.sh -t
+    - name: lint with clang-tidy
       shell: bash
-      run: ./autogen.sh && ./configure --enable-devel && make check V=s
+      run: .devcontainer/scripts/lint.sh
     - name: shellcheck
       shell: bash
       run: shellcheck utils/ifupdown.sh.in utils/mstp_config_bridge.in utils/mstpctl-utils-functions.sh

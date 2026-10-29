@@ -1,0 +1,39 @@
+{
+	"name": "mstpd (C / gcc)",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.cpptools-extension-pack",
+				"ms-vscode.makefile-tools",
+				"timonwong.shellcheck",
+				"editorconfig.editorconfig"
+			],
+			"settings": {
+				"C_Cpp.default.compilerPath": "/usr/bin/gcc",
+				"C_Cpp.default.cStandard": "gnu11",
+				"C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+				"C_Cpp.default.includePath": [
+					"${workspaceFolder}",
+					"${workspaceFolder}/build"
+				],
+				"C_Cpp.default.defines": [
+					"_REENTRANT",
+					"__LINUX__",
+					"_GNU_SOURCE",
+					"HAVE_STRUCT_TIMESPEC=1",
+					"HAVE_CLOCK_GETTIME=1",
+					"HAVE_LIBMNL=1",
+					"PACKAGE_VERSION=\"dev\"",
+					"MSTPD_PID_FILE=\"/var/run/mstpd.pid\""
+				],
+				"C_Cpp.formatting": "default",
+				"files.insertFinalNewline": true,
+				"files.trimTrailingWhitespace": true
+			}
+		}
+	}
+}
