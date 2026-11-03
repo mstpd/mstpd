@@ -74,6 +74,25 @@ static void all_vid_mst_mod32_digest(void **state)
                         expected_digest, 16);
 }
 
+/** Verify an invalid bulk VID-to-FID mapping is rejected atomically.
+ * @param state CMocka state used to track and clean up the bridge.
+ */
+static void invalid_vid2fid_rejected(void **state)
+{
+    bridge_t *br;
+    __u16 vids2fids[MAX_VID + 1];
+    __u16 original_vid2fid[MAX_VID + 1];
+
+    alloc_bridge_ports(state, &br, "BR_TEST", 0x200000000001, NULL, 0);
+    memcpy(vids2fids, br->vid2fid, sizeof(vids2fids));
+    memcpy(original_vid2fid, br->vid2fid, sizeof(original_vid2fid));
+    vids2fids[1] = MAX_FID + 1;
+
+    assert_false(MSTP_IN_set_all_vids2fids(br, vids2fids));
+    assert_memory_equal(br->vid2fid, original_vid2fid,
+                        sizeof(original_vid2fid));
+}
+
 /* Setting a configuration name should set the name as expected */
 static void configuration_name(void **state)
 {
@@ -160,6 +179,7 @@ int main(int argc, char *argv[])
         cmocka_unit_test_setup_teardown(all_vid_cist_digest, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(all_vid_mst_1_digest, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(all_vid_mst_mod32_digest, prepare_test, teardown_test),
+        cmocka_unit_test_setup_teardown(invalid_vid2fid_rejected, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(configuration_name, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(configuration_name_min, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(configuration_name_max, prepare_test, teardown_test),

@@ -13,6 +13,86 @@ enable user-space STP, configure "brctl stp <bridge> on" or
 "ip link set <bridge> type bridge stp_state 1" while ensuring that
 /sbin/bridge-stp kernel helper script will return success (0) for
 this operation.
+.PP
+.B mstpctl reapply [<config-file>|-]
+loads the persistent JSON configuration and applies it to all active
+bridges and ports. The loaded configuration is also used for bridges
+and ports created later.
+.PP
+.B mstpctl reload [<config-file>|-]
+loads the persistent JSON configuration without changing existing bridges
+or ports. The loaded configuration is used for bridges and ports created
+later, including new ports added to existing bridges.
+.PP
+For both commands, without <config-file>, mstpd uses the first readable
+file of /etc/mstpd/config.json and /usr/lib/mstpd/config.json. If no
+file is found or the file is invalid, the current configuration is kept.
+If <config-file> is
+.BR - ,
+the configuration is read from standard input
+(e.g. "cat config.json | mstpctl reload -"). mstpctl passes the
+configuration to mstpd through a temporary file in /run (falling back to
+/dev/shm or /tmp), which is removed after the command completes.
+The commands do not merge existing configs. The loaded config is always replaced entirely.
+If the specified config is incomplete, hardcoded default values are used for the missing parameters.
+
+.SH BRIDGE MANAGEMENT
+mstpd automatically tracks every bridge and bridge port present on the
+system, including bridges and ports that are created or removed while it
+is running. A tracked bridge on which STP is not enabled is only monitored:
+its parameters can be shown and changed, but mstpd does not run the
+spanning tree protocol on it, i.e. it neither sends nor processes BPDUs.
+The commands below switch the protocol on and off for already existing
+bridges; they neither create nor delete bridge interfaces and do not
+change the kernel's
+.I stp_state
+of the bridge. The kernel must already be in user-space STP mode for the
+bridge (see DESCRIPTION); the
+.IR bridge-stp (8)
+helper normally calls these commands itself when STP is switched on or off.
+Each <bridge> must be the name of an existing network interface, otherwise
+mstpctl exits with an error without changing anything.
+.PP
+.B mstpctl addbridge <bridge> [<bridge> ...]
+enables STP on the given bridges. For each bridge on which STP is not yet
+enabled:
+.IP \(bu 2
+If mstpd does not track the bridge yet, it starts tracking it and applies
+the loaded persistent configuration (see
+.BR "mstpctl reload" )
+to it.
+.IP \(bu 2
+If mstpd already tracks the bridge (it was monitored, or STP was disabled
+with
+.BR "mstpctl delbridge" ),
+the loaded persistent configuration is applied again to the bridge and all
+of its ports. Values set at runtime with mstpctl set commands are
+overwritten by the stored values; parameters not listed in an entry are
+reset to their defaults. Bridges and ports without an entry in
+the loaded configuration keep their current settings.
+.IP \(bu 2
+The protocol is then started: the bridge is enabled if its interface is up,
+each port is enabled if its link is running, and mstpd begins to send and
+process BPDUs and to control the forwarding state of the ports.
+.PP
+Bridges on which STP is already enabled are left unchanged, so it is safe
+to call addbridge more than once for the same bridge.
+.PP
+.B mstpctl delbridge <bridge> [<bridge> ...]
+disables STP on the given bridges. All ports and the bridge are disabled
+in the protocol, the protocol state (roles, received information, timers)
+is reset and every port is put into the
+.I disabled
+state, i.e. mstpd stops sending BPDUs and the ports stop forwarding. The
+bridge remains tracked in monitoring mode: its parameters are kept,
+ports added later are still tracked, the show commands keep working and
+report "stp enabled no". Bridges that are not tracked or on which STP is
+already disabled are silently ignored. Because the kernel's
+.I stp_state
+is not changed, calling delbridge by hand while the kernel is still in
+user-space STP mode leaves the ports of the bridge disabled until
+.B mstpctl addbridge
+is called or STP is switched off in the kernel.
 
 .SH SPANNING TREE PROTOCOL CONFIGURATION
 

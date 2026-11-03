@@ -9,6 +9,7 @@
  *    for use in MSTP daemon. - 2011-07-18
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,7 +77,7 @@ static int mnl_talk(struct mnl_socket *nl, struct nlmsghdr *msg,
         return -1;
     }
 
-    ret = mnl_socket_recvfrom(nl, buf, sizeof(*buf));
+    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
     if(ret < 0)
     {
         ERROR("mnl_socket_recvfrom failed: %m");
@@ -91,8 +92,19 @@ static int mnl_talk(struct mnl_socket *nl, struct nlmsghdr *msg,
 
     if(answer)
     {
-        *answer = malloc(msg->nlmsg_len);
-        memcpy(*answer, buf, msg->nlmsg_len);
+        struct nlmsghdr *reply = (struct nlmsghdr *)buf;
+        size_t len = reply->nlmsg_len;
+
+        if(len > (size_t)ret)
+            len = ret;
+
+        *answer = malloc(len);
+        if(!*answer)
+        {
+            ERROR("Failed to allocate buffer for mnl answer: Out of memory");
+            return -1;
+        }
+        memcpy(*answer, buf, len);
     }
 
     return 0;
@@ -151,31 +163,31 @@ static int link_cb(const struct nlmsghdr *n, void *data)
     int br_index;
 
     if(n->nlmsg_type == NLMSG_DONE)
-        return 0;
+        return MNL_CB_STOP;
 
     if(mnl_nlmsg_get_payload_len(n) < sizeof(*ifi))
     {
-        return -1;
+        return MNL_CB_ERROR;
     }
 
     af_family = ifi->ifi_family;
 
     if(af_family != AF_BRIDGE && af_family != AF_UNSPEC)
-        return 0;
+        return MNL_CB_OK;
 
     if(n->nlmsg_type != RTM_NEWLINK && n->nlmsg_type != RTM_DELLINK)
-        return 0;
+        return MNL_CB_OK;
 
     mnl_attr_parse(n, sizeof(*ifi), link_attr_cb, tb);
 
     /* Check if we got this from bonding */
     if(tb[IFLA_MASTER] && af_family != AF_BRIDGE)
-        return 0;
+        return MNL_CB_OK;
 
     if(tb[IFLA_IFNAME] == NULL)
     {
         ERROR("BUG: nil ifname");
-        return -1;
+        return MNL_CB_ERROR;
     }
 
     if(n->nlmsg_type == RTM_DELLINK)
@@ -243,7 +255,8 @@ static int link_cb(const struct nlmsghdr *n, void *data)
 
     bridge_notify(br_index, ifi->ifi_index, newlink, ifi->ifi_flags);
 
-    return 0;
+    /* MNL_CB_STOP would drop the remaining messages in this datagram */
+    return MNL_CB_OK;
 }
 
 static int br_linkdump(struct mnl_socket *mnl, int family)
@@ -306,7 +319,8 @@ static inline void br_ev_handler(uint32_t events, struct epoll_event_handler *h)
         ret = mnl_socket_recvfrom(mnl, buf, sizeof(buf));
     }
 
-    if(ret == -1)
+    /* Non-blocking socket: EAGAIN just means all pending messages were read */
+    if(ret == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
     {
         ERROR("Error on bridge monitoring socket: %m");
     }

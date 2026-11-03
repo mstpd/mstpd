@@ -54,7 +54,9 @@ if it is not already running, and asynchronously calls
 .Ic mstpctl addbridge Ar bridge .
 On
 .Cm stop ,
-it removes the bridge from the daemon and terminates
+it disables STP on the bridge in the daemon
+.Pq Ic mstpctl delbridge Ar bridge
+and terminates
 .Xr mstpd 8
 if no other bridges are still using it.
 .Pp

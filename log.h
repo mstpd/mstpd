@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 #define LOG_LEVEL_NONE  0
 #define LOG_LEVEL_ERROR 1
@@ -66,7 +67,7 @@ static inline void dump_hex(void *b, int l)
     int i, j;
     for (i = 0; i < l; i += 16) {
         for (j = 0; j < 16 && i + j < l; ++j)
-            sprintf(logbuf + j * 3, " %02x", buf[i + j]);
+            sprintf(&logbuf[(ptrdiff_t)j * 3], " %02x", buf[i + j]);
         PRINT(LOG_LEVEL_INFO, "%s", logbuf);
     }
     PRINT(LOG_LEVEL_INFO, "\n");

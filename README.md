@@ -105,6 +105,49 @@ MSTPD is currently packaged for the following distributions:
 
 It is also available as a [recipe in Yocto](https://layers.openembedded.org/layerindex/recipe/340642/).
 
+Development environment
+-----------------------
+
+The `.devcontainer/` directory contains a [dev container](https://containers.dev/)
+definition (works with VS Code "Dev Containers" or GitHub Codespaces). It
+provides a ready-to-use Ubuntu image with everything needed to build and check
+`mstpd`: gcc, gdb, valgrind, autotools, `clang-tidy`, `clang-format`,
+`shellcheck`, and the `libcjson`, `libmnl` and `cmocka` development packages.
+
+Two helper scripts live in `.devcontainer/scripts/`. They can be run from any
+directory and always operate on the repository root.
+
+### `build.sh`
+
+    .devcontainer/scripts/build.sh        # build mstpd and mstpctl
+    .devcontainer/scripts/build.sh -t     # also build and run unit tests
+
+Compiles `mstpd` and `mstpctl` with gcc using strict warnings. It is a
+fast edit-compile loop that does not need `./autogen.sh && ./configure`:
+
+Binaries are written to `build/`. This is a development aid only; use the
+autotools build for installation and packaging.
+
+### `lint.sh`
+
+    .devcontainer/scripts/lint.sh
+
+Runs `clang-tidy` over the same sources (taken from `Makefile.am`).
+The enabled checks focus on undefined behavior and pointer
+misuse via clang analyzer.
+Findings are limited to this repository's own files and are never treated as
+errors, so review the output manually.
+
+### Suggested workflow
+
+1. Open the repository in the dev container.
+2. Edit code, then run `build.sh` and fix any new warnings. Run it with
+   `-t` before committing to execute the unit tests.
+3. Run `lint.sh` and look at findings in the files you touched. Fix real
+   issues rather than silencing them.
+4. For bugs that only show up at runtime, run the binaries in `build/` under
+   `gdb` or `valgrind` (both are installed).
+
 ACKNOWLEDGEMENTS
 ----------------
 

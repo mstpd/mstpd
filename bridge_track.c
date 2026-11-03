@@ -23,6 +23,8 @@
 #include "log.h"
 #include "mstp.h"
 #include "driver.h"
+#include "config_apply.h"
+#include "persistent_config.h"
 
 #ifndef SYSFS_CLASS_NET
 #define SYSFS_CLASS_NET "/sys/class/net"
@@ -50,6 +52,7 @@ static bridge_t * create_br(int if_index)
         goto err;
 
     list_add_tail(&br->list, &bridges);
+    persistent_config_apply_to_bridge(br);
     return br;
 err:
     free(br);
@@ -99,6 +102,7 @@ static port_t * create_if(bridge_t * br, int if_index)
     if(!MSTP_IN_port_create_and_add_tail(prt, portno))
         goto err;
 
+    persistent_config_apply_to_port(prt);
     return prt;
 err:
     free(prt);
@@ -845,6 +849,8 @@ int CTL_add_bridges(int *br_array)
 
     for(i = 1; i <= brcount; ++i)
     {
+        bool created = false;
+
         if(NULL == (br = find_br(br_array[i])))
         {
             if(NULL == (br = create_br(br_array[i])))
@@ -853,10 +859,21 @@ int CTL_add_bridges(int *br_array)
                       br_array[i]);
                 return -1;
             }
+            created = true;
         }
 
         if(br->stp_enabled)
             continue; /* already managed */
+
+        /* create_br() has already applied the stored configuration to a new
+         * bridge. An existing bridge with STP disabled (e.g. after delbridge)
+         * gets the currently loaded configuration re-applied. */
+        if(!created)
+        {
+            persistent_config_apply_to_bridge(br);
+            list_for_each_entry(prt, &br->ports, br_list)
+                persistent_config_apply_to_port(prt);
+        }
 
         br->stp_enabled = true;
         INFO("Enable STP on bridge %s", br->sysdeps.name);
@@ -896,6 +913,39 @@ int CTL_del_bridges(int *br_array)
             MSTP_IN_set_bridge_enable(br, false);
             br->stp_enabled = false;
         }
+    }
+
+    return 0;
+}
+
+int CTL_reload_config(const char *path)
+{
+    const char *cfg = persistent_config_resolve(path);
+    if(!cfg)
+    {
+        INFO("No configuration file found, keeping current configuration");
+        return -1;
+    }
+
+    return persistent_config_load(cfg);
+}
+
+/* Reload the persistent configuration and re-apply it to all bridges and
+ * ports that are already active */
+int CTL_reapply_config(const char *path)
+{
+    bridge_t *br;
+    port_t *prt;
+
+    if(0 != CTL_reload_config(path)) {
+        return -1;
+    }
+
+    list_for_each_entry(br, &bridges, list)
+    {
+        persistent_config_apply_to_bridge(br);
+        list_for_each_entry(prt, &br->ports, br_list)
+            persistent_config_apply_to_port(prt);
     }
 
     return 0;

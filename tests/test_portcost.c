@@ -210,6 +210,50 @@ static void portcost_invalid(void **state)
     assert_uint_equal(port_status.admin_external_port_path_cost, 0);
 }
 
+/** Verify lower and upper bounds of the shared configuration validators.
+ * @param state CMocka test state; unused by this test.
+ */
+static void config_validation_boundaries(void **state)
+{
+    CIST_BridgeConfig bridge_cfg = { 0 };
+    CIST_PortConfig cist_port_cfg = { 0 };
+    MSTI_PortConfig msti_port_cfg = { 0 };
+
+    assert_true(MSTP_IN_validate_fid(MAX_FID));
+    assert_false(MSTP_IN_validate_fid(MAX_FID + 1));
+    assert_true(MSTP_IN_validate_mstid(MAX_MSTID));
+    assert_false(MSTP_IN_validate_mstid(MAX_MSTID + 1));
+    assert_true(MSTP_IN_validate_priority(15));
+    assert_false(MSTP_IN_validate_priority(16));
+    assert_true(MSTP_IN_validate_path_cost(MAX_PATH_COST));
+    assert_false(MSTP_IN_validate_path_cost(MAX_PATH_COST + 1));
+
+    assert_null(MSTP_IN_validate_cist_bridge_config(&bridge_cfg, 20, 15));
+    bridge_cfg.set_bridge_max_age = true;
+    bridge_cfg.bridge_max_age = 5;
+    assert_non_null(MSTP_IN_validate_cist_bridge_config(&bridge_cfg, 20, 15));
+    bridge_cfg.bridge_max_age = 40;
+    bridge_cfg.set_bridge_forward_delay = true;
+    bridge_cfg.bridge_forward_delay = 4;
+    assert_non_null(MSTP_IN_validate_cist_bridge_config(&bridge_cfg, 20, 15));
+
+    cist_port_cfg.set_admin_external_port_path_cost = true;
+    cist_port_cfg.admin_external_port_path_cost = MAX_PATH_COST + 1;
+    assert_non_null(MSTP_IN_validate_cist_port_config(&cist_port_cfg));
+    cist_port_cfg.set_admin_external_port_path_cost = false;
+    cist_port_cfg.set_admin_p2p = true;
+    cist_port_cfg.admin_p2p = (admin_p2p_t)99;
+    assert_non_null(MSTP_IN_validate_cist_port_config(&cist_port_cfg));
+
+    msti_port_cfg.set_port_priority = true;
+    msti_port_cfg.port_priority = 16;
+    assert_non_null(MSTP_IN_validate_msti_port_config(&msti_port_cfg));
+    msti_port_cfg.set_port_priority = false;
+    msti_port_cfg.set_admin_internal_port_path_cost = true;
+    msti_port_cfg.admin_internal_port_path_cost = MAX_PATH_COST + 1;
+    assert_non_null(MSTP_IN_validate_msti_port_config(&msti_port_cfg));
+}
+
 int main(int argc, char *argv[])
 {
     const struct CMUnitTest tests[] = {
@@ -217,6 +261,7 @@ int main(int argc, char *argv[])
         cmocka_unit_test_setup_teardown(admin_int_portcost, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(portcost_values, prepare_test, teardown_test),
         cmocka_unit_test_setup_teardown(portcost_invalid, prepare_test, teardown_test),
+        cmocka_unit_test(config_validation_boundaries),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
