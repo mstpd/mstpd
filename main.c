@@ -182,6 +182,28 @@ int main(int argc, char *argv[])
 #include <stdarg.h>
 #include <time.h>
 
+/** Map an internal mstpd log level to a syslog(3) priority.
+ * Lets syslog consumers such as journald filter messages by severity.
+ * syslog has no priority below LOG_DEBUG, so all levels above
+ * LOG_LEVEL_INFO, including LOG_LEVEL_STATE_MACHINE_TRANSITION, share it.
+ * @param level Internal log level (one of the LOG_LEVEL_* constants).
+ * @return LOG_ERR for LOG_LEVEL_ERROR, LOG_INFO for LOG_LEVEL_INFO;
+ *         otherwise LOG_DEBUG.
+ */
+static int log_level_to_syslog_priority(int level)
+{
+    switch(level)
+    {
+        case LOG_LEVEL_ERROR:
+            return LOG_ERR;
+        case LOG_LEVEL_INFO:
+            return LOG_INFO;
+        default:
+            /* LOG_LEVEL_DEBUG, LOG_LEVEL_STATE_MACHINE_TRANSITION and above */
+            return LOG_DEBUG;
+    }
+}
+
 void vDprintf(int level, const char *fmt, va_list ap)
 {
     if(level > log_level)
@@ -201,7 +223,7 @@ void vDprintf(int level, const char *fmt, va_list ap)
     }
     else
     {
-        vsyslog((level <= LOG_LEVEL_INFO) ? LOG_INFO : LOG_DEBUG, fmt, ap);
+        vsyslog(log_level_to_syslog_priority(level), fmt, ap);
     }
 }
 
