@@ -143,8 +143,14 @@ static unsigned char msg_logbuf[LOG_STRING_LEN];
 static unsigned int msg_log_offset;
 void _ctl_err_log(char *fmt, ...)
 {
+    const char truncated[] =
+        "\nWarning: control reply truncated; not all messages are shown.\n";
     if((sizeof(msg_logbuf) - 1) <= msg_log_offset)
+    {
+        memcpy(msg_logbuf + sizeof(msg_logbuf) - sizeof(truncated),
+               truncated, sizeof(truncated));
         return;
+    }
     int r;
     va_list ap;
     va_start(ap, fmt);
@@ -152,11 +158,14 @@ void _ctl_err_log(char *fmt, ...)
                   sizeof(msg_logbuf) - msg_log_offset,
                   fmt, ap);
     va_end(ap);
+    if(r < 0)
+        return;
     msg_log_offset += r;
     if(sizeof(msg_logbuf) <= msg_log_offset)
     {
+        memcpy(msg_logbuf + sizeof(msg_logbuf) - sizeof(truncated),
+               truncated, sizeof(truncated));
         msg_log_offset = sizeof(msg_logbuf) - 1;
-        msg_logbuf[sizeof(msg_logbuf) - 1] = 0;
     }
 }
 

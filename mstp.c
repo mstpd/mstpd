@@ -2035,7 +2035,7 @@ static void recordAgreement(per_tree_port_t *ptp)
     }
     /* MSTI */
     cist = GET_CIST_PTP_FROM_PORT(prt);
-    if(prt->operPointToPointMAC 
+    if(prt->operPointToPointMAC
        && cmp(b->cistRootID, ==, cist->portPriority.RootID)
        && cmp(b->cistExtRootPathCost, ==, cist->portPriority.ExtRootPathCost)
        && cmp(b->cistRRootID, ==, cist->portPriority.RRootID)
@@ -2970,6 +2970,7 @@ static bool PRSM_run(port_t *prt, bool dry_run)
                     return true;
                 PRSM_to_RECEIVE(prt);
             }
+            return false;
         default:
             return false;
     }
@@ -3129,6 +3130,7 @@ static bool BDSM_run(port_t *prt, bool dry_run)
                     return true;
                 BDSM_to_EDGE(prt);
             }
+            return false;
         default:
             return false;
     }
@@ -4162,6 +4164,15 @@ static bool PRTSM_runr(per_tree_port_t *ptp, bool recursive_call, bool dry_run)
 
         /* 13.25.8 */
         MaxAge = cist->designatedTimes.Max_Age;
+    }
+
+    /* The static vars above are only set by the initial non-recursive call.
+     * A recursive call without a preceding initial call would use them
+     * uninitialized, so refuse to run the state machine in that case. */
+    if(!prt || !tree || !cist)
+    {
+        ERROR("PRTSM entered recursively without initial call");
+        return false;
     }
 
     PRTSM_LOG("role = %d, selectedRole = %d, selected = %d, updtInfo = %d",

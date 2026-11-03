@@ -45,12 +45,12 @@ PKG_PROG_PKG_CONFIG
 
 # Optional building of examples
 AC_ARG_ENABLE([devel],
-	[AC_HELP_STRING([--enable-devel], [build devel mode])])
+	[AS_HELP_STRING([--enable-devel], [build devel mode])])
 
 AM_CONDITIONAL([ENABLE_DEVEL], [test "x$enable_devel" = "xyes"])
 
 AC_ARG_ENABLE([install-ifupdown-scripts],
-	[AC_HELP_STRING([--enable-install-ifupdown-scripts], [enable installation of ifupdown scripts])])
+	[AS_HELP_STRING([--enable-install-ifupdown-scripts], [enable installation of ifupdown scripts])])
 
 AM_CONDITIONAL([ENABLE_INSTALL_IFUPDOWN_SCRIPTS], [test "x$enable_install_ifupdown_scripts" = "xyes"])
 

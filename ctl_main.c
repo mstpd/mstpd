@@ -252,7 +252,7 @@ static int do_showbridge_fmt_plain(const CIST_BridgeStatus *s,
             printf(BR_ID_FMT"\n", BR_ID_ARGS(s->regional_root));
             break;
         case PARAM_ROOTPORT:
-            if(0 != (root_portno = GET_NUM_FROM_PRIO(s->root_port_id)))
+            if(0 != (GET_NUM_FROM_PRIO(s->root_port_id)))
                 printf("%s\n", root_port_name);
             else
                 printf("\n");
@@ -1121,12 +1121,11 @@ static int do_showport(int br_index, const char *bridge_name,
                        const char *port_name, param_id_t param_id)
 {
     CIST_PortStatus s;
-    int r = 0;
     int port_index = get_index_die(port_name, "port", false);
     if(0 > port_index)
         return port_index;
 
-    if((r = CTL_get_cist_port_status(br_index, port_index, &s)))
+    if(CTL_get_cist_port_status(br_index, port_index, &s))
     {
         fprintf(stderr, "%s:%s Failed to get port state\n",
                 bridge_name, port_name);
@@ -2303,7 +2302,7 @@ static void command_helpall(void)
 
     for(i = 0; i < COUNT_OF(commands); ++i)
     {
-        if(strcmp("setportdonttxmt", commands[i].name))
+        if(strcmp("setportdonttxmt", commands[i].name) != 0)
             printf("-%s:\n   %-16s %s\n", commands[i].help, commands[i].name,
                commands[i].format);
     }
@@ -2471,13 +2470,19 @@ int main(int argc, char *const *argv)
         {
             case 'h':
                 help();
-                return 0;
+                rc = 0;
+                goto out;
             case 'V':
                 printf(PACKAGE_VERSION "\n");
-                return 0;
+                rc = 0;
+                goto out;
             case 'b':
                 if (is_stdin) {
                     fprintf(stderr, "Cannot mix stdin & batch file\n");
+                    goto help;
+                }
+                if (batch_file) {
+                    fprintf(stderr, "Only one batch file allowed\n");
                     goto help;
                 }
                 if (!optarg || !strlen(optarg)) {
@@ -2523,14 +2528,13 @@ int main(int argc, char *const *argv)
     if(ctl_client_init())
     {
         fprintf(stderr, "can't setup control connection\n");
-        return 1;
+        rc = 1;
+        goto out;
     }
 
     if (batch_file) {
         rc = process_batch_cmds(batch_file, ignore, is_stdin);
-        if (!is_stdin)
-            fclose(batch_file);
-        return rc;
+        goto out;
     }
 
     argc -= optind;
@@ -2544,7 +2548,11 @@ int main(int argc, char *const *argv)
 
 help:
     help();
-    return 1;
+    rc = 1;
+out:
+    if (batch_file && !is_stdin)
+        fclose(batch_file);
+    return rc;
 }
 
 /* Implementation of client-side functions */

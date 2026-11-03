@@ -101,6 +101,7 @@ static void packet_rcv(uint32_t events, struct epoll_event_handler *h)
     struct sockaddr_ll sl;
     socklen_t salen = sizeof sl;
 
+    memset(&sl, 0, salen);
     cc = recvfrom(h->fd, &buf, sizeof(buf), 0, (struct sockaddr *) &sl, &salen);
     if(cc <= 0)
     {

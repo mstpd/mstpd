@@ -22,13 +22,10 @@
 /*
  * assign() and cmp() macros that also do strict type-checking. See the
  * "unnecessary" pointer comparison.
- * NOTE: potential double-evaluation of the first argument in assign macro!
- *       It is the price for type-safety ;)
  */
-#define assign(x, y) ({             \
-    typeof(x) _assign1 = (x);       \
-    typeof(y) _assign2 = (y);       \
-    (void)(&_assign1 == &_assign2); \
+#define assign(x, y) ({                     \
+    typeof(y) _assign2 = (y);               \
+    (void)((typeof(x) *)0 == &_assign2);    \
     (x) = _assign2; })
 #define _ncmp(x, y) ({          \
     typeof(x) _cmp1 = (x);      \
